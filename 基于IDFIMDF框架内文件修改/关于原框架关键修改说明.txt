@@ -1,0 +1,63 @@
+.显示部分
+	因为添加了二维码生成需要调用ili9341/st7789驱动层 画块 函数，因此对画块函数进行独立抽离，
+	修改源文件ILI9341_adapter.cpp / ST7789_adapter.cpp <line234>：
+		新增函数 void externSocket_ex_disp_fill(int32_t x1, int32_t y1, int32_t x2, int32_t y2, lv_color_t color_p);
+	修改源文件对应ILI9341及ST7789的lcd_adapter.h<line125>：	
+		新增函数声明 void externSocket_ex_disp_fill(int32_t x1, int32_t y1, int32_t x2, int32_t y2, lv_color_t color_p);
+
+	添加用户自定义手势识别判断逻辑
+	修改源文件lvgl_indev_adapter.c<line52、line146-257>
+		新增相关业务逻辑
+
+	注释掉背光灯初始化使其失效，因为工程应用中需要pwm调制背光亮度，如果不注释掉的话，就只能在lcd初始化后面进行pwm初始化
+	修改源文件.spi_lcd.c<line210-215>
+		注释掉多余的业务代码
+	
+.触摸部分
+	任意触摸更新唤醒时间，通过事件进行通知，将原触摸驱动内添加触摸触发事件组 xEventGp_screenTouch
+	修改源文件lvgl_indev_adapter.c<line104-115>	
+		新增相关业务逻辑
+
+	刷新并读取多点触摸相关信息
+	修改源文件lvgl_indev_adapter.c<line53、line109-115>
+		新增相关业务逻辑	
+
+	新增开机是否进行触摸校准判断逻辑
+	修改源文件lvgl.c<line80-83>	
+		添加相关业务逻辑，通过调用函数usrApp_devIptdrv_paramRecalibration_get()获取重新校准标志
+			
+.蓝牙ble部分
+	重新自定义网络配置时，BLE连接完成后的信息回复内容
+	修改源文件mconfig_blufi.c<line331-337>
+		添加BLE连接成功后的回复内容，将开关设备的 版本号、设备类型、开关状态、当前温度、当前设备功率 进行回复
+	
+	重新自定义网络配置时，BLE接收数据的数据处理业务
+	修改源文件mconfig_blufi.c<line80、line650-657>
+		添加接收设备时区数据内容处理case BLUFI_DATA_DEV_TIMEZONE
+
+	重新自定义网络配置时，BLE名称命名逻辑，因为名称缓存不够，重新修改了相关缓存长度进行加长
+	修改源文件mconfig_blufi.h<line39>
+		将名称缓存长度MCONFIG_BLUFI_NAME_SIZE 改为 20
+
+.配置部分
+	http主机json查询mesh网络信息回复内添加debug部分，将mesh信息也放进http数据body内
+	修改源文件mlink_httpd.c<line219-226>
+		更改相关回复数据的 json body 数据
+
+	http主机json查询设备状态回复内添加设备MAC、开关状态、当前温度、当前设备功率数据
+	修改源文件mlink_handle.c<line359-384>	
+		更改相关回复数据的 json body 数据
+
+	设备发现时UDP回复数据内加上当前设备IP地址信息内容
+	修改源文件mlink_notice.c<line177-179、line266>
+		获取当前IP地址添加进UDP回复数据内
+
+.mesh数据传输部分
+	root数据发送部分相关变量业务有问题，导致malloc内存无法释放
+	修改源文件mwifi.c<line865-868>
+		将申请的缓存addrs_list给到指针tmp_addrs，最后tmp_addrs会被释放
+
+=====================================================================================
+提交代码对应mdf_sdk版本为7fe8393-dirty [2018年10月左右的版本]
+
+	
