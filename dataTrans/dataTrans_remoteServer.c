@@ -93,6 +93,7 @@ static char devMqtt_topicTemp[DEVMQTT_TOPIC_TEMP_LENGTH] = {0};
 static uint8_t dataRespond_temp[DEVMQTT_DATA_RESPOND_LENGTH] = {0};
 
 static esp_mqtt_client_handle_t usrAppClient = NULL;
+static bool mqttClientElecsumRepot_reserveFlg = false;
 
 static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event);
 
@@ -860,12 +861,16 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
     esp_mqtt_client_handle_t client = event->client;
     int msg_id;
 	uint8_t devRouterBssid[6] = {0};
+
+	mqttClientElecsumRepot_reserveFlg = false;
 	
     // your_context_t *context = event->context;
     switch (event->event_id) {
         case MQTT_EVENT_CONNECTED:
 
 			remoteMqtt_connectFlg = true;
+
+//			usrAppClient = client; //更新client
 
 			devRouterConnectBssid_Get(devRouterBssid);
 
@@ -920,6 +925,9 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
             ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
             break;
     }
+
+	mqttClientElecsumRepot_reserveFlg = true;
+	
     return ESP_OK;
 }
 
@@ -938,6 +946,8 @@ void mqtt_rootDevRemoteDatatransLoop_elecSumReport(void){
 
 	if(!remoteMqtt_connectFlg)return; //远程连接不可用
 
+	while(!mqttClientElecsumRepot_reserveFlg)vTaskDelay(1 / portTICK_PERIOD_MS); //等待mqttClient资源可用
+
 	memset(devMqtt_topicTemp, 0, DEVMQTT_TOPIC_TEMP_LENGTH); //主题缓存清零
 	sprintf(devMqtt_topicTemp, "%s", (char *)mqttTopicSpecial_elecsumReport);
 
@@ -946,7 +956,7 @@ void mqtt_rootDevRemoteDatatransLoop_elecSumReport(void){
 	if(devUnitNum_temp == DEVLIST_MANAGE_LISTNUM_MASK_NULL){ //设备采集未就绪，设备还未足够运行一个心跳周期
 
 		mqttData_pbLen = 1;
-		printf("mqtt cmdQuery_devElecsumInfo respondNoReady res:0x%04X.\n", esp_mqtt_client_publish(usrAppClient, devMqtt_topicTemp, (const char*)dataReport_devElecsumInfo, mqttData_pbLen, 1, 1));
+		printf("mqtt cmdQuery_devElecsumInfo reportNoReady res:0x%04X.\n", esp_mqtt_client_publish(usrAppClient, devMqtt_topicTemp, (const char*)dataReport_devElecsumInfo, mqttData_pbLen, 1, 1));
 	}
 	else
 	{
@@ -967,7 +977,7 @@ void mqtt_rootDevRemoteDatatransLoop_elecSumReport(void){
 				dataRespLoadInsert += dataRespPerPackInfoLen;
 				mqttData_pbLen = dataRespPerPackInfoLen + 1;
 				
-				printf("mqtt cmdQuery_devElecsumInfo respond loop%d res:0x%04X.\n", loop, esp_mqtt_client_publish(usrAppClient, devMqtt_topicTemp, (const char*)dataRespPerPackBuff, mqttData_pbLen, 1, 1)); //数据发送
+				printf("mqtt cmdQuery_devElecsumInfo reportLoop%d res:0x%04X.\n", loop, esp_mqtt_client_publish(usrAppClient, devMqtt_topicTemp, (const char*)dataRespPerPackBuff, mqttData_pbLen, 1, 1)); //数据发送
 				memset(dataRespPerPackBuff, 0, sizeof(uint8_t) * USRAPP_MQTT_REMOTEREQ_DATAPACK_PER_LENGTH); //数据发送缓存清空
 			}
 		}
@@ -980,7 +990,7 @@ void mqtt_rootDevRemoteDatatransLoop_elecSumReport(void){
 			memcpy(&dataRespPerPackBuff[1], &dataReport_devElecsumInfo[dataRespLoadInsert], dataRespPerPackInfoLen);
 			dataRespLoadInsert += dataRespPerPackInfoLen;
 			mqttData_pbLen = dataRespPerPackInfoLen + 1;
-			printf("mqtt cmdQuery_devElecsumInfo respondTail res:0x%04X.\n", esp_mqtt_client_publish(usrAppClient, devMqtt_topicTemp, (const char*)dataRespPerPackBuff, mqttData_pbLen, 1, 1)); //数据发送
+			printf("mqtt cmdQuery_devElecsumInfo reportTail res:0x%04X.\n", esp_mqtt_client_publish(usrAppClient, devMqtt_topicTemp, (const char*)dataRespPerPackBuff, mqttData_pbLen, 1, 1)); //数据发送
 			memset(dataRespPerPackBuff, 0, sizeof(uint8_t) * USRAPP_MQTT_REMOTEREQ_DATAPACK_PER_LENGTH); //数据发送缓存清空
 		}
 	}

@@ -351,8 +351,8 @@ void dataHandler_devNodeMeshData(const uint8_t *src_addr, const mlink_httpd_type
 
 				switch(currentDevType){
 				
-					case devTypeDef_mulitSwOneBit:{}break;
-					case devTypeDef_mulitSwTwoBit:{}break;
+					case devTypeDef_mulitSwOneBit:
+					case devTypeDef_mulitSwTwoBit:
 					case devTypeDef_mulitSwThreeBit:{
 
 						uint8_t devDataPoint_hex = 0;

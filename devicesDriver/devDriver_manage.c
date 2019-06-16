@@ -116,8 +116,8 @@ void funcation_usrAppMutualCtrlActionTrig(void){
 	//互控触发
 	switch(lanbon_l8device_currentDevType){
 
-		case devTypeDef_mulitSwOneBit:{}break;
-		case devTypeDef_mulitSwTwoBit:{}break;
+		case devTypeDef_mulitSwOneBit:
+		case devTypeDef_mulitSwTwoBit:
 		case devTypeDef_mulitSwThreeBit:{
 
 			uint8_t dataPointHexTemp_current = 0,
@@ -126,8 +126,8 @@ void funcation_usrAppMutualCtrlActionTrig(void){
 			memcpy(&dataPointHexTemp_current, &lanbon_l8device_currentDataPoint, sizeof(uint8_t));
 			memcpy(&dataPointHexTemp_record, &deviceDataPointRecord_lastTime, sizeof(uint8_t));
 
-			printf("mutual Info: currentData:%02X, recordData:%02X.\n", dataPointHexTemp_current,
-																	    dataPointHexTemp_record);
+//			printf("mutual Info: currentData:%02X, recordData:%02X.\n", dataPointHexTemp_current,
+//																	    dataPointHexTemp_record);
 
 			for(uint8_t loopOpt = 0; loopOpt < DEVICE_MUTUAL_CTRL_GROUP_NUM; loopOpt ++){ //互控位是否可用?
 

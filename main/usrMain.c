@@ -1134,6 +1134,7 @@ static void trigger_handle_task(void *arg)
 //			ESP_LOGI(TAG, "heartbeat trig.");
 
 			devHeartbeat_dataTrans_bussinessTrig();
+			vTaskDelay(20 / portTICK_RATE_MS);
 		}
 
 		if(uxBits & DEVAPPLICATION_FLG_BITHOLD_MUTUALTRIG){
@@ -1141,6 +1142,7 @@ static void trigger_handle_task(void *arg)
 //			ESP_LOGI(TAG, "mutualCtrl trig.");
 
 			funcation_usrAppMutualCtrlActionTrig(); 
+			vTaskDelay(20 / portTICK_RATE_MS);
 		}
 
 		if(uxBits & DEVAPPLICATION_FLG_BITHOLD_DEVEKECSUM_REPORT){
@@ -1148,6 +1150,7 @@ static void trigger_handle_task(void *arg)
 //			ESP_LOGI(TAG, "decElecsum info report trig.");
 
 			mqtt_rootDevRemoteDatatransLoop_elecSumReport();
+			vTaskDelay(20 / portTICK_RATE_MS);
 		}
 
 		vTaskDelay(2 / portTICK_RATE_MS);
@@ -1322,7 +1325,7 @@ void app_main()
     MDF_ERROR_ASSERT(mlink_add_characteristic_handle(mlink_get_value, mlink_set_value));
 
     mlink_trigger_init();
-    xTaskCreate(trigger_handle_task, "trigger_handle", 1024 * 6,  NULL, 1, NULL);
+    xTaskCreate(trigger_handle_task, "trigger_handle", 1024 * 8,  NULL, 4, NULL);
 
     /**
      * @brief Initialize esp-mesh
