@@ -22,15 +22,15 @@
 #include "gui_businessHome.h"
 
 #include "gui_businessMenu.h"
-#include "gui_businessMenu_deviceInfo.h"
-#include "gui_businessMenu_deviceManage.h"
-#include "gui_businessMenu_scence.h"
-#include "gui_businessMenu_security.h"
+#include "gui_businessMenu_other.h"
+#include "gui_businessMenu_wifiConfig.h"
+#include "gui_businessMenu_delayer.h"
+#include "gui_businessMenu_timer.h"
+#include "gui_businessMenu_linkageConfig.h"
 #include "gui_businessMenu_setting.h"
 #include "gui_businessMenu_setting_A.h"
 #include "gui_businessMenu_setting_B.h"
 #include "gui_businessMenu_setting_C.h"
-#include "gui_businessMenu_statistics.h"
 
 #include "devDataManage.h"
 #include "devDriver_manage.h"
@@ -39,6 +39,8 @@
 
 typedef void (*guiHomeFun_local_bussiness)(lv_obj_t * obj_Parent);
 
+LV_FONT_DECLARE(lv_font_arialNum_100);
+LV_FONT_DECLARE(lv_font_dejavu_40);
 LV_FONT_DECLARE(lv_font_dejavu_30);
 LV_FONT_DECLARE(lv_font_dejavu_15);
 LV_FONT_DECLARE(lv_font_consola_13);
@@ -59,11 +61,11 @@ LV_IMG_DECLARE(testPic_P);
 LV_IMG_DECLARE(ttA);
 LV_IMG_DECLARE(night_Sight);
 LV_IMG_DECLARE(ll_longxia);
-LV_IMG_DECLARE(homepage_bkPic_danYa);
+//LV_IMG_DECLARE(homepage_bkPic_danYa);
 LV_IMG_DECLARE(homepage_bkPic_jiJian);
 LV_IMG_DECLARE(homepage_bkPic_jianJie);
 LV_IMG_DECLARE(homepage_bkPic_keAi);
-LV_IMG_DECLARE(homepage_bkPic_ouZhou);
+//LV_IMG_DECLARE(homepage_bkPic_ouZhou);
 
 LV_IMG_DECLARE(iconHeader_wifi_A);
 LV_IMG_DECLARE(iconHeader_wifi_B);
@@ -88,11 +90,8 @@ LV_IMG_DECLARE(iconHome_menu);
 LV_IMG_DECLARE(btnIconHome_meeting);
 LV_IMG_DECLARE(btnIconHome_sleeping);
 LV_IMG_DECLARE(btnIconHome_toilet);
-LV_IMG_DECLARE(iconPage_curtainClose_pre);
 LV_IMG_DECLARE(iconPage_curtainClose_rel);
-LV_IMG_DECLARE(iconPage_curtainPluse_pre);
 LV_IMG_DECLARE(iconPage_curtainPluse_rel);
-LV_IMG_DECLARE(iconPage_curtainOpen_pre);
 LV_IMG_DECLARE(iconPage_curtainOpen_rel);
 LV_IMG_DECLARE(iconPage_binding);
 LV_IMG_DECLARE(iconPage_unbinding);
@@ -101,6 +100,11 @@ LV_IMG_DECLARE(imageCurtain_body);
 
 LV_IMG_DECLARE(iconLightA_HomePageDeviceDimmer);
 LV_IMG_DECLARE(iconLightB_HomePageDeviceDimmer);
+LV_IMG_DECLARE(iconFans_HomePageDeviceFans);
+LV_IMG_DECLARE(iconCurtain_HomePageDeviceCurtain);
+LV_IMG_DECLARE(iconHourglass_HomePageDeviceHeater);
+LV_IMG_DECLARE(iconHeater_HomePageDeviceHeater);
+LV_IMG_DECLARE(iconSet_HomePageDeviceHeater);
 
 //业务变量
 extern EventGroupHandle_t xEventGp_tipsLoopTimer;
@@ -150,7 +154,6 @@ static lv_obj_t *icon_loopTimerTips = NULL;
 static bool		trigFlg_loopTimerTips = false;
 
 static lv_obj_t *label_bk_devDimmer = NULL;
-static lv_obj_t *label_bk_devHeater_timeRemind = NULL;
 static lv_obj_t *label_bk_devCurtain_positionCur = NULL;
 static lv_obj_t *label_bk_devCurtain_positionAdj = NULL;
 
@@ -175,13 +178,37 @@ static lv_obj_t *btn_bk_devCurtain_stop = NULL;
 static lv_obj_t *btn_bk_devCurtain_close = NULL;
 static lv_obj_t *cont_bk_devCurtainImage = NULL;
 static lv_obj_t *image_bk_devCurtain_gan = NULL;
-static lv_obj_t *image_bk_devCurtain_bodyLeft = NULL;
-static lv_obj_t *image_bk_devCurtain_bodyRight = NULL;
+static lv_obj_t *image_bk_devCurtain_body = NULL;
 static lv_obj_t *slider_bk_devCurtain = NULL;
-static lv_obj_t *slider_bk_devCurtainPosTips = NULL;
-static lv_obj_t *roller_bk_devFans = NULL;
-static lv_obj_t *roller_bk_devHeater = NULL;
+static lv_obj_t *btnm_bk_devFans = NULL;
+static lv_obj_t *textInstract_devFans = NULL;
+static lv_obj_t *icomImage_devFans = NULL;
 static lv_obj_t *btnm_bk_devHeater = NULL;
+static lv_obj_t *imgBtn_devHeater_timeSet = NULL;
+static lv_obj_t *page_timeSet_devHeater = NULL;
+static lv_obj_t *rollerH_timeSetPage_devHeater = NULL;
+static lv_obj_t *rollerM_timeSetPage_devHeater = NULL;
+static lv_obj_t *rollerS_timeSetPage_devHeater = NULL;
+static lv_obj_t *labelH_timeSetPage_devHeater = NULL;
+static lv_obj_t *labelM_timeSetPage_devHeater = NULL;
+static lv_obj_t *labelS_timeSetPage_devHeater = NULL;
+static lv_obj_t *labelTitle_timeSetPage_devHeater = NULL;
+static lv_obj_t *labelConfirm_timeSetPage_devHeater = NULL;
+static lv_obj_t *labelCancel_timeSetPage_devHeater = NULL;
+static lv_obj_t *btnConfirm_timeSetPage_devHeater = NULL;
+static lv_obj_t *btnCancel_timeSetPage_devHeater = NULL;
+static lv_obj_t *textTimeInstract_target_devHeater = NULL;
+static lv_obj_t *textTimeInstract_current_devHeater = NULL;
+static lv_obj_t *icomImageA_devHeater = NULL;
+static lv_obj_t *lmeterTempInstTarget_devThermostat = NULL;
+static lv_obj_t *lmeterTempInstCurrent_devThermostat = NULL;
+static lv_obj_t *labelTempInstTarget_devThermostat = NULL;
+static lv_obj_t *labelTempInstCurrent_devThermostat = NULL;
+static lv_obj_t *slider_tempAdj_devThermostat = NULL;
+static lv_obj_t *btn_tempAdjAdd_devThermostat = NULL;
+static lv_obj_t *textBtn_tempAdjAdd_devThermostat = NULL;
+static lv_obj_t *btn_tempAdjCut_devThermostat = NULL;
+static lv_obj_t *textBtn_tempAdjCut_devThermostat = NULL;
 
 //home界面进入菜单按键对象
 static lv_obj_t *btn_homeMenu = NULL;
@@ -205,17 +232,43 @@ static lv_style_t stylePhotoAk_devDimmer;
 static lv_style_t stylePhotoBk_devDimmer;
 static lv_style_t styleText_devDimmer_SliderBk;
 static lv_style_t styleText_devHeater_Bk_timeRemind;
+static lv_style_t styleText_devCurtain_Bk_positionCurr;
 static lv_style_t styleText_devCurtain_Bk_positionTips;
 static lv_style_t styleBtn_devCurtain_statusPre;
 static lv_style_t styleBtn_devCurtain_statusRel;
+static lv_style_t styleText_devCurtain_SliderBk;
+static lv_style_t styleImageBk_devCurtain_bkImgBody;
 static lv_style_t styleSliderBk_devCurtain_bg;
 static lv_style_t styleSliderBk_devCurtain_indic;
 static lv_style_t styleSliderBk_devCurtain_knob;
-static lv_style_t styleRollerBk_devFans_bg;
-static lv_style_t styleRollerBk_devFans_sel;
-static lv_style_t styleRollerBk_devHeater_bg;
-static lv_style_t styleRollerBk_devHeater_sel;
-static lv_style_t styleText_devCurtain_SliderBk;
+static lv_style_t styleImage_devFans_icon;
+static lv_style_t styleText_devFans_instract;
+static lv_style_t styleBtnm_devFans_btnBg;
+static lv_style_t styleBtnm_devFans_btnRel;
+static lv_style_t styleBtnm_devFans_btnPre;
+static lv_style_t styleBtnm_devFans_btnTglRel;
+static lv_style_t styleBtnm_devFans_btnTglPre;
+static lv_style_t styleBtnm_devFans_btnIna;
+static lv_style_t styleImage_devHeater_icon;
+static lv_style_t styleText_devHeater_timeInst;
+static lv_style_t styleBtnm_devHeater_btnBg;
+static lv_style_t styleBtnm_devHeater_btnRel;
+static lv_style_t styleBtnm_devHeater_btnPre;
+static lv_style_t stylePage_devHeater_timeSet;
+static lv_style_t styleTextBtn_devHeater_timeSetPage;
+static lv_style_t styleTextRoller_devHeater_timeSetPage_bg;
+static lv_style_t styleTextRoller_devHeater_timeSetPage_sel;
+static lv_style_t styleTextRollerTips_devHeater_timeSetPage;
+static lv_style_t styleLmeter_devThermostat_tempTarget;
+static lv_style_t styleLmeter_devThermostat_tempCurrent;
+static lv_style_t styleLabel_devThermostat_tempTarget;
+static lv_style_t styleLabel_devThermostat_tempCurrent;
+static lv_style_t styleSliderBk_devThermostat_bg;
+static lv_style_t styleSliderBk_devThermostat_indic;
+static lv_style_t styleSliderBk_devThermostat_knob;
+static lv_style_t styleTextBtnBk_devThermostat_tempAdj;
+static lv_style_t styleImgBk_underlying;
+static lv_style_t stylebtnBk_transFull;
 
 //其他本地变量
 static uint8_t homepageThemeType_typeFlg = homepageThemeType_ouZhou;
@@ -225,10 +278,10 @@ static char textStr_nodeNum[5] = {0};
 static char textStr_elecSum[20] = {0};
 static char textStr_temperature[10] = {0}; 
 
-static char str_sliderBkVal_devDimmer[20] = {0};
-static char str_devRunningRemind_devHeater[60] = {0};
-static char str_devParamPositionCur_devCurtain[25] = {0};
-static char str_devParamPositionAdj_devCurtain[25] = {0};
+static char str_sliderBkVal_devDimmer[5] = {0};
+static char str_devRunningRemind_devHeater[15] = {0};
+static char str_devParamPositionCur_devCurtain[5] = {0};
+static char str_devParamPositionAdj_devCurtain[5] = {0};
 
 static uint8_t btnBindingStatus_record[DEVICE_MUTUAL_CTRL_GROUP_NUM] = {0}; //按钮绑定图标本地比较记录缓存
 static bool mutualCtrlTrigIf_A = false; 
@@ -236,6 +289,7 @@ static bool mutualCtrlTrigIf_B = false;
 static bool mutualCtrlTrigIf_C = false;
 
 static const char *btnm_str_devHeater[DEVICE_HEATER_OPREAT_ACTION_NUM + 1] = {"X", "A", "B", "C", "D", ""};
+static const char *btnm_str_devFans[DEVICE_FANS_OPREAT_ACTION_NUM + 1] = {"C", "1", "2", "3", ""};
 
 //不同类型开关所需的参照常量
 static const struct _rollerDispConferenceTab_devFans{
@@ -243,7 +297,7 @@ static const struct _rollerDispConferenceTab_devFans{
 	stt_devFans_opratAct opreatActCurrent;
 	uint16_t optionSelect;
 
-}objDevFans_rollerDispConferenceTab[DEVICE_CURTAIN_OPREAT_ACTION_NUM] = { //风扇开关不同档位对应ui显示值参照表
+}objDevFans_btnmDispConferenceTab[DEVICE_FANS_OPREAT_ACTION_NUM] = { //风扇开关不同档位对应ui显示值参照表
 
 	{fansOpreatAct_stop,		0},
 	{fansOpreatAct_firstGear,	1},
@@ -256,7 +310,7 @@ static const struct _rollerDispConferenceTab_devHeater{
 	stt_devHeater_opratAct opreatActCurrent;
 	uint16_t optionSelect;
 
-}objDevHeater_rollerDispConferenceTab[DEVICE_HEATER_OPREAT_ACTION_NUM] = { //风扇开关不同档位对应ui显示值参照表
+}objDevHeater_btnmDispConferenceTab[DEVICE_HEATER_OPREAT_ACTION_NUM] = { //风扇开关不同档位对应ui显示值参照表
 
 	{heaterOpreatAct_close,					0},
 	{heaterOpreatAct_open,					1},
@@ -520,6 +574,56 @@ static lv_res_t funCb_btnActionClick_devMulitSw_mainBtnC(lv_obj_t *btn){
 	return LV_RES_OK;
 }
 
+static lv_res_t funCb_btnActionClick_devThermostat_tempAdd(lv_obj_t *btn){
+
+	stt_devDataPonitTypedef devDataPoint = {0};
+	char tempDisp[5] = {0};
+
+	currentDev_dataPointGet(&devDataPoint);
+	
+//	printf("add+.\n");
+
+	if(devDataPoint.devType_thermostat.devThermostat_tempratureTarget == 0)
+		devDataPoint.devType_thermostat.devThermostat_tempratureTarget = 16;
+
+	if(devDataPoint.devType_thermostat.devThermostat_tempratureTarget < 32)
+		devDataPoint.devType_thermostat.devThermostat_tempratureTarget += 1;
+
+	currentDev_dataPointSet(&devDataPoint, true, true, true);
+	
+	lv_slider_set_value(slider_tempAdj_devThermostat, devDataPoint.devType_thermostat.devThermostat_tempratureTarget - 16);
+	sprintf(tempDisp, "%02d", (uint8_t)devDataPoint.devType_thermostat.devThermostat_tempratureTarget);
+	lv_label_set_text(labelTempInstTarget_devThermostat, tempDisp);
+	lv_lmeter_set_value(lmeterTempInstTarget_devThermostat, (uint8_t)devDataPoint.devType_thermostat.devThermostat_tempratureTarget);
+
+	return LV_RES_OK;
+}
+
+static lv_res_t funCb_btnActionClick_devThermostat_tempCut(lv_obj_t *btn){
+
+	stt_devDataPonitTypedef devDataPoint = {0};
+	char tempDisp[5] = {0};
+
+	currentDev_dataPointGet(&devDataPoint);
+	
+//	printf("cut-.\n");
+
+	if(devDataPoint.devType_thermostat.devThermostat_tempratureTarget == 0)
+		devDataPoint.devType_thermostat.devThermostat_tempratureTarget = 16;
+
+	if(devDataPoint.devType_thermostat.devThermostat_tempratureTarget > 16)
+		devDataPoint.devType_thermostat.devThermostat_tempratureTarget -= 1;
+
+	currentDev_dataPointSet(&devDataPoint, true, true, true);
+
+	lv_slider_set_value(slider_tempAdj_devThermostat, devDataPoint.devType_thermostat.devThermostat_tempratureTarget - 16);
+	sprintf(tempDisp, "%02d", (uint8_t)devDataPoint.devType_thermostat.devThermostat_tempratureTarget);
+	lv_label_set_text(labelTempInstTarget_devThermostat, tempDisp);
+	lv_lmeter_set_value(lmeterTempInstTarget_devThermostat, (uint8_t)devDataPoint.devType_thermostat.devThermostat_tempratureTarget);
+
+	return LV_RES_OK;
+}
+
 static lv_res_t funCb_btnActionClick_devCurtain_open(lv_obj_t *btn){
 
 	stt_devDataPonitTypedef devDataPoint = {0};
@@ -633,36 +737,17 @@ static lv_res_t funCb_btnActionClick_bindingBtnC(lv_obj_t *btn){
 	return LV_RES_OK;
 }
 
-static lv_res_t funCb_rollAction_devFans_mainRoller(lv_obj_t *roller){
-
-	uint16_t optionRollerSelect = lv_roller_get_selected(roller);
-
-	for(uint8_t loop = 0; loop < DEVICE_CURTAIN_OPREAT_ACTION_NUM; loop ++){
-
-		if(optionRollerSelect == objDevFans_rollerDispConferenceTab[loop].optionSelect){
-
-			stt_devDataPonitTypedef devDataPoint = {0};
-
-			devDataPoint.devType_fans.devFans_swEnumVal = objDevFans_rollerDispConferenceTab[loop].opreatActCurrent;
-
-			currentDev_dataPointSet(&devDataPoint, true, true, true);	
-		}
-	}
-
-	return LV_RES_OK;
-}
-
 static lv_res_t funCb_rollAction_devHeater_mainRoller(lv_obj_t *roller){
 
 	uint16_t optionRollerSelect = lv_roller_get_selected(roller);
 
 	for(uint8_t loop = 0; loop < DEVICE_HEATER_OPREAT_ACTION_NUM; loop ++){
 
-		if(optionRollerSelect == objDevHeater_rollerDispConferenceTab[loop].optionSelect){
+		if(optionRollerSelect == objDevHeater_btnmDispConferenceTab[loop].optionSelect){
 
 			stt_devDataPonitTypedef devDataPoint = {0};
 
-			devDataPoint.devType_heater.devHeater_swEnumVal = objDevHeater_rollerDispConferenceTab[loop].opreatActCurrent;
+			devDataPoint.devType_heater.devHeater_swEnumVal = objDevHeater_btnmDispConferenceTab[loop].opreatActCurrent;
 
 			currentDev_dataPointSet(&devDataPoint, true, true, true);	
 		}
@@ -671,13 +756,316 @@ static lv_res_t funCb_rollAction_devHeater_mainRoller(lv_obj_t *roller){
 	return LV_RES_OK;
 }
 
+static lv_res_t funCb_btnmActionClick_devFans_gearBtnm(lv_obj_t *btnm, const char *txt){
+
+	uint8_t loop = 0;
+
+	for(loop = 0; loop < DEVICE_FANS_OPREAT_ACTION_NUM + 1; loop ++){
+
+		if(!strcmp(txt, btnm_str_devFans[loop])){
+
+			printf("btn %s has be selected.\n", txt);
+			
+			break;
+		}
+	}
+
+	if(loop <= DEVICE_FANS_OPREAT_ACTION_NUM){
+		
+		stt_devDataPonitTypedef devDataPoint = {0};
+
+		devDataPoint.devType_fans.devFans_swEnumVal = objDevFans_btnmDispConferenceTab[loop].opreatActCurrent;
+		currentDev_dataPointSet(&devDataPoint, true, true, true);
+		switch(loop){
+
+			case fansOpreatAct_firstGear:{
+			
+				lv_label_set_text(textInstract_devFans, "1");
+				styleImage_devFans_icon.image.color = LV_COLOR_MAKE(0, 128, 255);
+				styleImage_devFans_icon.image.intense = LV_OPA_COVER;
+				lv_obj_refresh_style(icomImage_devFans);
+				lv_obj_set_pos(icomImage_devFans, 15, 70);
+				lv_obj_align(textInstract_devFans, icomImage_devFans, LV_ALIGN_OUT_RIGHT_BOTTOM, 40, 5);
+			
+			}break;
+			
+			case fansOpreatAct_secondGear:{
+			
+				lv_label_set_text(textInstract_devFans, "2");
+				styleImage_devFans_icon.image.color = LV_COLOR_MAKE(255, 255, 0);
+				styleImage_devFans_icon.image.intense = LV_OPA_COVER;
+				lv_obj_refresh_style(icomImage_devFans);
+				lv_obj_set_pos(icomImage_devFans, 15, 70);
+				lv_obj_align(textInstract_devFans, icomImage_devFans, LV_ALIGN_OUT_RIGHT_BOTTOM, 40, 5);
+			
+			}break;
+			
+			case fansOpreatAct_thirdGear:{
+			
+				lv_label_set_text(textInstract_devFans, "3");
+				styleImage_devFans_icon.image.color = LV_COLOR_MAKE(255, 128, 0);
+				styleImage_devFans_icon.image.intense = LV_OPA_COVER;
+				lv_obj_refresh_style(icomImage_devFans);
+				lv_obj_set_pos(icomImage_devFans, 15, 70);
+				lv_obj_align(textInstract_devFans, icomImage_devFans, LV_ALIGN_OUT_RIGHT_BOTTOM, 40, 5);
+			
+			}break;
+			
+			case fansOpreatAct_stop:
+			default:{
+			
+				lv_label_set_text(textInstract_devFans, "\0");
+				styleImage_devFans_icon.image.color = LV_COLOR_MAKE(224, 224, 220);
+				styleImage_devFans_icon.image.intense = LV_OPA_COVER;
+				lv_obj_refresh_style(icomImage_devFans);
+				lv_obj_set_pos(icomImage_devFans, 68, 70);
+				lv_obj_align(textInstract_devFans, icomImage_devFans, LV_ALIGN_OUT_RIGHT_BOTTOM, 40, 5);
+				
+			}break;
+		}
+	}
+
+	return LV_RES_OK;
+}
+
+static lv_res_t funCb_btnActionClick_devHeater_pageTimeSet_btnConfirm(lv_obj_t *btn){
+
+	uint32_t timeCountSet_temp = (lv_roller_get_selected(rollerH_timeSetPage_devHeater) * 3600UL) + 
+								 (lv_roller_get_selected(rollerM_timeSetPage_devHeater) * 60UL) + 
+								 (lv_roller_get_selected(rollerS_timeSetPage_devHeater) * 1UL);
+
+	devDriverBussiness_heaterSwitch_closePeriodCustom_Set(timeCountSet_temp);
+
+	if(page_timeSet_devHeater){
+
+		lv_obj_del(page_timeSet_devHeater);
+		page_timeSet_devHeater = NULL;
+	}
+
+	return LV_RES_OK;
+}
+
+static lv_res_t funCb_btnActionClick_devHeater_pageTimeSet_btnCancel(lv_obj_t *btn){
+
+	if(page_timeSet_devHeater){
+
+		lv_obj_del(page_timeSet_devHeater);
+		page_timeSet_devHeater = NULL;
+	}
+
+	return LV_RES_OK;
+}
+
+static lv_res_t funCb_btnActionClick_devHeater_timeSet(lv_obj_t *btn){
+
+	uint32_t timeCountCustom = devDriverBussiness_heaterSwitch_closePeriodCustom_Get();
+
+	if(page_timeSet_devHeater == NULL)
+		page_timeSet_devHeater = lv_page_create(lv_scr_act(), NULL);
+
+	lv_obj_set_size(page_timeSet_devHeater, 200, 200);
+	lv_obj_set_pos(page_timeSet_devHeater, 20, 60);					
+	lv_page_set_style(page_timeSet_devHeater, LV_PAGE_STYLE_SB, &stylePage_devHeater_timeSet);
+	lv_page_set_style(page_timeSet_devHeater, LV_PAGE_STYLE_BG, &stylePage_devHeater_timeSet);
+	lv_page_set_sb_mode(page_timeSet_devHeater, LV_SB_MODE_HIDE); 	
+	lv_page_set_scrl_fit(page_timeSet_devHeater, false, true); //key opration
+	lv_page_set_scrl_layout(page_timeSet_devHeater, LV_LAYOUT_PRETTY);
+
+	labelTitle_timeSetPage_devHeater = lv_label_create(page_timeSet_devHeater, NULL);
+	lv_label_set_text(labelTitle_timeSetPage_devHeater, "#000000time set#");
+	lv_obj_set_protect(labelTitle_timeSetPage_devHeater, LV_PROTECT_POS);
+	lv_obj_align(labelTitle_timeSetPage_devHeater, page_timeSet_devHeater, LV_ALIGN_CENTER, 0, 0);
+	
+	rollerH_timeSetPage_devHeater = lv_roller_create(page_timeSet_devHeater, NULL);
+	lv_roller_set_action(rollerH_timeSetPage_devHeater, NULL);
+	lv_roller_set_options(rollerH_timeSetPage_devHeater, "00\n""01\n""02\n""03\n""04\n""05\n"
+													     "06\n""07\n""08\n""09\n""10\n""11\n"
+													     "12\n""13\n""14\n""15\n""16\n""17\n"
+													     "18\n""19\n""20\n""21\n""22\n""23");
+	lv_obj_set_protect(rollerH_timeSetPage_devHeater, LV_PROTECT_POS);
+	lv_roller_set_hor_fit(rollerH_timeSetPage_devHeater, false);
+	lv_obj_set_width(rollerH_timeSetPage_devHeater, 40);
+	lv_obj_align(rollerH_timeSetPage_devHeater, labelTitle_timeSetPage_devHeater, LV_ALIGN_OUT_BOTTOM_MID, -70, 20);
+	lv_page_glue_obj(rollerH_timeSetPage_devHeater, true);
+	lv_roller_set_selected(rollerH_timeSetPage_devHeater, timeCountCustom % (3600UL * 24UL) / 3600UL, false);
+
+	lv_roller_set_style(rollerH_timeSetPage_devHeater, LV_ROLLER_STYLE_BG, &styleTextRoller_devHeater_timeSetPage_bg);
+	lv_roller_set_style(rollerH_timeSetPage_devHeater, LV_ROLLER_STYLE_SEL, &styleTextRoller_devHeater_timeSetPage_sel);
+	lv_roller_set_visible_row_count(rollerH_timeSetPage_devHeater, 4);
+
+	rollerM_timeSetPage_devHeater = lv_roller_create(page_timeSet_devHeater, NULL);
+	lv_roller_set_action(rollerM_timeSetPage_devHeater, NULL);
+	lv_roller_set_options(rollerM_timeSetPage_devHeater, "00\n""01\n""02\n""03\n""04\n""05\n"
+														 "06\n""07\n""08\n""09\n""10\n""11\n"
+														 "12\n""13\n""14\n""15\n""16\n""17\n"
+														 "18\n""19\n""20\n""21\n""22\n""23\n"
+														 "24\n""25\n""26\n""27\n""28\n""29\n"
+														 "30\n""31\n""32\n""33\n""34\n""35\n"
+														 "36\n""37\n""38\n""39\n""40\n""41\n"
+														 "42\n""43\n""44\n""45\n""46\n""47\n"
+														 "48\n""49\n""50\n""51\n""52\n""53\n"
+														 "54\n""55\n""56\n""57\n""58\n""59");
+	lv_obj_set_protect(rollerM_timeSetPage_devHeater, LV_PROTECT_POS);
+	lv_roller_set_hor_fit(rollerM_timeSetPage_devHeater, false);
+	lv_obj_set_width(rollerM_timeSetPage_devHeater, 40);
+	lv_obj_align(rollerM_timeSetPage_devHeater, rollerH_timeSetPage_devHeater, LV_ALIGN_OUT_RIGHT_MID, 25, 0);
+	lv_page_glue_obj(rollerM_timeSetPage_devHeater, true);
+	lv_roller_set_selected(rollerM_timeSetPage_devHeater, timeCountCustom % 3600UL / 60, false);
+
+	lv_roller_set_style(rollerM_timeSetPage_devHeater, LV_ROLLER_STYLE_BG, &styleTextRoller_devHeater_timeSetPage_bg);
+	lv_roller_set_style(rollerM_timeSetPage_devHeater, LV_ROLLER_STYLE_SEL, &styleTextRoller_devHeater_timeSetPage_sel);
+	lv_roller_set_visible_row_count(rollerM_timeSetPage_devHeater, 4);
+
+	rollerS_timeSetPage_devHeater = lv_roller_create(page_timeSet_devHeater, NULL);
+	lv_roller_set_action(rollerS_timeSetPage_devHeater, NULL);
+	lv_roller_set_options(rollerS_timeSetPage_devHeater, "00\n""01\n""02\n""03\n""04\n""05\n"
+														 "06\n""07\n""08\n""09\n""10\n""11\n"
+														 "12\n""13\n""14\n""15\n""16\n""17\n"
+														 "18\n""19\n""20\n""21\n""22\n""23\n"
+														 "24\n""25\n""26\n""27\n""28\n""29\n"
+														 "30\n""31\n""32\n""33\n""34\n""35\n"
+														 "36\n""37\n""38\n""39\n""40\n""41\n"
+														 "42\n""43\n""44\n""45\n""46\n""47\n"
+														 "48\n""49\n""50\n""51\n""52\n""53\n"
+														 "54\n""55\n""56\n""57\n""58\n""59");
+	lv_obj_set_protect(rollerS_timeSetPage_devHeater, LV_PROTECT_POS);
+	lv_roller_set_hor_fit(rollerS_timeSetPage_devHeater, false);
+	lv_obj_set_width(rollerS_timeSetPage_devHeater, 40);
+	lv_obj_align(rollerS_timeSetPage_devHeater, rollerM_timeSetPage_devHeater, LV_ALIGN_OUT_RIGHT_MID, 25, 0);
+	lv_page_glue_obj(rollerS_timeSetPage_devHeater, true);
+	lv_roller_set_selected(rollerS_timeSetPage_devHeater, timeCountCustom % 60UL, false);
+
+	lv_roller_set_style(rollerS_timeSetPage_devHeater, LV_ROLLER_STYLE_BG, &styleTextRoller_devHeater_timeSetPage_bg);
+	lv_roller_set_style(rollerS_timeSetPage_devHeater, LV_ROLLER_STYLE_SEL, &styleTextRoller_devHeater_timeSetPage_sel);
+	lv_roller_set_visible_row_count(rollerS_timeSetPage_devHeater, 4);
+	
+	labelH_timeSetPage_devHeater = lv_label_create(page_timeSet_devHeater, NULL);
+	lv_label_set_text(labelH_timeSetPage_devHeater, "hour");
+	lv_obj_set_protect(labelH_timeSetPage_devHeater, LV_PROTECT_POS);
+	lv_obj_align(labelH_timeSetPage_devHeater, rollerH_timeSetPage_devHeater, LV_ALIGN_IN_RIGHT_MID, 35, 3);
+	lv_obj_set_style(labelH_timeSetPage_devHeater, &styleTextRollerTips_devHeater_timeSetPage);
+
+	labelM_timeSetPage_devHeater = lv_label_create(page_timeSet_devHeater, labelH_timeSetPage_devHeater);
+	lv_label_set_text(labelM_timeSetPage_devHeater, "min");
+	lv_obj_set_protect(labelM_timeSetPage_devHeater, LV_PROTECT_POS);
+	lv_obj_align(labelM_timeSetPage_devHeater, rollerM_timeSetPage_devHeater, LV_ALIGN_IN_RIGHT_MID, 15, 0);
+	lv_obj_set_style(labelM_timeSetPage_devHeater, &styleTextRollerTips_devHeater_timeSetPage);
+
+	labelS_timeSetPage_devHeater = lv_label_create(page_timeSet_devHeater, labelH_timeSetPage_devHeater);
+	lv_label_set_text(labelS_timeSetPage_devHeater, "sec");
+	lv_obj_set_protect(labelS_timeSetPage_devHeater, LV_PROTECT_POS);
+	lv_obj_align(labelS_timeSetPage_devHeater, rollerS_timeSetPage_devHeater, LV_ALIGN_IN_RIGHT_MID, 15, 0);
+	lv_obj_set_style(labelS_timeSetPage_devHeater, &styleTextRollerTips_devHeater_timeSetPage);
+
+	btnConfirm_timeSetPage_devHeater = lv_btn_create(page_timeSet_devHeater, NULL);
+    lv_btn_set_style(btnConfirm_timeSetPage_devHeater, LV_BTN_STYLE_REL, &stylebtnBk_transFull);
+    lv_btn_set_style(btnConfirm_timeSetPage_devHeater, LV_BTN_STYLE_PR, &stylebtnBk_transFull);
+    lv_btn_set_style(btnConfirm_timeSetPage_devHeater, LV_BTN_STYLE_TGL_REL, &stylebtnBk_transFull);
+    lv_btn_set_style(btnConfirm_timeSetPage_devHeater, LV_BTN_STYLE_TGL_PR, &stylebtnBk_transFull);
+	lv_btn_set_fit(btnConfirm_timeSetPage_devHeater, false, false);
+	lv_obj_set_size(btnConfirm_timeSetPage_devHeater, 70, 25);
+	lv_page_glue_obj(btnConfirm_timeSetPage_devHeater, true);
+	lv_obj_set_protect(btnConfirm_timeSetPage_devHeater, LV_PROTECT_FOLLOW);
+	lv_obj_set_protect(btnConfirm_timeSetPage_devHeater, LV_PROTECT_POS);
+	lv_obj_align(btnConfirm_timeSetPage_devHeater, page_timeSet_devHeater, LV_ALIGN_IN_BOTTOM_LEFT, 15, -1);
+	lv_btn_set_action(btnConfirm_timeSetPage_devHeater, LV_BTN_ACTION_CLICK, funCb_btnActionClick_devHeater_pageTimeSet_btnConfirm);
+	btnCancel_timeSetPage_devHeater = lv_btn_create(page_timeSet_devHeater, btnConfirm_timeSetPage_devHeater);
+	lv_obj_align(btnCancel_timeSetPage_devHeater, btnConfirm_timeSetPage_devHeater, LV_ALIGN_CENTER, 95, 0);
+	lv_btn_set_action(btnCancel_timeSetPage_devHeater, LV_BTN_ACTION_CLICK, funCb_btnActionClick_devHeater_pageTimeSet_btnCancel);
+
+	labelConfirm_timeSetPage_devHeater = lv_label_create(btnConfirm_timeSetPage_devHeater, NULL);
+	lv_obj_set_style(labelConfirm_timeSetPage_devHeater, &styleTextBtn_devHeater_timeSetPage);
+	lv_label_set_text(labelConfirm_timeSetPage_devHeater, "confirm");
+	labelCancel_timeSetPage_devHeater = lv_label_create(btnCancel_timeSetPage_devHeater, labelConfirm_timeSetPage_devHeater);
+	lv_obj_set_style(labelCancel_timeSetPage_devHeater, &styleTextBtn_devHeater_timeSetPage);
+	lv_label_set_text(labelCancel_timeSetPage_devHeater, "cancel");
+
+	return LV_RES_OK;
+}
+
 static lv_res_t funCb_btnmActionClick_devHeater_gearBtnm(lv_obj_t *btnm, const char *txt){
 
-	for(uint8_t loop = 0; loop < DEVICE_HEATER_OPREAT_ACTION_NUM + 1; loop ++){
+	uint8_t loop = 0;
+
+	for(loop = 0; loop < DEVICE_HEATER_OPREAT_ACTION_NUM + 1; loop ++){
 
 		if(!strcmp(txt, btnm_str_devHeater[loop])){
 
 			printf("btn %s has be selected.\n", txt);
+			break;
+		}
+	}
+
+	if(loop <= DEVICE_HEATER_OPREAT_ACTION_NUM){
+
+		stt_devDataPonitTypedef devDataPoint = {0};
+
+		devDataPoint.devType_heater.devHeater_swEnumVal = objDevHeater_btnmDispConferenceTab[loop].opreatActCurrent;
+		currentDev_dataPointSet(&devDataPoint, true, true, true);
+
+		if(devDataPoint.devType_heater.devHeater_swEnumVal == heaterOpreatAct_closeAfterTimeCustom){
+
+			if(imgBtn_devHeater_timeSet == NULL)
+				imgBtn_devHeater_timeSet = lv_imgbtn_create(lv_scr_act(), NULL);
+			lv_obj_set_protect(imgBtn_devHeater_timeSet, LV_PROTECT_POS);
+			lv_obj_set_pos(imgBtn_devHeater_timeSet, 185, 205);
+//			lv_obj_align(imgBtn_devHeater_timeSet, btnm_bk_devHeater, LV_ALIGN_OUT_TOP_RIGHT, 0, 0);
+			lv_imgbtn_set_src(imgBtn_devHeater_timeSet, LV_BTN_STATE_REL, &iconSet_HomePageDeviceHeater);
+			lv_imgbtn_set_src(imgBtn_devHeater_timeSet, LV_BTN_STATE_PR, &iconSet_HomePageDeviceHeater);
+			lv_imgbtn_set_action(imgBtn_devHeater_timeSet, LV_BTN_ACTION_CLICK, funCb_btnActionClick_devHeater_timeSet);
+		}
+		else
+		{
+			if(imgBtn_devHeater_timeSet){
+
+				lv_obj_del(imgBtn_devHeater_timeSet);
+				imgBtn_devHeater_timeSet = NULL;
+			}
+		}
+		
+		switch(devDataPoint.devType_heater.devHeater_swEnumVal){
+			
+			case heaterOpreatAct_open:{
+
+				lv_label_set_text(textTimeInstract_target_devHeater, "\0");
+				lv_label_set_text(textTimeInstract_current_devHeater, "OPEN");
+
+			}break;
+			
+			case heaterOpreatAct_closeAfter30Min:{
+
+				lv_label_set_text(textTimeInstract_target_devHeater, "00:30:00");
+				lv_label_set_text(textTimeInstract_current_devHeater, "00:30:00");
+
+			}break;
+			
+			case heaterOpreatAct_closeAfter60Min:{
+
+				lv_label_set_text(textTimeInstract_target_devHeater, "00:60:00");
+				lv_label_set_text(textTimeInstract_current_devHeater, "00:60:00");
+
+			}break;
+			
+			case heaterOpreatAct_closeAfterTimeCustom:{
+
+				char dataDispTemp[15] = {0};
+				uint32_t closeCounterTemp = devDriverBussiness_heaterSwitch_closePeriodCustom_Get();
+
+				sprintf(dataDispTemp, "%02d:%02d:%02d", (int)((closeCounterTemp % 86400UL) / 3600UL),
+														(int)((closeCounterTemp % 3600UL) / 60UL),
+														(int)(closeCounterTemp % 60UL));
+				lv_label_set_text(textTimeInstract_target_devHeater, dataDispTemp);
+				lv_label_set_text(textTimeInstract_current_devHeater, dataDispTemp);
+
+			}break;
+			
+			case heaterOpreatAct_close:
+			default:{
+
+				lv_label_set_text(textTimeInstract_target_devHeater, "\0");
+				lv_label_set_text(textTimeInstract_current_devHeater, "CLOSE");
+
+			}break;
 		}
 	}
 
@@ -704,7 +1092,7 @@ static lv_res_t funCb_slidAction_devDimmer_mainSlider(lv_obj_t *slider){
 	stylePhotoAk_devDimmer.image.intense = 100 - ((uint8_t)lv_slider_get_value(slider));
 	lv_img_set_style(photoA_bk_devDimmer, &stylePhotoAk_devDimmer);
 
-	sprintf(str_sliderBkVal_devDimmer, "Brightness:%d%%", lv_slider_get_value(slider));
+	sprintf(str_sliderBkVal_devDimmer, "%d%%", lv_slider_get_value(slider));
 	lv_label_set_text(label_bk_devDimmer, str_sliderBkVal_devDimmer);
 	currentDev_dataPointSet(&devDataPoint, true, true, true);
 
@@ -718,8 +1106,27 @@ static lv_res_t funCb_slidAction_devCurtain_mainSlider(lv_obj_t *slider){
 	usrApp_ctrlObjSlidlingTrig(); //滑动冷却触发
 
 	devDriverBussiness_curtainSwitch_periphStatusRealesBySlide(orbitalTimePercent);
-	sprintf(str_devParamPositionAdj_devCurtain, "position adjust:%d%%.", orbitalTimePercent);
+	sprintf(str_devParamPositionAdj_devCurtain, "%d%%", orbitalTimePercent);
 	lv_label_set_text(label_bk_devCurtain_positionAdj, str_devParamPositionAdj_devCurtain);
+
+	return LV_RES_OK;
+}
+
+static lv_res_t funCb_slidAction_devThermostat_mainSlider(lv_obj_t *slider){
+
+	uint8_t tempTarget = (uint8_t)lv_slider_get_value(slider);
+	char tempDisp[5] = {0};
+	stt_devDataPonitTypedef devDataPoint = {0};
+
+	usrApp_ctrlObjSlidlingTrig(); //滑动冷却触发
+
+	devDataPoint.devType_thermostat.devThermostat_tempratureTarget = 16 + tempTarget;
+
+	currentDev_dataPointSet(&devDataPoint, true, true, true);	
+
+	lv_lmeter_set_value(lmeterTempInstTarget_devThermostat, tempTarget + 16);
+	sprintf(tempDisp, "%02d", tempTarget + 16);
+	lv_label_set_text(labelTempInstTarget_devThermostat, tempDisp);
 
 	return LV_RES_OK;
 }
@@ -754,6 +1161,8 @@ static void pageHeader_infoRefreshLoop(void){
 			sprintf(textStr_time, "%02d:%02d", devSystime_temp.time_Hour, 
 											   devSystime_temp.time_Minute);
 			lv_label_set_text(textHeaderObj_time, textStr_time);
+			lv_obj_refresh_style(textHeaderObj_time);
+			vTaskDelay(20 / portTICK_PERIOD_MS);
 		}
 	}
 
@@ -930,6 +1339,8 @@ static void pageHeader_infoRefreshLoop(void){
 			}
 
 			lv_label_set_text(textHeaderObj_elec, textStr_elecSum);	
+			lv_obj_refresh_style(textHeaderObj_elec);
+			vTaskDelay(20 / portTICK_PERIOD_MS);
 		}
 	}
 
@@ -944,6 +1355,8 @@ static void pageHeader_infoRefreshLoop(void){
 
 			sprintf(textStr_temperature, "%3.02f\"C", temperature_record);
 			lv_label_set_text(textHeaderObj_temperature, textStr_temperature);	
+			lv_obj_refresh_style(textHeaderObj_temperature);
+			vTaskDelay(20 / portTICK_PERIOD_MS);
 		}
 	}
 }
@@ -1292,18 +1705,17 @@ static void pageActivity_infoRefreshLoop(void){
 								if(rptr_msgQ_devCurtainDriver.msgDats.data_opreatStop.opreatStop_sig){
 
 									uint8_t devCurtain_orbitalPosPercent = devCurtain_currentPositionPercentGet();
-									lv_coord_t imageCurtainPosAdj_temp = devCurtain_orbitalPosPercent * 12;
+//									lv_coord_t imageCurtainPosAdj_temp = devCurtain_orbitalPosPercent * 12;
 
-									imageCurtainPosAdj_temp /= 10;
-									lv_obj_set_pos(image_bk_devCurtain_bodyLeft, 2 - imageCurtainPosAdj_temp, 75);
-									lv_obj_set_pos(image_bk_devCurtain_bodyRight, 120 + imageCurtainPosAdj_temp, 75);
+//									imageCurtainPosAdj_temp /= 10;
+//									lv_obj_set_pos(image_bk_devCurtain_bodyLeft, 2 - imageCurtainPosAdj_temp, 75);
+//									lv_obj_set_pos(image_bk_devCurtain_bodyRight, 120 + imageCurtainPosAdj_temp, 75);
 
 									//滑块及文字控件再刷新，防止信息同步不完整
 									lv_slider_set_value(slider_bk_devCurtain, devCurtain_orbitalPosPercent);
-									lv_slider_set_value(slider_bk_devCurtainPosTips, devCurtain_orbitalPosPercent);
-									sprintf(str_devParamPositionCur_devCurtain, "position current:%d%%.", devCurtain_orbitalPosPercent);
+									sprintf(str_devParamPositionCur_devCurtain, "%d", devCurtain_orbitalPosPercent);
 									lv_label_set_text(label_bk_devCurtain_positionCur, str_devParamPositionCur_devCurtain);
-									sprintf(str_devParamPositionAdj_devCurtain, "position adjust:%d%%.", devCurtain_orbitalPosPercent);
+									sprintf(str_devParamPositionAdj_devCurtain, "%d%%", devCurtain_orbitalPosPercent);
 									lv_label_set_text(label_bk_devCurtain_positionAdj, str_devParamPositionAdj_devCurtain);
 
 									lv_imgbtn_set_style(btn_bk_devCurtain_open, LV_BTN_STATE_REL, &styleBtn_devCurtain_statusRel);
@@ -1315,29 +1727,27 @@ static void pageActivity_infoRefreshLoop(void){
 							
 							case msgType_devCurtainDriver_orbitalChgingByBtn:{
 
-								lv_coord_t imageCurtainPosAdj_temp = 12 * rptr_msgQ_devCurtainDriver.msgDats.data_orbitalChgingByBtn.orbitalPosPercent;
+//								lv_coord_t imageCurtainPosAdj_temp = 12 * rptr_msgQ_devCurtainDriver.msgDats.data_orbitalChgingByBtn.orbitalPosPercent;
 //								static lv_coord_t imageCurtainPosAdj_record = 0;
 
-								imageCurtainPosAdj_temp /= 10;
-								if(!(imageCurtainPosAdj_temp % 9)){
+//								imageCurtainPosAdj_temp /= 10;
+//								if(!(imageCurtainPosAdj_temp % 9)){
 
-									lv_obj_set_pos(image_bk_devCurtain_bodyLeft, 2 - imageCurtainPosAdj_temp, 75);
-									lv_obj_set_pos(image_bk_devCurtain_bodyRight, 120 + imageCurtainPosAdj_temp, 75);
-								}
+//									lv_obj_set_pos(image_bk_devCurtain_bodyLeft, 2 - imageCurtainPosAdj_temp, 75);
+//									lv_obj_set_pos(image_bk_devCurtain_bodyRight, 120 + imageCurtainPosAdj_temp, 75);
+//								}
 
 								lv_slider_set_value(slider_bk_devCurtain, rptr_msgQ_devCurtainDriver.msgDats.data_orbitalChgingByBtn.orbitalPosPercent);
-								lv_slider_set_value(slider_bk_devCurtainPosTips, rptr_msgQ_devCurtainDriver.msgDats.data_orbitalChgingByBtn.orbitalPosPercent);
-								sprintf(str_devParamPositionAdj_devCurtain, "position adjust:%d%%.", rptr_msgQ_devCurtainDriver.msgDats.data_orbitalChgingByBtn.orbitalPosPercent);
+								sprintf(str_devParamPositionAdj_devCurtain, "%d%%", rptr_msgQ_devCurtainDriver.msgDats.data_orbitalChgingByBtn.orbitalPosPercent);
 								lv_label_set_text(label_bk_devCurtain_positionAdj, str_devParamPositionAdj_devCurtain);
-								sprintf(str_devParamPositionCur_devCurtain, "position current:%d%%.", rptr_msgQ_devCurtainDriver.msgDats.data_orbitalChgingByBtn.orbitalPosPercent);
+								sprintf(str_devParamPositionCur_devCurtain, "%d", rptr_msgQ_devCurtainDriver.msgDats.data_orbitalChgingByBtn.orbitalPosPercent);
 								lv_label_set_text(label_bk_devCurtain_positionCur, str_devParamPositionCur_devCurtain);
 
 							}break;
 
 							case msgType_devCurtainDriver_orbitalChgingBySlider:{
-
-								lv_slider_set_value(slider_bk_devCurtainPosTips, rptr_msgQ_devCurtainDriver.msgDats.data_orbitalChgingBySlider.orbitalPosPercent);
-								sprintf(str_devParamPositionCur_devCurtain, "position current:%d%%.", rptr_msgQ_devCurtainDriver.msgDats.data_orbitalChgingBySlider.orbitalPosPercent);
+								
+								sprintf(str_devParamPositionCur_devCurtain, "%d", rptr_msgQ_devCurtainDriver.msgDats.data_orbitalChgingBySlider.orbitalPosPercent);
 								lv_label_set_text(label_bk_devCurtain_positionCur, str_devParamPositionCur_devCurtain);
 
 							}break;
@@ -1363,17 +1773,26 @@ static void pageActivity_infoRefreshLoop(void){
 
 									case heaterOpreatAct_close:{
 
-										sprintf(str_devRunningRemind_devHeater, "the heater is off now.");
+										sprintf(str_devRunningRemind_devHeater, "CLOSE");
 										devDataPoint.devType_heater.devHeater_swEnumVal = heaterOpreatAct_close;
 										currentDev_dataPointSet(&devDataPoint, true, true, true);
+										lv_label_set_text(textTimeInstract_target_devHeater, "\0");
+										lv_btnm_set_toggle(btnm_bk_devHeater, true, 0);
+
+										if(imgBtn_devHeater_timeSet){ //补充操作
+										
+											lv_obj_del(imgBtn_devHeater_timeSet);
+											imgBtn_devHeater_timeSet = NULL;
+										}
 
 									}break;
 									
 									case heaterOpreatAct_open:{
 
-										sprintf(str_devRunningRemind_devHeater, "the heater is on now.");
+										sprintf(str_devRunningRemind_devHeater, "OPEN");
 										devDataPoint.devType_heater.devHeater_swEnumVal = heaterOpreatAct_open;
 										currentDev_dataPointSet(&devDataPoint, true, true, true);
+										lv_label_set_text(textTimeInstract_target_devHeater, "\0");
 
 									}break;
 
@@ -1384,18 +1803,38 @@ static void pageActivity_infoRefreshLoop(void){
 							
 							case msgType_devHeaterDriver_closeCounterChg:{
 
-								sprintf(str_devRunningRemind_devHeater, "the heater will be \nturn off after \n%dmin-%dsec.",
-																		(int)rptr_msgQ_devHeaterDriver.msgDats.data_counterChg.counter / 60,
-																		(int)rptr_msgQ_devHeaterDriver.msgDats.data_counterChg.counter % 60);
+								sprintf(str_devRunningRemind_devHeater, "%02d:%02d:%02d",
+																		(int)((rptr_msgQ_devHeaterDriver.msgDats.data_counterChg.counter % 86400UL) / 3600UL),
+																		(int)((rptr_msgQ_devHeaterDriver.msgDats.data_counterChg.counter % 3600UL) / 60UL),
+																		(int)(rptr_msgQ_devHeaterDriver.msgDats.data_counterChg.counter % 60UL));
 
 							}break;
 
 							default:break;
 						}
 
-						lv_label_set_text(label_bk_devHeater_timeRemind, str_devRunningRemind_devHeater);
+						lv_label_set_text(textTimeInstract_current_devHeater, str_devRunningRemind_devHeater);
 					}
 				
+				}break;
+
+				case devTypeDef_thermostat:{
+
+					stt_thermostat_actAttr devParam_thermostat = {0};
+					static uint8_t tempCurrent_record = 0;
+
+					devDriverBussiness_thermostatSwitch_devParam_get(&devParam_thermostat);
+				
+					if(tempCurrent_record != (uint8_t)(devParam_thermostat.temperatureVal_current)){
+
+						char tempCurrentDisp[5] = {0};
+
+						tempCurrent_record = (uint8_t)(devParam_thermostat.temperatureVal_current);
+						lv_lmeter_set_value(lmeterTempInstCurrent_devThermostat, tempCurrent_record);
+						sprintf(tempCurrentDisp, "%02d", tempCurrent_record);
+						lv_label_set_text(labelTempInstCurrent_devThermostat, tempCurrentDisp);
+					}
+
 				}break;
 
 				default:break;	
@@ -1519,7 +1958,7 @@ void pageHome_buttonMain_imageRefresh(bool freshNoRecord){ //界面切换时调�
 				case devTypeDef_dimmer:{
 
 					lv_slider_set_value(slider_bk_devDimmer, devDataPoint.devType_dimmer.devDimmer_brightnessVal);
-					sprintf(str_sliderBkVal_devDimmer, "Brightness:%d%%", lv_slider_get_value(slider_bk_devDimmer));
+					sprintf(str_sliderBkVal_devDimmer, "%d%%", lv_slider_get_value(slider_bk_devDimmer));
 					lv_label_set_text(label_bk_devDimmer, str_sliderBkVal_devDimmer);
 
 					if(lv_slider_get_value(slider_bk_devDimmer)){
@@ -1541,37 +1980,148 @@ void pageHome_buttonMain_imageRefresh(bool freshNoRecord){ //界面切换时调�
 					uint8_t devCurtain_orbitalPosPercent = devCurtain_currentPositionPercentGet();
 
 					lv_slider_set_value(slider_bk_devCurtain, devCurtain_orbitalPosPercent);
-					lv_slider_set_value(slider_bk_devCurtainPosTips, devCurtain_orbitalPosPercent);
-					sprintf(str_devParamPositionCur_devCurtain, "position current:%d%%.", devCurtain_orbitalPosPercent);
+					sprintf(str_devParamPositionCur_devCurtain, "%d", devCurtain_orbitalPosPercent);
 					lv_label_set_text(label_bk_devCurtain_positionCur, str_devParamPositionCur_devCurtain);
-					sprintf(str_devParamPositionAdj_devCurtain, "position adjust:%d%%.", devCurtain_orbitalPosPercent);
+					sprintf(str_devParamPositionAdj_devCurtain, "%d%%", devCurtain_orbitalPosPercent);
 					lv_label_set_text(label_bk_devCurtain_positionAdj, str_devParamPositionAdj_devCurtain);
 					
 				}break;
 
 				case devTypeDef_fans:{
 
-					for(uint8_t loop = 0; loop < DEVICE_CURTAIN_OPREAT_ACTION_NUM; loop ++){
+					uint8_t loop = 0;
 
-						if(devDataPoint.devType_fans.devFans_swEnumVal == objDevFans_rollerDispConferenceTab[loop].opreatActCurrent){
+					for(loop = 0; loop < DEVICE_FANS_OPREAT_ACTION_NUM; loop ++){
 
-							lv_roller_set_selected(roller_bk_devFans, objDevFans_rollerDispConferenceTab[loop].optionSelect, false);
+						if(devDataPoint.devType_fans.devFans_swEnumVal == objDevFans_btnmDispConferenceTab[loop].opreatActCurrent){
+					
 							break;
 						}
-					}					
+					}		
+
+					if(loop <= DEVICE_FANS_OPREAT_ACTION_NUM){
+
+						switch(loop){
+
+							case fansOpreatAct_firstGear:{
+							
+								lv_label_set_text(textInstract_devFans, "1");
+								styleImage_devFans_icon.image.color = LV_COLOR_MAKE(0, 128, 255);
+								styleImage_devFans_icon.image.intense = LV_OPA_COVER;
+								lv_obj_refresh_style(icomImage_devFans);
+								lv_obj_set_pos(icomImage_devFans, 15, 70);
+								lv_obj_align(textInstract_devFans, icomImage_devFans, LV_ALIGN_OUT_RIGHT_BOTTOM, 40, 5);
+							
+							}break;
+							
+							case fansOpreatAct_secondGear:{
+							
+								lv_label_set_text(textInstract_devFans, "2");
+								styleImage_devFans_icon.image.color = LV_COLOR_MAKE(255, 255, 0);
+								styleImage_devFans_icon.image.intense = LV_OPA_COVER;
+								lv_obj_refresh_style(icomImage_devFans);
+								lv_obj_set_pos(icomImage_devFans, 15, 70);
+								lv_obj_align(textInstract_devFans, icomImage_devFans, LV_ALIGN_OUT_RIGHT_BOTTOM, 40, 5);
+								
+							}break;
+							
+							case fansOpreatAct_thirdGear:{
+							
+								lv_label_set_text(textInstract_devFans, "3");
+								styleImage_devFans_icon.image.color = LV_COLOR_MAKE(255, 128, 0);
+								styleImage_devFans_icon.image.intense = LV_OPA_COVER;
+								lv_obj_refresh_style(icomImage_devFans);
+								lv_obj_set_pos(icomImage_devFans, 15, 70);
+								lv_obj_align(textInstract_devFans, icomImage_devFans, LV_ALIGN_OUT_RIGHT_BOTTOM, 40, 5);
+								
+							}break;
+							
+							case fansOpreatAct_stop:
+							default:{
+							
+								lv_label_set_text(textInstract_devFans, "\0");
+								styleImage_devFans_icon.image.color = LV_COLOR_MAKE(224, 224, 220);
+								styleImage_devFans_icon.image.intense = LV_OPA_COVER;
+								lv_obj_refresh_style(icomImage_devFans);
+								lv_obj_set_pos(icomImage_devFans, 68, 70);
+								lv_obj_align(textInstract_devFans, icomImage_devFans, LV_ALIGN_OUT_RIGHT_BOTTOM, 40, 5);
+								
+							}break;
+						}
+					}
 
 				}break;
 
 				case devTypeDef_heater:{
 
-					for(uint8_t loop = 0; loop < DEVICE_HEATER_OPREAT_ACTION_NUM; loop ++){
+					uint8_t loop = 0;
+
+					for(loop = 0; loop < DEVICE_HEATER_OPREAT_ACTION_NUM; loop ++){
 					
-						if(devDataPoint.devType_heater.devHeater_swEnumVal == objDevHeater_rollerDispConferenceTab[loop].opreatActCurrent){
-					
-							lv_roller_set_selected(roller_bk_devHeater, objDevHeater_rollerDispConferenceTab[loop].optionSelect, false);
+						if(devDataPoint.devType_heater.devHeater_swEnumVal == objDevHeater_btnmDispConferenceTab[loop].opreatActCurrent){
+
+							lv_btnm_set_toggle(btnm_bk_devHeater, true, loop);
+						
 							break;
 						}
 					}	
+
+					if(loop <= DEVICE_HEATER_OPREAT_ACTION_NUM){
+
+						switch(loop){
+							
+							case heaterOpreatAct_open:{
+						
+								lv_label_set_text(textTimeInstract_target_devHeater, "\0");
+						
+							}break;
+							
+							case heaterOpreatAct_closeAfter30Min:{
+						
+								lv_label_set_text(textTimeInstract_target_devHeater, "00:30:00");
+						
+							}break;
+							
+							case heaterOpreatAct_closeAfter60Min:{
+						
+								lv_label_set_text(textTimeInstract_target_devHeater, "00:60:00");
+						
+							}break;
+							
+							case heaterOpreatAct_closeAfterTimeCustom:{
+						
+								char dataDispTemp[15] = {0};
+								uint32_t closeCounterTemp = devDriverBussiness_heaterSwitch_closePeriodCustom_Get();
+						
+								sprintf(dataDispTemp, "%02d:%02d:%02d", (int)((closeCounterTemp % 86400UL) / 3600UL),
+																		(int)((closeCounterTemp % 3600UL) / 60UL),
+																		(int)(closeCounterTemp % 60UL));
+								lv_label_set_text(textTimeInstract_target_devHeater, dataDispTemp);
+						
+							}break;
+							
+							case heaterOpreatAct_close:
+							default:{
+						
+								lv_label_set_text(textTimeInstract_target_devHeater, "\0");
+						
+							}break;
+						}
+					}
+
+				}break;
+
+				case devTypeDef_thermostat:{
+
+					char tempDisp[5] = {0};
+
+					if(!devDataPoint.devType_thermostat.devThermostat_tempratureTarget)
+						devDataPoint.devType_thermostat.devThermostat_tempratureTarget = 16;
+
+					lv_slider_set_value(slider_tempAdj_devThermostat, devDataPoint.devType_thermostat.devThermostat_tempratureTarget - 16);
+					sprintf(tempDisp, "%02d", (uint8_t)devDataPoint.devType_thermostat.devThermostat_tempratureTarget);
+					lv_label_set_text(labelTempInstTarget_devThermostat, tempDisp);
+					lv_lmeter_set_value(lmeterTempInstTarget_devThermostat, (uint8_t)devDataPoint.devType_thermostat.devThermostat_tempratureTarget);
 
 				}break;
 	
@@ -1817,7 +2367,7 @@ static void local_guiHomeBussiness_dimmer(lv_obj_t * obj_Parent){
 	lv_img_set_src(photoB_bk_devDimmer, &iconLightB_HomePageDeviceDimmer);
 	lv_obj_set_protect(photoA_bk_devDimmer, LV_PROTECT_POS);
 	lv_obj_set_protect(photoB_bk_devDimmer, LV_PROTECT_POS);
-	lv_obj_set_pos(photoA_bk_devDimmer, 41, 60);
+	lv_obj_set_pos(photoA_bk_devDimmer, 40, 60);
 	lv_obj_align(photoB_bk_devDimmer, photoA_bk_devDimmer, LV_ALIGN_CENTER, 5, -25);
 	lv_img_set_style(photoB_bk_devDimmer, &stylePhotoBk_devDimmer);
 
@@ -1835,7 +2385,7 @@ static void local_guiHomeBussiness_dimmer(lv_obj_t * obj_Parent){
 	label_bk_devDimmer = lv_label_create(obj_Parent, NULL);
 	lv_label_set_style(label_bk_devDimmer, &styleText_devDimmer_SliderBk);
 	lv_slider_set_value(slider_bk_devDimmer, devDataPoint.devType_dimmer.devDimmer_brightnessVal);
-	sprintf(str_sliderBkVal_devDimmer, "Brightness:%d%%", lv_slider_get_value(slider_bk_devDimmer));
+	sprintf(str_sliderBkVal_devDimmer, "%d%%", lv_slider_get_value(slider_bk_devDimmer));
 	lv_label_set_text(label_bk_devDimmer, str_sliderBkVal_devDimmer);
 	lv_obj_align(label_bk_devDimmer, slider_bk_devDimmer, LV_ALIGN_OUT_TOP_MID, 0, 0);
 	
@@ -1848,22 +2398,123 @@ static void local_guiHomeBussiness_dimmer(lv_obj_t * obj_Parent){
 		stylePhotoBk_devDimmer.image.opa = 0;
 	}
 	lv_img_set_style(photoB_bk_devDimmer, &stylePhotoBk_devDimmer);
+	stylePhotoAk_devDimmer.image.color = LV_COLOR_GRAY;
 	stylePhotoAk_devDimmer.image.intense = 100 - ((uint8_t)lv_slider_get_value(slider_bk_devDimmer));
 	lv_img_set_style(photoA_bk_devDimmer, &stylePhotoAk_devDimmer);
 }
 
 static void local_guiHomeBussiness_fans(lv_obj_t * obj_Parent){
 
-	roller_bk_devFans = lv_roller_create(obj_Parent, NULL);
-	lv_roller_set_options(roller_bk_devFans, "close\n""first gear\n""second gear\n""third gear");
-	lv_obj_set_protect(roller_bk_devFans, LV_PROTECT_POS);
-	lv_roller_set_hor_fit(roller_bk_devFans, false);
-	lv_obj_set_width(roller_bk_devFans, 180);
-	lv_obj_set_pos(roller_bk_devFans, 30, 120);
-	lv_roller_set_action(roller_bk_devFans, funCb_rollAction_devFans_mainRoller);
-//	lv_roller_set_style(roller_bk_devFans, LV_ROLLER_STYLE_BG, &styleRollerBk_devFans_bg);
-//	lv_roller_set_style(roller_bk_devFans, LV_ROLLER_STYLE_SEL, &styleRollerBk_devFans_sel);
-	lv_roller_set_visible_row_count(roller_bk_devFans, 3);
+	icomImage_devFans = lv_img_create(obj_Parent, NULL);
+	lv_img_set_src(icomImage_devFans, &iconFans_HomePageDeviceFans);
+	lv_img_set_style(icomImage_devFans, &styleImage_devFans_icon);
+	lv_obj_set_protect(icomImage_devFans, LV_PROTECT_POS);
+	lv_obj_set_pos(icomImage_devFans, 68, 70);
+
+	textInstract_devFans = lv_label_create(obj_Parent, NULL);
+	lv_label_set_text(textInstract_devFans, "\0");
+	lv_label_set_style(textInstract_devFans, &styleText_devFans_instract);
+	lv_obj_set_protect(textInstract_devFans, LV_PROTECT_POS);
+	lv_obj_align(textInstract_devFans, icomImage_devFans, LV_ALIGN_OUT_RIGHT_BOTTOM, 40, 5);
+
+	btnm_bk_devFans = lv_btnm_create(obj_Parent, NULL);
+	lv_obj_set_size(btnm_bk_devFans, 195, 40);
+
+	lv_btnm_set_style(btnm_bk_devFans, LV_BTNM_STYLE_BG, &styleBtnm_devFans_btnBg);
+	lv_btnm_set_style(btnm_bk_devFans, LV_BTNM_STYLE_BTN_REL, &styleBtnm_devFans_btnRel);
+	lv_btnm_set_style(btnm_bk_devFans, LV_BTNM_STYLE_BTN_PR, &styleBtnm_devFans_btnPre);
+	lv_btnm_set_style(btnm_bk_devFans, LV_BTNM_STYLE_BTN_TGL_REL, &styleBtnm_devFans_btnTglRel);
+	lv_btnm_set_style(btnm_bk_devFans, LV_BTNM_STYLE_BTN_TGL_PR, &styleBtnm_devFans_btnTglPre);
+	lv_btnm_set_style(btnm_bk_devFans, LV_BTNM_STYLE_BTN_INA, &styleBtnm_devFans_btnIna);
+
+	lv_btnm_set_action(btnm_bk_devFans, funCb_btnmActionClick_devFans_gearBtnm);
+	lv_btnm_set_map(btnm_bk_devFans, btnm_str_devFans);
+	lv_btnm_set_toggle(btnm_bk_devFans, true, 0);
+	lv_obj_set_protect(btnm_bk_devFans, LV_PROTECT_POS);
+	lv_obj_set_pos(btnm_bk_devFans, 20, 245);
+}
+
+static void local_guiHomeBussiness_thermostat(lv_obj_t * obj_Parent){
+
+	stt_thermostat_actAttr devParam_thermostat = {0};
+	char tempDisp[5] = {0};
+
+	devDriverBussiness_thermostatSwitch_devParam_get(&devParam_thermostat);
+	if(devParam_thermostat.temperatureVal_target < 16)
+		devParam_thermostat.temperatureVal_target = 16;
+
+	lmeterTempInstTarget_devThermostat = lv_lmeter_create(obj_Parent, NULL);
+	lv_lmeter_set_range(lmeterTempInstTarget_devThermostat, 0, 45);				 
+	lv_lmeter_set_value(lmeterTempInstTarget_devThermostat, (uint8_t)devParam_thermostat.temperatureVal_target);					
+	lv_lmeter_set_style(lmeterTempInstTarget_devThermostat, &styleLmeter_devThermostat_tempTarget);	
+	lv_obj_set_size(lmeterTempInstTarget_devThermostat, 200, 200);
+	lv_lmeter_set_scale(lmeterTempInstTarget_devThermostat, 260, 61);
+	lv_obj_set_protect(lmeterTempInstTarget_devThermostat, LV_PROTECT_POS);
+	lv_obj_set_pos(lmeterTempInstTarget_devThermostat, 20, 50);
+	lmeterTempInstCurrent_devThermostat = lv_lmeter_create(obj_Parent, NULL);
+	lv_lmeter_set_range(lmeterTempInstCurrent_devThermostat, 0, 45);				 
+	lv_lmeter_set_value(lmeterTempInstCurrent_devThermostat, (uint8_t)devParam_thermostat.temperatureVal_current);					
+	lv_lmeter_set_style(lmeterTempInstCurrent_devThermostat, &styleLmeter_devThermostat_tempCurrent);	
+	lv_obj_set_size(lmeterTempInstCurrent_devThermostat, 180, 180);
+	lv_lmeter_set_scale(lmeterTempInstCurrent_devThermostat, 260, 61);
+	lv_obj_set_protect(lmeterTempInstCurrent_devThermostat, LV_PROTECT_POS);
+	lv_obj_align(lmeterTempInstCurrent_devThermostat, lmeterTempInstTarget_devThermostat, LV_ALIGN_CENTER, 0, 0);
+
+	labelTempInstTarget_devThermostat = lv_label_create(obj_Parent, NULL);
+	sprintf(tempDisp, "%02d", (uint8_t)devParam_thermostat.temperatureVal_target);
+	lv_label_set_text(labelTempInstTarget_devThermostat, tempDisp);
+	lv_label_set_style(labelTempInstTarget_devThermostat, &styleLabel_devThermostat_tempTarget);
+	lv_obj_set_protect(labelTempInstTarget_devThermostat, LV_PROTECT_POS);
+	lv_obj_align(labelTempInstTarget_devThermostat, lmeterTempInstCurrent_devThermostat, LV_ALIGN_CENTER, -5, -15);
+	labelTempInstCurrent_devThermostat = lv_label_create(obj_Parent, NULL);
+	sprintf(tempDisp, "%02d", (uint8_t)devParam_thermostat.temperatureVal_current);
+	lv_label_set_text(labelTempInstCurrent_devThermostat, tempDisp);
+	lv_label_set_style(labelTempInstCurrent_devThermostat, &styleLabel_devThermostat_tempCurrent);
+	lv_obj_set_protect(labelTempInstCurrent_devThermostat, LV_PROTECT_POS);
+	lv_obj_align(labelTempInstCurrent_devThermostat, labelTempInstTarget_devThermostat, LV_ALIGN_OUT_BOTTOM_RIGHT, 30, -5);
+
+	slider_tempAdj_devThermostat = lv_slider_create(obj_Parent, NULL);
+	lv_obj_set_size(slider_tempAdj_devThermostat, 180, 30);
+	lv_slider_set_style(slider_tempAdj_devThermostat, LV_SLIDER_STYLE_BG, &styleSliderBk_devThermostat_bg);
+	lv_slider_set_style(slider_tempAdj_devThermostat, LV_SLIDER_STYLE_INDIC, &styleSliderBk_devThermostat_indic);
+	lv_slider_set_style(slider_tempAdj_devThermostat, LV_SLIDER_STYLE_KNOB, &styleSliderBk_devThermostat_knob);
+	lv_obj_set_protect(slider_tempAdj_devThermostat, LV_PROTECT_POS);
+	lv_obj_set_pos(slider_tempAdj_devThermostat, 20, 180);
+	lv_obj_align(slider_tempAdj_devThermostat, lmeterTempInstTarget_devThermostat, LV_ALIGN_OUT_BOTTOM_MID, 0, 20);
+	lv_slider_set_action(slider_tempAdj_devThermostat, funCb_slidAction_devThermostat_mainSlider);
+	lv_slider_set_range(slider_tempAdj_devThermostat, 0, DEVICE_THERMOSTAT_ADJUST_EQUAL_RANGE);	
+	lv_bar_set_value(slider_tempAdj_devThermostat, 0);
+	lv_slider_set_value(slider_tempAdj_devThermostat, devParam_thermostat.temperatureVal_target - 16);
+
+	btn_tempAdjAdd_devThermostat = lv_btn_create(obj_Parent, NULL);
+	lv_btn_set_action(btn_tempAdjAdd_devThermostat, LV_BTN_ACTION_CLICK, funCb_btnActionClick_devThermostat_tempAdd);
+	lv_obj_set_size(btn_tempAdjAdd_devThermostat, 50, 50);
+    lv_btn_set_style(btn_tempAdjAdd_devThermostat, LV_BTN_STYLE_REL, 	&stylebtnBk_transFull);
+    lv_btn_set_style(btn_tempAdjAdd_devThermostat, LV_BTN_STYLE_PR, 	&stylebtnBk_transFull);
+    lv_btn_set_style(btn_tempAdjAdd_devThermostat, LV_BTN_STYLE_TGL_REL,&stylebtnBk_transFull);
+    lv_btn_set_style(btn_tempAdjAdd_devThermostat, LV_BTN_STYLE_TGL_PR, &stylebtnBk_transFull);
+	lv_obj_set_protect(btn_tempAdjAdd_devThermostat, LV_PROTECT_POS);
+	lv_obj_align(btn_tempAdjAdd_devThermostat, slider_tempAdj_devThermostat, LV_ALIGN_OUT_TOP_RIGHT, 10, 0);
+	btn_tempAdjCut_devThermostat = lv_btn_create(obj_Parent, NULL);
+	lv_btn_set_action(btn_tempAdjCut_devThermostat, LV_BTN_ACTION_CLICK, funCb_btnActionClick_devThermostat_tempCut);
+	lv_obj_set_size(btn_tempAdjCut_devThermostat, 50, 50);
+    lv_btn_set_style(btn_tempAdjCut_devThermostat, LV_BTN_STYLE_REL, 	&stylebtnBk_transFull);
+    lv_btn_set_style(btn_tempAdjCut_devThermostat, LV_BTN_STYLE_PR, 	&stylebtnBk_transFull);
+    lv_btn_set_style(btn_tempAdjCut_devThermostat, LV_BTN_STYLE_TGL_REL,&stylebtnBk_transFull);
+    lv_btn_set_style(btn_tempAdjCut_devThermostat, LV_BTN_STYLE_TGL_PR, &stylebtnBk_transFull);
+	lv_obj_set_protect(btn_tempAdjCut_devThermostat, LV_PROTECT_POS);
+	lv_obj_align(btn_tempAdjCut_devThermostat, slider_tempAdj_devThermostat, LV_ALIGN_OUT_TOP_LEFT, -10, 0);
+
+	textBtn_tempAdjAdd_devThermostat = lv_label_create(btn_tempAdjAdd_devThermostat, NULL);
+	lv_label_set_text(textBtn_tempAdjAdd_devThermostat, "+");
+	lv_label_set_style(textBtn_tempAdjAdd_devThermostat, &styleTextBtnBk_devThermostat_tempAdj);
+	lv_obj_set_protect(textBtn_tempAdjAdd_devThermostat, LV_PROTECT_POS);
+	lv_obj_align(textBtn_tempAdjAdd_devThermostat, btn_tempAdjAdd_devThermostat, LV_ALIGN_CENTER, 0, 0);
+	textBtn_tempAdjCut_devThermostat = lv_label_create(btn_tempAdjCut_devThermostat, NULL);
+	lv_label_set_text(textBtn_tempAdjCut_devThermostat, "_");	
+	lv_label_set_style(textBtn_tempAdjCut_devThermostat, &styleTextBtnBk_devThermostat_tempAdj);
+	lv_obj_set_protect(textBtn_tempAdjCut_devThermostat, LV_PROTECT_POS);
+	lv_obj_align(textBtn_tempAdjCut_devThermostat, btn_tempAdjCut_devThermostat, LV_ALIGN_CENTER, 0, -15);
 }
 
 static void local_guiHomeBussiness_scenario(lv_obj_t * obj_Parent){
@@ -1875,39 +2526,20 @@ static void local_guiHomeBussiness_curtain(lv_obj_t * obj_Parent){
 
 	uint8_t devCurtain_orbitalPosPercent = devCurtain_currentPositionPercentGet();
 
-//	cont_bk_devCurtainImage = lv_cont_create(obj_Parent, NULL);
-//	lv_cont_set_layout(cont_bk_devCurtainImage, LV_LAYOUT_CENTER);
-//	lv_cont_set_fit(cont_bk_devCurtainImage, false, false);
-//	lv_obj_set_size(cont_bk_devCurtainImage, 236, 260);
-//	lv_obj_set_pos(cont_bk_devCurtainImage, 2, 60);
-//	image_bk_devCurtain_gan = lv_img_create(cont_bk_devCurtainImage, NULL);
-//	lv_img_set_src(image_bk_devCurtain_gan, &imageCurtain_gan);
-//	lv_obj_set_protect(image_bk_devCurtain_gan, LV_PROTECT_POS);
-//	lv_obj_set_pos(image_bk_devCurtain_gan, 2, 60);
-	image_bk_devCurtain_bodyLeft = lv_img_create(obj_Parent, NULL);
-	lv_img_set_src(image_bk_devCurtain_bodyLeft, &imageCurtain_body);
-	lv_obj_set_protect(image_bk_devCurtain_bodyLeft, LV_PROTECT_POS);
-	lv_obj_set_pos(image_bk_devCurtain_bodyLeft, -38, 75);
-	image_bk_devCurtain_bodyRight = lv_img_create(obj_Parent, NULL);
-	lv_img_set_src(image_bk_devCurtain_bodyRight, &imageCurtain_body);
-	lv_obj_set_protect(image_bk_devCurtain_bodyRight, LV_PROTECT_POS);
-	lv_obj_set_pos(image_bk_devCurtain_bodyRight, 160, 75);
+	image_bk_devCurtain_body = lv_img_create(obj_Parent, NULL);
+	lv_img_set_src(image_bk_devCurtain_body, &imageCurtain_body);
+	lv_img_set_style(image_bk_devCurtain_body, &styleImageBk_devCurtain_bkImgBody);
+	lv_obj_set_protect(image_bk_devCurtain_body, LV_PROTECT_POS);
+	lv_obj_set_pos(image_bk_devCurtain_body, 34, 40);
 
 	slider_bk_devCurtain = lv_slider_create(obj_Parent, NULL);
-	lv_obj_set_size(slider_bk_devCurtain, 200, 20);
+	lv_obj_set_size(slider_bk_devCurtain, 190, 30);
 	lv_obj_set_protect(slider_bk_devCurtain, LV_PROTECT_POS);
-	lv_obj_set_pos(slider_bk_devCurtain, 20, 180);
+	lv_obj_set_pos(slider_bk_devCurtain, 25, 220);
 	lv_obj_set_top(slider_bk_devCurtain, true);
 	lv_slider_set_action(slider_bk_devCurtain, funCb_slidAction_devCurtain_mainSlider);
 	lv_bar_set_value(slider_bk_devCurtain, DEVICE_CURTAIN_ORBITAL_POSITION_MAX_VAL);
 	lv_slider_set_value(slider_bk_devCurtain, devCurtain_orbitalPosPercent);
-	slider_bk_devCurtainPosTips = lv_slider_create(obj_Parent, slider_bk_devCurtain);
-	lv_obj_set_pos(slider_bk_devCurtainPosTips, 20, 120);
-	lv_obj_set_top(slider_bk_devCurtainPosTips, true);
-	lv_obj_set_click(slider_bk_devCurtainPosTips, false);
-	lv_slider_set_action(slider_bk_devCurtainPosTips, funCb_slidAction_devCurtainPosTips_mainSlider);
-	lv_bar_set_value(slider_bk_devCurtainPosTips, DEVICE_CURTAIN_ORBITAL_POSITION_MAX_VAL);
-	lv_slider_set_value(slider_bk_devCurtainPosTips, devCurtain_orbitalPosPercent);
 
 	lv_slider_set_style(slider_bk_devCurtain, LV_SLIDER_STYLE_BG, &styleSliderBk_devCurtain_bg);
 	lv_slider_set_style(slider_bk_devCurtain, LV_SLIDER_STYLE_INDIC, &styleSliderBk_devCurtain_indic);
@@ -1916,7 +2548,7 @@ static void local_guiHomeBussiness_curtain(lv_obj_t * obj_Parent){
 	btn_bk_devCurtain_open = lv_imgbtn_create(obj_Parent, NULL);
 	lv_imgbtn_set_src(btn_bk_devCurtain_open, LV_BTN_STATE_REL, &iconPage_curtainOpen_rel);
 	lv_imgbtn_set_src(btn_bk_devCurtain_open, LV_BTN_STATE_PR, &iconPage_curtainOpen_rel);
-	lv_obj_set_pos(btn_bk_devCurtain_open, 20, 260);
+	lv_obj_set_pos(btn_bk_devCurtain_open, 20, 280);
 	lv_obj_set_top(btn_bk_devCurtain_open, true);
 	lv_obj_animate(btn_bk_devCurtain_open, LV_ANIM_FLOAT_RIGHT, 200, 0, NULL);
 	lv_imgbtn_set_style(btn_bk_devCurtain_open, LV_BTN_STATE_REL, &styleBtn_devCurtain_statusRel);
@@ -1925,7 +2557,7 @@ static void local_guiHomeBussiness_curtain(lv_obj_t * obj_Parent){
 	btn_bk_devCurtain_stop = lv_imgbtn_create(obj_Parent, NULL);
 	lv_imgbtn_set_src(btn_bk_devCurtain_stop, LV_BTN_STATE_REL, &iconPage_curtainPluse_rel);
 	lv_imgbtn_set_src(btn_bk_devCurtain_stop, LV_BTN_STATE_PR, &iconPage_curtainPluse_rel);
-	lv_obj_set_pos(btn_bk_devCurtain_stop, 80, 260);
+	lv_obj_set_pos(btn_bk_devCurtain_stop, 100, 280);
 	lv_obj_set_top(btn_bk_devCurtain_stop, true);
 	lv_obj_animate(btn_bk_devCurtain_stop, LV_ANIM_FLOAT_RIGHT, 200, 0, NULL);
 	lv_imgbtn_set_style(btn_bk_devCurtain_stop, LV_BTN_STATE_REL, &styleBtn_devCurtain_statusRel);
@@ -1934,60 +2566,61 @@ static void local_guiHomeBussiness_curtain(lv_obj_t * obj_Parent){
 	btn_bk_devCurtain_close = lv_imgbtn_create(obj_Parent, NULL);
 	lv_imgbtn_set_src(btn_bk_devCurtain_close, LV_BTN_STATE_REL, &iconPage_curtainClose_rel);
 	lv_imgbtn_set_src(btn_bk_devCurtain_close, LV_BTN_STATE_PR, &iconPage_curtainClose_rel);
-	lv_obj_set_pos(btn_bk_devCurtain_close, 140, 260);
+	lv_obj_set_pos(btn_bk_devCurtain_close, 160, 280);
 	lv_obj_set_top(btn_bk_devCurtain_close, true);
 	lv_obj_animate(btn_bk_devCurtain_close, LV_ANIM_FLOAT_RIGHT, 200, 0, NULL);
 	lv_imgbtn_set_style(btn_bk_devCurtain_close, LV_BTN_STATE_REL, &styleBtn_devCurtain_statusRel);
 	lv_btn_set_action(btn_bk_devCurtain_close, LV_BTN_ACTION_CLICK, funCb_btnActionClick_devCurtain_close);
 
 	label_bk_devCurtain_positionCur = lv_label_create(obj_Parent, NULL);
-	lv_label_set_style(label_bk_devCurtain_positionCur, &styleText_devCurtain_Bk_positionTips);
+	lv_label_set_style(label_bk_devCurtain_positionCur, &styleText_devCurtain_Bk_positionCurr);
+	lv_label_set_align(label_bk_devCurtain_positionCur, LV_LABEL_ALIGN_CENTER);
 	lv_label_set_long_mode(label_bk_devCurtain_positionCur, LV_LABEL_LONG_SCROLL);
-	sprintf(str_devParamPositionCur_devCurtain, "position current:%d%%.", devCurtain_orbitalPosPercent);
+	sprintf(str_devParamPositionCur_devCurtain, "%d", devCurtain_orbitalPosPercent);
 	lv_label_set_text(label_bk_devCurtain_positionCur, str_devParamPositionCur_devCurtain);
 	lv_obj_set_protect(label_bk_devCurtain_positionCur, LV_PROTECT_POS);
 //	lv_obj_set_pos(label_bk_devCurtain_positionCur, 20, 140);
-	lv_obj_align(label_bk_devCurtain_positionCur, slider_bk_devCurtainPosTips, LV_ALIGN_OUT_TOP_MID, 0, -5);
+	lv_obj_align(label_bk_devCurtain_positionCur, image_bk_devCurtain_body, LV_ALIGN_CENTER, 0, 50);
 	lv_obj_set_top(label_bk_devCurtain_positionCur, true);
 
 	label_bk_devCurtain_positionAdj = lv_label_create(obj_Parent, NULL);
 	lv_label_set_style(label_bk_devCurtain_positionAdj, &styleText_devCurtain_Bk_positionTips);
 	lv_label_set_long_mode(label_bk_devCurtain_positionAdj, LV_LABEL_LONG_SCROLL);
-	sprintf(str_devParamPositionAdj_devCurtain, "position adjust:%d%%.", devCurtain_orbitalPosPercent);
+	sprintf(str_devParamPositionAdj_devCurtain, "%d%%", devCurtain_orbitalPosPercent);
 	lv_label_set_text(label_bk_devCurtain_positionAdj, str_devParamPositionAdj_devCurtain);
 	lv_obj_set_protect(label_bk_devCurtain_positionAdj, LV_PROTECT_POS);
 //	lv_obj_set_pos(label_bk_devCurtain_positionAdj, 20, 140);
-	lv_obj_align(label_bk_devCurtain_positionAdj, slider_bk_devCurtain, LV_ALIGN_OUT_TOP_MID, 0, -5);
+	lv_obj_align(label_bk_devCurtain_positionAdj, slider_bk_devCurtain, LV_ALIGN_OUT_TOP_RIGHT, 0, 0);
 	lv_obj_set_top(label_bk_devCurtain_positionAdj, true);
 }
 
 static void local_guiHomeBussiness_heater(lv_obj_t * obj_Parent){
 
-	roller_bk_devHeater = lv_roller_create(obj_Parent, NULL);
-	lv_roller_set_options(roller_bk_devHeater, "close\n""open\n""closeAfter 30min\n""closeAfter 60min\n""closeAfter custom");
-	lv_obj_set_protect(roller_bk_devHeater, LV_PROTECT_POS);
-	lv_roller_set_hor_fit(roller_bk_devHeater, false);
-	lv_obj_set_width(roller_bk_devHeater, 180);
-	lv_obj_set_pos(roller_bk_devHeater, 30, 120);
-	lv_roller_set_anim_time(roller_bk_devHeater, 100);
-	lv_roller_set_action(roller_bk_devHeater, funCb_rollAction_devHeater_mainRoller);
-//	lv_roller_set_style(roller_bk_devHeater, LV_ROLLER_STYLE_BG, &styleRollerBk_devHeater_bg);
-//	lv_roller_set_style(roller_bk_devHeater, LV_ROLLER_STYLE_SEL, &styleRollerBk_devHeater_sel);
-	lv_roller_set_visible_row_count(roller_bk_devHeater, 3);
+	icomImageA_devHeater = lv_img_create(obj_Parent, NULL);
+	lv_img_set_src(icomImageA_devHeater, &iconHeater_HomePageDeviceHeater);
+	lv_img_set_style(icomImageA_devHeater, &styleImage_devHeater_icon);
+	lv_obj_set_protect(icomImageA_devHeater, LV_PROTECT_POS);
+	lv_obj_set_pos(icomImageA_devHeater, 15, 75);
 
-	label_bk_devHeater_timeRemind = lv_label_create(obj_Parent, NULL);
-	lv_label_set_style(label_bk_devHeater_timeRemind, &styleText_devHeater_Bk_timeRemind);
-	lv_label_set_long_mode(label_bk_devHeater_timeRemind, LV_LABEL_LONG_SCROLL);
-	sprintf(str_devRunningRemind_devHeater, "the heater is off now.");
-	lv_label_set_text(label_bk_devHeater_timeRemind, str_devRunningRemind_devHeater);
-	lv_obj_set_pos(label_bk_devHeater_timeRemind, 30, 50);
+	textTimeInstract_target_devHeater = lv_label_create(obj_Parent, NULL);
+	lv_label_set_text(textTimeInstract_target_devHeater, "\0");
+	lv_label_set_style(textTimeInstract_target_devHeater, &styleText_devHeater_timeInst);
+	lv_obj_set_protect(textTimeInstract_target_devHeater, LV_PROTECT_POS);
+	lv_obj_align(textTimeInstract_target_devHeater, icomImageA_devHeater, LV_ALIGN_CENTER, -60, -20);
+	textTimeInstract_current_devHeater = lv_label_create(obj_Parent, NULL);
+	lv_label_set_text(textTimeInstract_current_devHeater, "CLOSE");
+	lv_label_set_style(textTimeInstract_current_devHeater, &styleText_devHeater_timeInst);
+	lv_obj_set_protect(textTimeInstract_current_devHeater, LV_PROTECT_POS);
+	lv_obj_align(textTimeInstract_current_devHeater, icomImageA_devHeater, LV_ALIGN_CENTER, -35, 0);
 
 	btnm_bk_devHeater = lv_btnm_create(obj_Parent, NULL);
 	lv_obj_set_size(btnm_bk_devHeater, 200, 40);
-//	lv_btnm_get_style(btnm_bk_devHeater, );
+//	lv_btnm_set_style(btnm_bk_devFans, LV_BTNM_STYLE_BG, &styleBtnm_devHeater_btnBg);
+//	lv_btnm_set_style(btnm_bk_devFans, LV_BTNM_STYLE_BTN_REL, &styleBtnm_devHeater_btnRel);
+//	lv_btnm_set_style(btnm_bk_devFans, LV_BTNM_STYLE_BTN_PR, &styleBtnm_devHeater_btnPre);
 	lv_btnm_set_action(btnm_bk_devHeater, funCb_btnmActionClick_devHeater_gearBtnm);
 	lv_btnm_set_map(btnm_bk_devHeater, btnm_str_devHeater);
-	lv_btnm_set_toggle(btnm_bk_devHeater, true, 3);
+	lv_btnm_set_toggle(btnm_bk_devHeater, true, 0);
 	lv_obj_set_protect(btnm_bk_devHeater, LV_PROTECT_POS);
 	lv_obj_set_pos(btnm_bk_devHeater, 20, 245);
 }
@@ -2041,12 +2674,13 @@ static const struct stt_guiHomeBussiness{
 	{local_guiHomeBussiness_scenario, 		devTypeDef_scenario},
 	{local_guiHomeBussiness_curtain, 		devTypeDef_curtain},
 	{local_guiHomeBussiness_heater, 		devTypeDef_heater},
+	{local_guiHomeBussiness_thermostat, 	devTypeDef_thermostat},
 };
 
 static void lvGui_businessHome(lv_obj_t * obj_Parent){
 
 	uint8_t loop = 0;
-	devTypeDef_enum decType_temp = currentDev_typeGet();
+	devTypeDef_enum devType_temp = currentDev_typeGet();
 
 //	//home界面进入菜单按键创建，并设置底图、位置、及加载动画
 //	btn_homeMenu = lv_imgbtn_create(lv_scr_act(), NULL);
@@ -2060,9 +2694,38 @@ static void lvGui_businessHome(lv_obj_t * obj_Parent){
 //	btn_homeMenu->drag_throw = 1;
 //	lv_obj_animate(btn_homeMenu, LV_ANIM_FLOAT_LEFT, 300, 100, NULL);
 
+	switch(devType_temp){
+
+		case devTypeDef_mulitSwOneBit:
+		case devTypeDef_mulitSwTwoBit:
+		case devTypeDef_mulitSwThreeBit:{
+
+			styleImgBk_underlying.image.intense = 0;
+			
+			lv_img_set_style(imageBK, &styleImgBk_underlying);
+
+		}break;
+		
+		case devTypeDef_dimmer:
+		case devTypeDef_fans:
+		case devTypeDef_scenario:
+		case devTypeDef_curtain:
+		case devTypeDef_thermostat:
+		case devTypeDef_heater:{
+
+			styleImgBk_underlying.image.intense = LV_OPA_50;
+			styleImgBk_underlying.image.color = LV_COLOR_GRAY;
+
+			lv_img_set_style(imageBK, &styleImgBk_underlying);
+
+		}break;
+		
+		default:{}break;
+	}
+
 	for(loop = 0; loop < DEVICE_TYPE_LIST_NUM; loop ++){
 
-		if(decType_temp == guiHomeBussiness_tab[loop].currentDevType){
+		if(devType_temp == guiHomeBussiness_tab[loop].currentDevType){
 
 			guiHomeBussiness_tab[loop].guiHome_disp(obj_Parent);
 			break;
@@ -2204,26 +2867,26 @@ static void task_guiSwitch_Detecting(void *pvParameter){
 					
 				}break;
 
-				case bussinessType_menuPageDeviceManage:{
+				case bussinessType_menuPageOther:{
 
 //					lvUsr_objBkReales2SecMenu();
 					
 				}break;
 				
-				case bussinessType_menuPageScence:{
-
-//					lvUsr_objBkReales2SecMenu();
-
-				}break;
-				
-				case bussinessType_menuPageSecurity:{
-
-//					lvUsr_objBkReales2SecMenu();
+				case bussinessType_menuPageDelayer:{
 					
+//					lvUsr_objBkReales2SecMenu();
+
 				}break;
 				
-				case bussinessType_menuPageStatistics:{
-
+				case bussinessType_menuPageTimer:{
+					
+//					lvUsr_objBkReales2SecMenu();
+	
+				}break;
+				
+				case bussinessType_menuPageLinkageConfig:{
+					
 //					lvUsr_objBkReales2SecMenu();
 					
 				}break;
@@ -2284,7 +2947,7 @@ static void task_guiSwitch_Detecting(void *pvParameter){
 
 				}break;
 
-				case bussinessType_menuPageDeviceInfo:{
+				case bussinessType_menuPageWifiConfig:{
 
 					//控件风格设定：二级菜单白色底图对象
 					lv_style_copy(&styleBk_secMenu, &lv_style_plain);
@@ -2293,7 +2956,7 @@ static void task_guiSwitch_Detecting(void *pvParameter){
 					vTaskDelay(100 / portTICK_PERIOD_MS);
 					lvUsr_objBkReales2SecMenu();
 					
-					lvGui_businessMenu_deviceInfo(imageBK);
+					lvGui_businessMenu_wifiConfig(imageBK);
 			
 				}break;
 
@@ -2382,7 +3045,7 @@ static void lvGuiHome_styleApplicationInit(void){
 
 	//文字风格设定：调光开关亮度文字描述
 	lv_style_copy(&styleText_devDimmer_SliderBk, &lv_style_plain);
-	styleText_devDimmer_SliderBk.text.font = &lv_font_dejavu_20;
+	styleText_devDimmer_SliderBk.text.font = &lv_font_dejavu_30;
 	styleText_devDimmer_SliderBk.text.color = LV_COLOR_WHITE;
 
 	//文字风格设定：定时响应对应定时类别文字描述
@@ -2390,15 +3053,43 @@ static void lvGuiHome_styleApplicationInit(void){
 	styleText_loopTimerTips.text.font = &lv_font_dejavu_20;
 	styleText_loopTimerTips.text.color = LV_COLOR_WHITE;
 
+	//文字风格设定：风扇开关对应档位文字描述
+	lv_style_copy(&styleText_devFans_instract, &lv_style_plain);
+	styleText_devFans_instract.text.font = &lv_font_arialNum_100;
+	styleText_devFans_instract.text.color = LV_COLOR_MAKE(153, 217, 234);
+
+	//文字风格设定：热水器开关对应档位文字描述
+	lv_style_copy(&styleText_devHeater_timeInst, &lv_style_plain);
+	styleText_devHeater_timeInst.text.font = &lv_font_consola_19;
+	styleText_devHeater_timeInst.text.color = LV_COLOR_MAKE(255, 240, 155);
+
 	//文字风格设定：热水器开关对应延时关闭文字描述
 	lv_style_copy(&styleText_devHeater_Bk_timeRemind, &lv_style_plain);
 	styleText_devHeater_Bk_timeRemind.text.font = &lv_font_consola_16;
 	styleText_devHeater_Bk_timeRemind.text.color = LV_COLOR_ORANGE;
 
 	//文字风格设定：窗帘位置信息描述文字
+	lv_style_copy(&styleText_devCurtain_Bk_positionCurr, &lv_style_plain);
+	styleText_devCurtain_Bk_positionCurr.text.font = &lv_font_dejavu_40;
+	styleText_devCurtain_Bk_positionCurr.text.color = LV_COLOR_MAKE(224, 224, 220);
 	lv_style_copy(&styleText_devCurtain_Bk_positionTips, &lv_style_plain);
 	styleText_devCurtain_Bk_positionTips.text.font = &lv_font_consola_19;
 	styleText_devCurtain_Bk_positionTips.text.color = LV_COLOR_WHITE;
+
+	//文字风格设定：恒温器温度信息描述
+	lv_style_copy(&styleLabel_devThermostat_tempTarget, &lv_style_plain);
+	styleLabel_devThermostat_tempTarget.text.font = &lv_font_arialNum_100;
+	styleLabel_devThermostat_tempTarget.text.color = LV_COLOR_MAKE(255, 255, 0);
+	lv_style_copy(&styleLabel_devThermostat_tempCurrent, &lv_style_plain);
+	styleLabel_devThermostat_tempCurrent.text.font = &lv_font_dejavu_30;
+	styleLabel_devThermostat_tempCurrent.text.color = LV_COLOR_MAKE(0, 255, 0);
+	lv_style_copy(&styleTextBtnBk_devThermostat_tempAdj, &lv_style_plain);
+	styleTextBtnBk_devThermostat_tempAdj.text.font = &lv_font_dejavu_30;
+	styleTextBtnBk_devThermostat_tempAdj.text.color = LV_COLOR_MAKE(255, 255, 255);
+
+	lv_style_copy(&styleTextRollerTips_devHeater_timeSetPage, &lv_style_plain);
+	styleTextRollerTips_devHeater_timeSetPage.text.font = &lv_font_arial_15;
+	styleTextRollerTips_devHeater_timeSetPage.text.color = LV_COLOR_MAKE(80, 240, 80);
 
 	//图片风格设定：多位开关按键 房间描述图案
 	lv_style_copy(&styleBtnImg_icon, &lv_style_plain);
@@ -2431,13 +3122,58 @@ static void lvGuiHome_styleApplicationInit(void){
 	styleBtn_devCurtain_statusRel.image.color = LV_COLOR_GRAY;
 	styleBtn_devCurtain_statusRel.image.intense = LV_OPA_30;
 
+	//图片风格设定：窗帘图标风格
+	lv_style_copy(&styleImageBk_devCurtain_bkImgBody, &lv_style_plain);
+	styleImageBk_devCurtain_bkImgBody.image.color = LV_COLOR_MAKE(224, 224, 220);
+	styleImageBk_devCurtain_bkImgBody.image.intense = LV_OPA_COVER;
+
+	//图片风格设定：风扇图标图片
+	lv_style_copy(&styleImage_devFans_icon, &lv_style_plain);
+	styleImage_devFans_icon.image.color = LV_COLOR_MAKE(224, 224, 220);
+	styleImage_devFans_icon.image.intense = LV_OPA_COVER;
+
+	//图片风格设定：热水器图标图片
+	lv_style_copy(&styleImage_devHeater_icon, &lv_style_plain);
+	styleImage_devHeater_icon.image.color = LV_COLOR_MAKE(224, 224, 220);
+	styleImage_devHeater_icon.image.intense = LV_OPA_COVER;
+
 	//图片风格设定：调光亮度提示图片底图
 	lv_style_copy(&stylePhotoAk_devDimmer, &lv_style_plain);
 	stylePhotoBk_devDimmer.image.intense = LV_OPA_0;
 	lv_style_copy(&stylePhotoBk_devDimmer, &lv_style_plain);
 	stylePhotoBk_devDimmer.image.opa = LV_OPA_0;
-	
-	//控件风格设定：调光开关及窗帘开关滑动条 滑块、滑条、滑条边框
+
+	//图片风格设定：背景图
+	lv_style_copy(&styleImgBk_underlying, &lv_style_plain);
+	styleImgBk_underlying.image.intense = LV_OPA_50;
+	styleImgBk_underlying.image.color = LV_COLOR_GRAY;
+//	styleImgBk_underlying.image.intense = LV_OPA_0;
+//	styleImgBk_underlying.image.opa = LV_OPA_0;
+
+	//空间风格设定：按键透明
+	stylebtnBk_transFull.body.main_color = LV_COLOR_TRANSP;
+	stylebtnBk_transFull.body.grad_color = LV_COLOR_TRANSP;
+	stylebtnBk_transFull.body.border.part = LV_BORDER_NONE;
+    stylebtnBk_transFull.body.opa = LV_OPA_TRANSP;
+	stylebtnBk_transFull.body.radius = 0;
+    stylebtnBk_transFull.body.shadow.width =  0;
+
+	//控件风格设定；恒温器线路表
+	lv_style_copy(&styleLmeter_devThermostat_tempTarget, &lv_style_pretty_color);
+	styleLmeter_devThermostat_tempTarget.line.width = 2;
+	styleLmeter_devThermostat_tempTarget.body.padding.hor = 10;
+	styleLmeter_devThermostat_tempTarget.line.color = LV_COLOR_WHITE;
+	styleLmeter_devThermostat_tempTarget.body.main_color = LV_COLOR_MAKE(0, 0, 255); 		/*Light blue*/
+	styleLmeter_devThermostat_tempTarget.body.grad_color = LV_COLOR_MAKE(0, 0, 255);		/*Dark blue*/
+	lv_style_copy(&styleLmeter_devThermostat_tempCurrent, &lv_style_pretty_color);
+	styleLmeter_devThermostat_tempCurrent.line.width = 2;
+	styleLmeter_devThermostat_tempCurrent.body.padding.hor = 6;
+	styleLmeter_devThermostat_tempCurrent.line.color = LV_COLOR_WHITE;
+//	styleLmeter_devThermostat_tempCurrent.line.opa = LV_OPA_TRANSP;
+	styleLmeter_devThermostat_tempCurrent.body.main_color = LV_COLOR_MAKE(0, 255, 0); 	/*Light blue*/
+	styleLmeter_devThermostat_tempCurrent.body.grad_color = LV_COLOR_MAKE(0, 255, 0); 
+
+	//控件风格设定：调光开关及窗帘开关滑动条
 	lv_style_copy(&styleSliderBk_devDimmer_bg, &lv_style_pretty);
 	styleSliderBk_devDimmer_bg.body.main_color = LV_COLOR_BLACK;
 	styleSliderBk_devDimmer_bg.body.grad_color = LV_COLOR_GRAY;
@@ -2474,30 +3210,163 @@ static void lvGuiHome_styleApplicationInit(void){
 	styleSliderBk_devCurtain_knob.body.opa = LV_OPA_70;
 	styleSliderBk_devCurtain_knob.body.padding.ver = 10;
 
-	//控件风格设定：风扇开关档位滚动选定框背景、选中风格设置
-	lv_style_copy(&styleRollerBk_devFans_bg, &lv_style_plain);
-//	styleRollerBk_devFans_bg.body.main_color = LV_COLOR_TRANSP;
-//	styleRollerBk_devFans_bg.body.grad_color = LV_COLOR_WHITE;
-//	styleRollerBk_devFans_bg.text.font = &lv_font_dejavu_30;
-//	styleRollerBk_devFans_bg.text.line_space = 5;
-//	styleRollerBk_devFans_bg.text.opa = LV_OPA_TRANSP;
-	lv_style_copy(&styleRollerBk_devFans_sel, &lv_style_plain);
-//	styleRollerBk_devFans_sel.body.empty = 1;
-//	styleRollerBk_devFans_sel.body.radius = 30;
-//	styleRollerBk_devFans_sel.text.color = LV_COLOR_BLUE;
-//	styleRollerBk_devFans_sel.text.font = &lv_font_consola_19;
+	lv_style_copy(&styleSliderBk_devThermostat_bg, &lv_style_pretty);
+	styleSliderBk_devThermostat_bg.body.main_color = LV_COLOR_BLACK;
+	styleSliderBk_devThermostat_bg.body.grad_color = LV_COLOR_GRAY;
+	styleSliderBk_devThermostat_bg.body.radius = LV_RADIUS_CIRCLE;
+	styleSliderBk_devThermostat_bg.body.border.color = LV_COLOR_WHITE;
+	lv_style_copy(&styleSliderBk_devThermostat_indic, &lv_style_pretty);
+	styleSliderBk_devThermostat_indic.body.grad_color = LV_COLOR_GREEN;
+	styleSliderBk_devThermostat_indic.body.main_color = LV_COLOR_LIME;
+	styleSliderBk_devThermostat_indic.body.radius = LV_RADIUS_CIRCLE;
+	styleSliderBk_devThermostat_indic.body.shadow.width = 10;
+	styleSliderBk_devThermostat_indic.body.shadow.color = LV_COLOR_LIME;
+	styleSliderBk_devThermostat_indic.body.padding.hor = 3;
+	styleSliderBk_devThermostat_indic.body.padding.ver = 3;
+	lv_style_copy(&styleSliderBk_devThermostat_knob, &lv_style_pretty);
+	styleSliderBk_devThermostat_knob.body.radius = LV_RADIUS_CIRCLE;
+	styleSliderBk_devThermostat_knob.body.opa = LV_OPA_70;
+	styleSliderBk_devThermostat_knob.body.padding.ver = 10;
 
-	lv_style_copy(&styleRollerBk_devHeater_bg, &lv_style_plain);
-//	styleRollerBk_devHeater_bg.body.main_color = LV_COLOR_TRANSP;
-//	styleRollerBk_devHeater_bg.body.grad_color = LV_COLOR_WHITE;
-//	styleRollerBk_devHeater_bg.text.font = &lv_font_dejavu_30;
-//	styleRollerBk_devHeater_bg.text.line_space = 5;
-//	styleRollerBk_devHeater_bg.text.opa = LV_OPA_TRANSP;
-	lv_style_copy(&styleRollerBk_devHeater_sel, &lv_style_plain);
-//	styleRollerBk_devHeater_sel.body.empty = 1;
-//	styleRollerBk_devHeater_sel.body.radius = 30;
-//	styleRollerBk_devHeater_sel.text.color = LV_COLOR_BLUE;
-//	styleRollerBk_devHeater_sel.text.font = &lv_font_consola_19;
+	//控件风格设定：风扇开关档位按钮矩阵选定框背景、选中风格设置
+//    lv_style_copy(&styleBtnm_devFans_btnBg, &lv_style_plain);
+//    styleBtnm_devFans_btnBg.body.main_color = lv_color_hsv_to_rgb(15, 11, 30);
+//    styleBtnm_devFans_btnBg.body.grad_color = lv_color_hsv_to_rgb(15, 11, 30);
+//    styleBtnm_devFans_btnBg.text.color = lv_color_hsv_to_rgb(15, 5, 95);
+
+//    lv_style_copy(&styleBtnm_devFans_btnRel, &lv_style_pretty);
+//    styleBtnm_devFans_btnRel.body.main_color = lv_color_hsv_to_rgb(15, 10, 40);
+//    styleBtnm_devFans_btnRel.body.grad_color = lv_color_hsv_to_rgb(15, 10, 20);
+//    styleBtnm_devFans_btnRel.body.border.color = LV_COLOR_HEX3(0x111);
+//    styleBtnm_devFans_btnRel.body.border.width = 1;
+//    styleBtnm_devFans_btnRel.body.border.opa = LV_OPA_70;
+//    styleBtnm_devFans_btnRel.body.padding.hor = LV_DPI / 4;
+//    styleBtnm_devFans_btnRel.body.padding.ver = LV_DPI / 8;
+//    styleBtnm_devFans_btnRel.body.shadow.type = LV_SHADOW_BOTTOM;
+//    styleBtnm_devFans_btnRel.body.shadow.color = LV_COLOR_HEX3(0x111);
+//    styleBtnm_devFans_btnRel.body.shadow.width = LV_DPI / 30;
+//    styleBtnm_devFans_btnRel.text.color = LV_COLOR_HEX3(0xeee);
+
+//    lv_style_copy(&styleBtnm_devFans_btnPre, &styleBtnm_devFans_btnRel);
+//    styleBtnm_devFans_btnPre.body.main_color = lv_color_hsv_to_rgb(15, 10, 30);
+//    styleBtnm_devFans_btnPre.body.grad_color = lv_color_hsv_to_rgb(15, 10, 10);
+
+//    lv_style_copy(&styleBtnm_devFans_btnTglRel, &styleBtnm_devFans_btnRel);
+//    styleBtnm_devFans_btnTglRel.body.main_color = lv_color_hsv_to_rgb(15, 10, 20);
+//    styleBtnm_devFans_btnTglRel.body.grad_color = lv_color_hsv_to_rgb(15, 10, 40);
+//    styleBtnm_devFans_btnTglRel.body.shadow.width = LV_DPI / 40;
+//    styleBtnm_devFans_btnTglRel.text.color = LV_COLOR_HEX3(0xddd);
+
+//    lv_style_copy(&styleBtnm_devFans_btnTglPre, &styleBtnm_devFans_btnRel);
+//    styleBtnm_devFans_btnTglPre.body.main_color = lv_color_hsv_to_rgb(15, 10, 10);
+//    styleBtnm_devFans_btnTglPre.body.grad_color = lv_color_hsv_to_rgb(15, 10, 30);
+//    styleBtnm_devFans_btnTglPre.body.shadow.width = LV_DPI / 30;
+//    styleBtnm_devFans_btnTglPre.text.color = LV_COLOR_HEX3(0xddd);
+
+//    lv_style_copy(&styleBtnm_devFans_btnIna, &styleBtnm_devFans_btnRel);
+//    styleBtnm_devFans_btnIna.body.main_color = lv_color_hsv_to_rgb(15, 10, 20);
+//    styleBtnm_devFans_btnIna.body.grad_color = lv_color_hsv_to_rgb(15, 10, 20);
+//    styleBtnm_devFans_btnIna.text.color = LV_COLOR_HEX3(0xaaa);
+//    styleBtnm_devFans_btnIna.body.shadow.width = 0;
+
+    lv_style_copy(&styleBtnm_devFans_btnBg, &lv_style_plain);
+    styleBtnm_devFans_btnBg.body.main_color = LV_COLOR_HEX3(0x333);
+    styleBtnm_devFans_btnBg.body.grad_color =  LV_COLOR_HEX3(0x333);
+    styleBtnm_devFans_btnBg.body.border.width = 2;
+    styleBtnm_devFans_btnBg.body.border.color =  LV_COLOR_HEX3(0x666);
+    styleBtnm_devFans_btnBg.body.shadow.color = LV_COLOR_SILVER;
+
+    lv_style_copy(&styleBtnm_devFans_btnRel, &lv_style_plain);
+    styleBtnm_devFans_btnRel.glass = 0;
+    styleBtnm_devFans_btnRel.body.empty = 1;
+    styleBtnm_devFans_btnRel.body.radius = LV_RADIUS_CIRCLE;
+    styleBtnm_devFans_btnRel.body.border.width = 2;
+    styleBtnm_devFans_btnRel.body.border.color = lv_color_hsv_to_rgb(15, 70, 90);
+    styleBtnm_devFans_btnRel.body.border.opa = LV_OPA_80;
+    styleBtnm_devFans_btnRel.body.padding.hor = LV_DPI / 4;
+    styleBtnm_devFans_btnRel.body.padding.ver = LV_DPI / 6;
+    styleBtnm_devFans_btnRel.body.padding.inner = LV_DPI / 10;
+    styleBtnm_devFans_btnRel.text.color = lv_color_hsv_to_rgb(15, 8, 96);
+
+    lv_style_copy(&styleBtnm_devFans_btnPre, &styleBtnm_devFans_btnRel);
+    styleBtnm_devFans_btnPre.body.opa = LV_OPA_COVER;
+    styleBtnm_devFans_btnPre.body.empty = 0;
+    styleBtnm_devFans_btnPre.body.main_color = lv_color_hsv_to_rgb(15, 50, 50);
+    styleBtnm_devFans_btnPre.body.grad_color = lv_color_hsv_to_rgb(15, 50, 50);
+    styleBtnm_devFans_btnPre.body.border.opa = LV_OPA_60;
+    styleBtnm_devFans_btnPre.text.color = lv_color_hsv_to_rgb(15, 10, 100);
+
+    lv_style_copy(&styleBtnm_devFans_btnTglRel, &styleBtnm_devFans_btnPre);
+    styleBtnm_devFans_btnTglRel.body.opa = LV_OPA_COVER;
+    styleBtnm_devFans_btnTglRel.body.empty = 0;
+    styleBtnm_devFans_btnTglRel.body.main_color = lv_color_hsv_to_rgb(15, 50, 60);
+    styleBtnm_devFans_btnTglRel.body.grad_color = lv_color_hsv_to_rgb(15, 50, 60);
+    styleBtnm_devFans_btnTglRel.body.border.opa = LV_OPA_60;
+    styleBtnm_devFans_btnTglRel.body.border.color = lv_color_hsv_to_rgb(15, 80, 90);
+    styleBtnm_devFans_btnTglRel.text.color = lv_color_hsv_to_rgb(15, 0, 100);
+
+    lv_style_copy(&styleBtnm_devFans_btnTglPre, &styleBtnm_devFans_btnTglRel);
+    styleBtnm_devFans_btnTglPre.body.opa = LV_OPA_COVER;
+    styleBtnm_devFans_btnTglPre.body.empty = 0;
+    styleBtnm_devFans_btnTglPre.body.main_color = lv_color_hsv_to_rgb(15, 50, 50);
+    styleBtnm_devFans_btnTglPre.body.grad_color = lv_color_hsv_to_rgb(15, 50, 50);
+    styleBtnm_devFans_btnTglPre.body.border.opa = LV_OPA_60;
+    styleBtnm_devFans_btnTglPre.body.border.color = lv_color_hsv_to_rgb(15, 80, 70);
+    styleBtnm_devFans_btnTglPre.text.color = lv_color_hsv_to_rgb(15, 10, 90);
+
+    lv_style_copy(&styleBtnm_devFans_btnIna, &styleBtnm_devFans_btnRel);
+    styleBtnm_devFans_btnIna.body.border.opa = LV_OPA_60;
+    styleBtnm_devFans_btnIna.body.border.color = lv_color_hsv_to_rgb(15, 10, 50);
+    styleBtnm_devFans_btnIna.text.color = lv_color_hsv_to_rgb(15, 10, 90);
+
+	//控件风格设定：热水器开关档位按钮矩阵选定框背景、选中风格设置
+	lv_style_copy(&styleBtnm_devHeater_btnBg, &lv_style_plain);
+	styleBtnm_devHeater_btnBg.body.main_color = LV_COLOR_SILVER;
+	styleBtnm_devHeater_btnBg.body.grad_color = LV_COLOR_SILVER;
+	styleBtnm_devHeater_btnBg.body.padding.hor = 0;
+	styleBtnm_devHeater_btnBg.body.padding.ver = 0;
+	styleBtnm_devHeater_btnBg.body.padding.inner = 0;
+	lv_style_copy(&styleBtnm_devHeater_btnRel, &lv_style_btn_rel);
+	styleBtnm_devHeater_btnRel.body.main_color = LV_COLOR_MAKE(0x30, 0x30, 0x30);
+	styleBtnm_devHeater_btnRel.body.grad_color = LV_COLOR_BLACK;
+	styleBtnm_devHeater_btnRel.body.border.color = LV_COLOR_SILVER;
+	styleBtnm_devHeater_btnRel.body.border.width = 1;
+	styleBtnm_devHeater_btnRel.body.border.opa = LV_OPA_50;
+	styleBtnm_devHeater_btnRel.body.radius = 0;
+	lv_style_copy(&styleBtnm_devHeater_btnPre, &lv_style_btn_rel);
+	styleBtnm_devHeater_btnPre.body.main_color = LV_COLOR_MAKE(0x55, 0x96, 0xd8);
+	styleBtnm_devHeater_btnPre.body.grad_color = LV_COLOR_MAKE(0x37, 0x62, 0x90);
+	styleBtnm_devHeater_btnPre.text.color = LV_COLOR_MAKE(0xbb, 0xd5, 0xf1);
+
+	//控件风格设定：热水器时间设置界面，滚轮设置
+	lv_style_copy(&styleTextRoller_devHeater_timeSetPage_bg, &lv_style_plain);
+	styleTextRoller_devHeater_timeSetPage_bg.body.main_color = LV_COLOR_SILVER;
+	styleTextRoller_devHeater_timeSetPage_bg.body.grad_color = LV_COLOR_SILVER;
+	styleTextRoller_devHeater_timeSetPage_bg.body.opa = LV_OPA_90;
+	styleTextRoller_devHeater_timeSetPage_bg.text.font = &lv_font_consola_19;
+	styleTextRoller_devHeater_timeSetPage_bg.text.line_space = 5;
+	styleTextRoller_devHeater_timeSetPage_bg.text.opa = LV_OPA_40;
+	lv_style_copy(&styleTextRoller_devHeater_timeSetPage_sel, &lv_style_plain);
+	styleTextRoller_devHeater_timeSetPage_sel.body.empty = 1;
+	styleTextRoller_devHeater_timeSetPage_sel.body.radius = 30;
+	styleTextRoller_devHeater_timeSetPage_sel.body.opa = LV_OPA_90;
+	styleTextRoller_devHeater_timeSetPage_sel.text.color = LV_COLOR_BLACK;
+	styleTextRoller_devHeater_timeSetPage_sel.text.font = &lv_font_consola_19;
+
+	//控件风格设定：热水器自定义时间设置界面
+	lv_style_copy(&stylePage_devHeater_timeSet, &lv_style_plain_color);
+	stylePage_devHeater_timeSet.body.main_color = LV_COLOR_SILVER;
+	stylePage_devHeater_timeSet.body.grad_color = LV_COLOR_SILVER;
+	stylePage_devHeater_timeSet.body.border.part = LV_BORDER_NONE;
+	stylePage_devHeater_timeSet.body.radius = 6;
+	stylePage_devHeater_timeSet.body.opa = LV_OPA_90;
+	stylePage_devHeater_timeSet.body.padding.hor = 0;
+	stylePage_devHeater_timeSet.body.padding.inner = 0;	
+
+	//文字风格设定：按钮字体
+	lv_style_copy(&styleTextBtn_devHeater_timeSetPage, &lv_style_plain);
+	styleTextBtn_devHeater_timeSetPage.text.font = &lv_font_consola_17;
+	styleTextBtn_devHeater_timeSetPage.text.color = LV_COLOR_MAKE(0, 128, 192);
 }
 
 void lvGui_businessInit(void){
@@ -2558,11 +3427,11 @@ void lvGui_businessInit(void){
 
 	xEventGp_screenTouch = xEventGroupCreate();
 
-	xTaskCreate(task_guiSwitch_Detecting,	 //Task Function
+	xTaskCreate(task_guiSwitch_Detecting, //Task Function
 				"guiDetect", //Task Name
 				1024 * 4,	 //Stack Depth
 				NULL,		 //Parameters
-				1,			 //Priority
+				CONFIG_MDF_TASK_DEFAULT_PRIOTY,	//Priority
 				NULL);		 //Task Handler
 
 	usrAppHomepageThemeType_Set(homepageThemeType_typeFlg, false); //数据自更新，因为guiInit在dataInit之后，对象创建较晚

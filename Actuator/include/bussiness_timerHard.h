@@ -68,6 +68,7 @@ enum{
 	_driverDataType_elecMeasure,
 	_driverDataType_temprature,
 	_driverDataType_infraActDetect,
+	_driverDataType_thermostatDriving,
 };
 
 typedef struct{
@@ -106,6 +107,11 @@ typedef struct{
 
 			uint8_t detectPeriod_notice:1;
 		}_infraActDetect_dats;
+
+		struct{
+
+			uint8_t drivePeriod_notice:1;
+		}_thermostatDriver_dats;
 	}driverDats;
 }stt_msgDriverHwTimer;
  

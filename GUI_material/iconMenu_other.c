@@ -5,7 +5,7 @@
 #define LV_ATTRIBUTE_MEM_ALIGN
 #endif
 
-const LV_ATTRIBUTE_MEM_ALIGN uint8_t iconMenu_sbxx_map[] = {
+const LV_ATTRIBUTE_MEM_ALIGN uint8_t iconMenu_other_map[] = {
 #if LV_COLOR_DEPTH == 1 || LV_COLOR_DEPTH == 8
   /*Pixel format: Alpha 8 bit, Red: 3 bit, Green: 3 bit, Blue: 2 bit*/
   0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x0c, 0xff, 0x6f, 0xff, 0xc0, 0xff, 0xeb, 0xff, 0xeb, 0xff, 0xbc, 0xff, 0x5f, 0xff, 0x00, 0xff, 0x00, 
@@ -199,11 +199,11 @@ const LV_ATTRIBUTE_MEM_ALIGN uint8_t iconMenu_sbxx_map[] = {
 #endif
 };
 
-lv_img_dsc_t iconMenu_sbxx = {
+lv_img_dsc_t iconMenu_other = {
   .header.always_zero = 0,
   .header.w = 21,
   .header.h = 45,
   .data_size = 945 * LV_IMG_PX_SIZE_ALPHA_BYTE,
   .header.cf = LV_IMG_CF_TRUE_COLOR_ALPHA,
-  .data = iconMenu_sbxx_map,
+  .data = iconMenu_other_map,
 };

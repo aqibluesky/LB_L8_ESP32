@@ -17,10 +17,10 @@
 /* lvgl includes */
 #include "iot_lvgl.h"
 
-#include "gui_businessMenu_scence.h"
+#include "gui_businessMenu_delayer.h"
 #include "gui_businessHome.h"
 
-void lvGui_businessMenu_scence(lv_obj_t * obj_Parent){
+void lvGui_businessMenu_delayer(lv_obj_t * obj_Parent){
 
 	
 }

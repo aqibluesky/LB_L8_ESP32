@@ -17,12 +17,12 @@
 /* lvgl includes */
 #include "iot_lvgl.h"
 
-#include "gui_businessMenu_deviceManage.h"
+#include "gui_businessMenu_linkageConfig.h"
 #include "gui_businessHome.h"
 
-void lvGui_businessMenu_deviceManage(lv_obj_t * obj_Parent){
+void lvGui_businessMenu_linkageConfig(lv_obj_t * obj_Parent){
 
-	
+
 }
 
 

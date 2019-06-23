@@ -20,7 +20,7 @@ extern "C" {
 /*********************
  *      DEFINES
  *********************/
-#define DEVICE_CURTAIN_OPREAT_ACTION_NUM	4	//风扇总共有几个档
+#define DEVICE_FANS_OPREAT_ACTION_NUM	4	//风扇总共有几个档
 
 /**********************
  *      TYPEDEFS

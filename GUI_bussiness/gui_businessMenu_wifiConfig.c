@@ -24,7 +24,7 @@
 /* lvgl includes */
 #include "iot_lvgl.h"
 
-#include "gui_businessMenu_deviceInfo.h"
+#include "gui_businessMenu_wifiConfig.h"
 #include "gui_businessHome.h"
 
 #include "lcd_adapter.h"
@@ -61,7 +61,7 @@ static lv_res_t funCb_btnActionPress_menuBtn_funBack(lv_obj_t *btn){
 	return LV_RES_OK;
 }
 
-void lvGui_businessMenu_deviceInfo(lv_obj_t * obj_Parent){
+void lvGui_businessMenu_wifiConfig(lv_obj_t * obj_Parent){
 
 	lv_obj_t *text_Title;
 

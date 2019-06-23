@@ -1,10 +1,10 @@
 /**
- * @file gui_businessMenu_deviceManage.h
+ * @file gui_businessMenu_delayer.h
  *
  */
 
-#ifndef GUI_BUSINESSMENU_DEVICEMANAGE_H
-#define GUI_BUSINESSMENU_DEVICEMANAGE_H
+#ifndef GUI_BUSINESSMENU_DELAYER_H
+#define GUI_BUSINESSMENU_DELAYER_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -31,12 +31,12 @@ extern "C" {
  * Create a test screen with a lot objects and apply the given theme on them
  * @param th pointer to a theme
  */
-void lvGui_businessMenu_deviceManage(lv_obj_t * obj_Parent);
+void lvGui_businessMenu_delayer(lv_obj_t * obj_Parent);
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
 
-#endif /*GUI_BUSINESSMENU_DEVICEMANAGE_H*/
+#endif /*GUI_BUSINESSMENU_DELAYER_H*/
 
 

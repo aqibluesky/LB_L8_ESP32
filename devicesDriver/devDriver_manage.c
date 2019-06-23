@@ -85,6 +85,12 @@ void currentDev_dataPointSet(stt_devDataPonitTypedef *param, bool nvsRecord_IF, 
 			devDriverBussiness_heaterSwitch_periphStatusReales(param);
 
 		}break;
+
+		case devTypeDef_thermostat:{
+
+			devDriverBussiness_thermostatSwitch_periphStatusReales(param);
+
+		}break;
 		
 		default:break;
 	}
@@ -96,6 +102,11 @@ void currentDev_dataPointSet(stt_devDataPonitTypedef *param, bool nvsRecord_IF, 
 	if(mutualCtrlTrig_IF)usrAppMutualCtrl_actionTrig();
 	usrApp_GreenMode_trig(); //绿色模式业务
 	devScreenBkLight_weakUp(); //屏幕唤醒
+}
+
+void currentDev_extParamSet(void *param, uint8_t devType){
+
+	
 }
 
 void currentDev_dataPointGet(stt_devDataPonitTypedef *param){
@@ -299,6 +310,12 @@ void devDriverManageBussiness_initialition(void){
 			devDriverBussiness_heaterSwitch_moudleInit();
 
 		}break;
+
+		case devTypeDef_thermostat:{
+
+			devDriverBussiness_thermostatSwitch_moudleInit();
+		
+		}break;
 		
 		default:break;
 	}
@@ -311,6 +328,7 @@ void devDriverManageBussiness_deinitialition(void){
 	devDriverBussiness_curtainSwitch_moudleDeinit();
 	devDriverBussiness_fansSwitch_moudleDeinit();
 	devDriverBussiness_heaterSwitch_moudleDeinit();
+	devDriverBussiness_thermostatSwitch_moudleDeinit();
 }
 
 void devDriverManageBussiness_deviceChangeRefresh(void){

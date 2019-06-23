@@ -168,6 +168,11 @@ static void IRAM_ATTR bussinessHwTimer_devDriverWork(void){
 		.loopPeriod = (const uint16_t)(DEVHEATER_RUNNINGDETECT_PERIODLOOP_TIME / DEVVAL_DEFAULT_HWTIMER_INTERVAL0_SEC),
 		.loopCounter = 0,
 	};
+	static stt_timerLoop loopCounter_thermostatRunningDetect = {
+	
+		.loopPeriod = (const uint16_t)(DEVTHERMOSTAT_RUNNINGDETECT_PERIODLOOP_TIME / DEVVAL_DEFAULT_HWTIMER_INTERVAL0_SEC),
+		.loopCounter = 0,
+	};
 	devTypeDef_enum swCurrentDevType = currentDev_typeGet();
 
 	if(loopCounter_debug < (uint32_t)(1.0F / DEVVAL_DEFAULT_HWTIMER_INTERVAL0_SEC))loopCounter_debug ++;
@@ -238,6 +243,20 @@ static void IRAM_ATTR bussinessHwTimer_devDriverWork(void){
 				devDriverBussiness_heaterSwitch_runningDetectLoop();
 			}
 		
+		}break;
+
+		case devTypeDef_thermostat:{
+
+			if(loopCounter_thermostatRunningDetect.loopCounter < loopCounter_thermostatRunningDetect.loopPeriod)loopCounter_thermostatRunningDetect.loopCounter ++;
+			else{
+
+				loopCounter_thermostatRunningDetect.loopCounter = 0;
+
+				sptr_msgQ_hwTimer.driverDataType_discrib = _driverDataType_thermostatDriving;
+				sptr_msgQ_hwTimer.driverDats._thermostatDriver_dats.drivePeriod_notice = 1;
+				xQueueSendFromISR(queueDriver_hwTimer, &sptr_msgQ_hwTimer, NULL);
+			}
+
 		}break;
 
 		default:break;
@@ -490,6 +509,12 @@ static void taskFunction_dataHandleFromHwTimer(void *arg){
 //						printf("infra act trig.\n");
 //					}
 		
+				}break;
+
+				case _driverDataType_thermostatDriving:{
+
+					devDriverBussiness_thermostatSwitch_runningDetectLoop();
+
 				}break;
 
 				default:break;

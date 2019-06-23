@@ -15,6 +15,9 @@
 
 #include "devDriver_manage.h"
 
+#define DEVMQTT_TOPIC_HEAD_A			"lanbon/a/"
+#define DEVMQTT_TOPIC_HEAD_B			"lanbon/b/"
+
 #define DEVMQTT_TOPIC_NUM_M2S		20
 #define DEVMQTT_TOPIC_NUM_S2M		10
 #define DEVMQTT_TOPIC_TEMP_LENGTH	100
@@ -37,6 +40,8 @@ static const char cmdTopic_m2s_list[DEVMQTT_TOPIC_NUM_M2S][DEVMQTT_TOPIC_CASE_LE
 	"/cmdTimerSet/delay",
 	"/cmdTimerSet/greenMode",
 	"/cmdTimerSet/nightMode",
+
+	"/cmdExtParamSet",
 	
 	"/cmdMutualSet",
 	"/cmdScenario/opCtrl",
@@ -57,6 +62,8 @@ enum{
 	cmdTopicM2SInsert_cmdTimerSet_delay,
 	cmdTopicM2SInsert_cmdTimerSet_greenMode,
 	cmdTopicM2SInsert_cmdTimerSet_nightMode,
+
+	cmdTopicM2SInsert_cmdExtParamSet,
 	
 	cmdTopicM2SInsert_cmdMutualSet,
 	cmdTopicM2SInsert_cmdScenario_opCtrl,
@@ -119,13 +126,18 @@ static uint8_t topicM2S_compareResult(char *strTarget, uint8_t strLen){
 	for(loopSearch = 0; loopSearch < DEVMQTT_TOPIC_NUM_M2S; loopSearch ++){
 
 		memset(devMqtt_topicTemp, 0, DEVMQTT_TOPIC_TEMP_LENGTH);
-		sprintf(devMqtt_topicTemp, "MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
-																	 (char *)cmdTopic_m2s_list[loopSearch]);
+		sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_A"MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
+																	 				   (char *)cmdTopic_m2s_list[loopSearch]);
 //		if(loopSearch == 10){ //debug
 
 //			printf("A:%s\n", devMqtt_topicTemp);
 //			printf("B:%s\n", (char *)cmdTopic_m2s_list[loopSearch]);
 //		}
+		if(!memcmp(strTarget, devMqtt_topicTemp, strLen))break;
+
+		memset(devMqtt_topicTemp, 0, DEVMQTT_TOPIC_TEMP_LENGTH);
+		sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_B"MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
+																	 				   (char *)cmdTopic_m2s_list[loopSearch]);	
 		if(!memcmp(strTarget, devMqtt_topicTemp, strLen))break;
 	}
 
@@ -466,6 +478,12 @@ static void mqtt_remoteDataHandler(esp_mqtt_event_handle_t event, uint8_t cmdTop
 
 		}break;
 
+		case cmdTopicM2SInsert_cmdExtParamSet:{
+
+
+
+		}break;
+
 		case cmdTopicM2SInsert_cmdMutualSet:{
 
 			uint8_t deviceMutualNum = (uint8_t)event->data[0];
@@ -725,15 +743,15 @@ static void mqtt_remoteDataHandler(esp_mqtt_event_handle_t event, uint8_t cmdTop
 						uint8_t devUnitNum_temp = 0;
 						uint16_t devUnitNumLimit_perPack = (USRAPP_MQTT_REMOTEREQ_DATAPACK_PER_LENGTH - 1) / sizeof(stt_devStatusInfoResp); //mqtt单包包含设备信息 数量限制
 	
-						sprintf(devMqtt_topicTemp, "MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
-																					 (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdStatusGet]);
+						sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_A"MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
+																					 				   (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdStatusGet]);
 						
 						dataResp_devStatusInfo = L8devStatusInfoGet(listHead_nodeDevDataManage);
 						devUnitNum_temp = dataResp_devStatusInfo[0];
 						if(devUnitNum_temp == DEVLIST_MANAGE_LISTNUM_MASK_NULL){ //设备采集未就绪，设备还未足够运行一个心跳周期
 
 							mqttData_pbLen = 1;
-							printf("mqtt cmdQuery_devStatus respondNoReady res:0x%04X.\n", esp_mqtt_client_publish(event->client, devMqtt_topicTemp, (const char*)dataResp_devStatusInfo, mqttData_pbLen, 1, 1));
+							printf("mqtt cmdQuery_devStatus respondNoReady res:0x%04X.\n", esp_mqtt_client_publish(event->client, devMqtt_topicTemp, (const char*)dataResp_devStatusInfo, mqttData_pbLen, 1, 0));
 						}
 						else
 						{
@@ -754,7 +772,7 @@ static void mqtt_remoteDataHandler(esp_mqtt_event_handle_t event, uint8_t cmdTop
 									dataRespLoadInsert += dataRespPerPackInfoLen;
 									mqttData_pbLen = dataRespPerPackInfoLen + 1;
 									
-									printf("mqtt cmdQuery_devStatus respond loop%d res:0x%04X.\n", loop, esp_mqtt_client_publish(event->client, devMqtt_topicTemp, (const char*)dataRespPerPackBuff, mqttData_pbLen, 1, 1)); //数据发送
+									printf("mqtt cmdQuery_devStatus respond loop%d res:0x%04X.\n", loop, esp_mqtt_client_publish(event->client, devMqtt_topicTemp, (const char*)dataRespPerPackBuff, mqttData_pbLen, 1, 0)); //数据发送
 									memset(dataRespPerPackBuff, 0, sizeof(uint8_t) * USRAPP_MQTT_REMOTEREQ_DATAPACK_PER_LENGTH); //数据发送缓存清空
 								}
 							}
@@ -767,7 +785,7 @@ static void mqtt_remoteDataHandler(esp_mqtt_event_handle_t event, uint8_t cmdTop
 								memcpy(&dataRespPerPackBuff[1], &dataResp_devStatusInfo[dataRespLoadInsert],  dataRespPerPackInfoLen);
 								dataRespLoadInsert += dataRespPerPackInfoLen;
 								mqttData_pbLen = dataRespPerPackInfoLen + 1;
-								printf("mqtt cmdQuery_devStatus respondTail res:0x%04X.\n", esp_mqtt_client_publish(event->client, devMqtt_topicTemp, (const char*)dataRespPerPackBuff, mqttData_pbLen, 1, 1)); //数据发送
+								printf("mqtt cmdQuery_devStatus respondTail res:0x%04X.\n", esp_mqtt_client_publish(event->client, devMqtt_topicTemp, (const char*)dataRespPerPackBuff, mqttData_pbLen, 1, 0)); //数据发送
 								memset(dataRespPerPackBuff, 0, sizeof(uint8_t) * USRAPP_MQTT_REMOTEREQ_DATAPACK_PER_LENGTH); //数据发送缓存清空
 							}
 						}
@@ -778,61 +796,61 @@ static void mqtt_remoteDataHandler(esp_mqtt_event_handle_t event, uint8_t cmdTop
 
 					case cmdQuery_timerNormal:{
 
-						sprintf(devMqtt_topicTemp, "MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
-																					 (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_normal]);
+						sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_A"MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
+																					 				   (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_normal]);
 
 						usrAppActTrigTimer_paramGet((usrApp_trigTimer *)&dataRespond_temp);
 						memcpy(&dataRespond_temp[MACADDR_INSRT_START_CMDTIMERSET], devSelfMac, DEVICE_MAC_ADDR_APPLICATION_LEN);
 						mqttData_pbLen = MACADDR_INSRT_START_CMDTIMERSET + DEVICE_MAC_ADDR_APPLICATION_LEN;
-						printf("mqtt cmdQuery_timerNormal respond res:0x%04X.\n", esp_mqtt_client_publish(event->client, devMqtt_topicTemp, (const char*)dataRespond_temp, mqttData_pbLen, 1, 1));
+						printf("mqtt cmdQuery_timerNormal respond res:0x%04X.\n", esp_mqtt_client_publish(event->client, devMqtt_topicTemp, (const char*)dataRespond_temp, mqttData_pbLen, 1, 0));
 
 					}break;
 
 					case cmdQuery_delayTrig:{
 
-						sprintf(devMqtt_topicTemp, "MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
-																					 (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_delay]);
+						sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_A"MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
+																					 				   (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_delay]);
 
 						usrAppParamGet_devDelayTrig(dataRespond_temp);
 						memcpy(&dataRespond_temp[MACADDR_INSRT_START_CMDDELAYSET], devSelfMac, DEVICE_MAC_ADDR_APPLICATION_LEN);
 						mqttData_pbLen = MACADDR_INSRT_START_CMDDELAYSET + DEVICE_MAC_ADDR_APPLICATION_LEN;
-						printf("mqtt cmdQuery_delayTrig respond res:0x%04X.\n", esp_mqtt_client_publish(event->client, devMqtt_topicTemp, (const char*)dataRespond_temp, mqttData_pbLen, 1, 1));
+						printf("mqtt cmdQuery_delayTrig respond res:0x%04X.\n", esp_mqtt_client_publish(event->client, devMqtt_topicTemp, (const char*)dataRespond_temp, mqttData_pbLen, 1, 0));
 						
 					}break;
 
 					case cmdQuery_greenMode:{
 
-						sprintf(devMqtt_topicTemp, "MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
-																					 (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_greenMode]);
+						sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_A"MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
+																					 				   (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_greenMode]);
 						
 						usrAppParamGet_devGreenMode(dataRespond_temp);
 						memcpy(&dataRespond_temp[MACADDR_INSRT_START_CMDGREENMODESET], devSelfMac, DEVICE_MAC_ADDR_APPLICATION_LEN);
 						mqttData_pbLen = MACADDR_INSRT_START_CMDGREENMODESET + DEVICE_MAC_ADDR_APPLICATION_LEN;
-						printf("mqtt cmdQuery_greenMode respond res:0x%04X.\n", esp_mqtt_client_publish(event->client, devMqtt_topicTemp, (const char*)dataRespond_temp, mqttData_pbLen, 1, 1));
+						printf("mqtt cmdQuery_greenMode respond res:0x%04X.\n", esp_mqtt_client_publish(event->client, devMqtt_topicTemp, (const char*)dataRespond_temp, mqttData_pbLen, 1, 0));
 
 					}break;
 
 					case cmdQuery_nightMode:{
 
-						sprintf(devMqtt_topicTemp, "MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
-																					 (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_nightMode]);
+						sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_A"MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
+																					 				   (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_nightMode]);
 						
 						usrAppNightModeTimeTab_paramGet((usrApp_trigTimer *)&dataRespond_temp);
 						memcpy(&dataRespond_temp[MACADDR_INSRT_START_CMDNIGHTMODESET], devSelfMac, DEVICE_MAC_ADDR_APPLICATION_LEN);
 						mqttData_pbLen = MACADDR_INSRT_START_CMDNIGHTMODESET + DEVICE_MAC_ADDR_APPLICATION_LEN;
-						printf("mqtt cmdQuery_nightMode respond res:0x%04X.\n", esp_mqtt_client_publish(event->client, devMqtt_topicTemp, (const char*)dataRespond_temp, mqttData_pbLen, 1, 1));
+						printf("mqtt cmdQuery_nightMode respond res:0x%04X.\n", esp_mqtt_client_publish(event->client, devMqtt_topicTemp, (const char*)dataRespond_temp, mqttData_pbLen, 1, 0));
 
 					}break;
 
 					case cmdQuery_mutualCtrl:{
 
-						sprintf(devMqtt_topicTemp, "MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
-																					 (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdMutualGet]);
+						sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_A"MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
+																					 				   (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdMutualGet]);
 
 						uint8_t mutualGroupIst_query = (uint8_t)event->data[7];
 						stt_mutualCtrlInfoResp *dataResp_mutualInfo = L8devMutualCtrlInfo_Get(listHead_nodeDevDataManage, mutualGroupIst_query);
 						mqttData_pbLen = sizeof(stt_mutualCtrlInfoResp);
-						printf("mqtt cmdQuery_mutualCtrlInfo respond res:0x%04X.\n", esp_mqtt_client_publish(event->client, devMqtt_topicTemp, (const char*)dataResp_mutualInfo, mqttData_pbLen, 1, 1));
+						printf("mqtt cmdQuery_mutualCtrlInfo respond res:0x%04X.\n", esp_mqtt_client_publish(event->client, devMqtt_topicTemp, (const char*)dataResp_mutualInfo, mqttData_pbLen, 1, 0));
 						os_free(dataResp_mutualInfo);
 
 					}break;
@@ -875,8 +893,12 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 			devRouterConnectBssid_Get(devRouterBssid);
 
 			memset(devMqtt_topicTemp, 0, DEVMQTT_TOPIC_TEMP_LENGTH);
-			sprintf(devMqtt_topicTemp, "MAC:%02X%02X%02X%02X%02X%02X/#", MAC2STR(devRouterBssid));
+			sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_A"MAC:%02X%02X%02X%02X%02X%02X/#", MAC2STR(devRouterBssid));
+			msg_id = esp_mqtt_client_subscribe(client, devMqtt_topicTemp, 0);
+			ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
 
+			memset(devMqtt_topicTemp, 0, DEVMQTT_TOPIC_TEMP_LENGTH);
+			sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_B"MAC:%02X%02X%02X%02X%02X%02X/#", MAC2STR(devRouterBssid));
 			msg_id = esp_mqtt_client_subscribe(client, devMqtt_topicTemp, 0);
 			ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
 
@@ -956,7 +978,7 @@ void mqtt_rootDevRemoteDatatransLoop_elecSumReport(void){
 	if(devUnitNum_temp == DEVLIST_MANAGE_LISTNUM_MASK_NULL){ //设备采集未就绪，设备还未足够运行一个心跳周期
 
 		mqttData_pbLen = 1;
-		printf("mqtt cmdQuery_devElecsumInfo reportNoReady res:0x%04X.\n", esp_mqtt_client_publish(usrAppClient, devMqtt_topicTemp, (const char*)dataReport_devElecsumInfo, mqttData_pbLen, 1, 1));
+		printf("mqtt cmdQuery_devElecsumInfo reportNoReady res:0x%04X.\n", esp_mqtt_client_publish(usrAppClient, devMqtt_topicTemp, (const char*)dataReport_devElecsumInfo, mqttData_pbLen, 1, 0));
 	}
 	else
 	{
@@ -977,7 +999,7 @@ void mqtt_rootDevRemoteDatatransLoop_elecSumReport(void){
 				dataRespLoadInsert += dataRespPerPackInfoLen;
 				mqttData_pbLen = dataRespPerPackInfoLen + 1;
 				
-				printf("mqtt cmdQuery_devElecsumInfo reportLoop%d res:0x%04X.\n", loop, esp_mqtt_client_publish(usrAppClient, devMqtt_topicTemp, (const char*)dataRespPerPackBuff, mqttData_pbLen, 1, 1)); //数据发送
+				printf("mqtt cmdQuery_devElecsumInfo reportLoop%d res:0x%04X.\n", loop, esp_mqtt_client_publish(usrAppClient, devMqtt_topicTemp, (const char*)dataRespPerPackBuff, mqttData_pbLen, 1, 0)); //数据发送
 				memset(dataRespPerPackBuff, 0, sizeof(uint8_t) * USRAPP_MQTT_REMOTEREQ_DATAPACK_PER_LENGTH); //数据发送缓存清空
 			}
 		}
@@ -990,7 +1012,7 @@ void mqtt_rootDevRemoteDatatransLoop_elecSumReport(void){
 			memcpy(&dataRespPerPackBuff[1], &dataReport_devElecsumInfo[dataRespLoadInsert], dataRespPerPackInfoLen);
 			dataRespLoadInsert += dataRespPerPackInfoLen;
 			mqttData_pbLen = dataRespPerPackInfoLen + 1;
-			printf("mqtt cmdQuery_devElecsumInfo reportTail res:0x%04X.\n", esp_mqtt_client_publish(usrAppClient, devMqtt_topicTemp, (const char*)dataRespPerPackBuff, mqttData_pbLen, 1, 1)); //数据发送
+			printf("mqtt cmdQuery_devElecsumInfo reportTail res:0x%04X.\n", esp_mqtt_client_publish(usrAppClient, devMqtt_topicTemp, (const char*)dataRespPerPackBuff, mqttData_pbLen, 1, 0)); //数据发送
 			memset(dataRespPerPackBuff, 0, sizeof(uint8_t) * USRAPP_MQTT_REMOTEREQ_DATAPACK_PER_LENGTH); //数据发送缓存清空
 		}
 	}
@@ -1025,37 +1047,37 @@ void mqtt_remoteDataTrans(uint8_t dtCmd, uint8_t *data, uint16_t dataLen){
 			case cmdQuery_deviceStatus:{
 
 				dtCmd_identify = true;
-				sprintf(devMqtt_topicTemp, "MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
-																			 (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdStatusGet]);
+				sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_A"MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
+																			 				   (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdStatusGet]);
 
 			}break;
 		
 			case cmdQuery_timerNormal:{
 		
 				dtCmd_identify = true;
-				sprintf(devMqtt_topicTemp, "MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
-																			 (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_normal]);
+				sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_A"MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
+																			 				   (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_normal]);
 			}break;
 			
 			case cmdQuery_delayTrig:{
 		
 				dtCmd_identify = true;
-				sprintf(devMqtt_topicTemp, "MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
-																			 (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_delay]);
+				sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_A"MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
+																			 				   (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_delay]);
 			}break;
 		
 			case cmdQuery_greenMode:{
 		
 				dtCmd_identify = true;
-				sprintf(devMqtt_topicTemp, "MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
-																			 (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_greenMode]);
+				sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_A"MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
+																			 				   (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_greenMode]);
 			}break;
 		
 			case cmdQuery_nightMode:{
 		
 				dtCmd_identify = true;
-				sprintf(devMqtt_topicTemp, "MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
-																			 (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_nightMode]);
+				sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_A"MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
+																			 				   (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_nightMode]);
 			}break;
 		
 			default:break;
@@ -1065,7 +1087,7 @@ void mqtt_remoteDataTrans(uint8_t dtCmd, uint8_t *data, uint16_t dataLen){
 	if(dtCmd_identify){
 
 		memcpy(dataRespond_temp, data, dataLen);
-		printf("mqtt normal dataTrans res:%d.\n", esp_mqtt_client_publish(usrAppClient, devMqtt_topicTemp, (const char*)dataRespond_temp, dataLen, 1, 1));
+		printf("mqtt normal dataTrans res:%d.\n", esp_mqtt_client_publish(usrAppClient, devMqtt_topicTemp, (const char*)dataRespond_temp, dataLen, 1, 0));
 	}
 }
 

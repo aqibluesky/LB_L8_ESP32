@@ -240,12 +240,12 @@ void devDriverBussiness_heaterSwitch_devParam_Get(stt_Heater_actAttr *param){
 
 uint32_t devDriverBussiness_heaterSwitch_devParam_closeCounter_Get(void){
 
-	return devParam_heater.timeCountParam.timeUp_counter;
+	return devParam_heater.timeCountParam.timeUp_counter / DEVHEATER_COEFFICIENT_TIME_SECOND;
 }
 
 uint32_t devDriverBussiness_heaterSwitch_closePeriodCustom_Get(void){
 
-	return devParam_heater.timeCountParam.timeUp_period_customSet;
+	return devParam_heater.timeCountParam.timeUp_period_customSet / DEVHEATER_COEFFICIENT_TIME_SECOND;
 }
 
 void devDriverBussiness_heaterSwitch_closePeriodCustom_Set(uint32_t valSet){

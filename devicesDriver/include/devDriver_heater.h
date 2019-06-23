@@ -21,6 +21,7 @@ extern "C" {
  *      DEFINES
  *********************/
 #define DEVHEATER_RUNNINGDETECT_PERIODLOOP_TIME		0.001F //硬件定时器内循环调用 热水器开关 设备运行逻辑业务 间隔
+
 #define DEVHEATER_COEFFICIENT_TIME_SECOND			(uint32_t)(1.0F / DEVHEATER_RUNNINGDETECT_PERIODLOOP_TIME) //参数操作时 秒系数 
 #define DEVHEATER_REALY_SYNCHRONOUS_TIME			1100   //继电器同步间隔时间（大电流继电器向小电流继电器同步）单位：ms
 

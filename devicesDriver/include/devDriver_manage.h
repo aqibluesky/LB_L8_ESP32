@@ -27,12 +27,13 @@ extern "C" {
 #include "devDriver_scenario.h"
 #include "devDriver_elecMeasure.h"
 #include "devDriver_temperatureMeasure.h"
+#include "devDriver_thermostat.h"
 #include "devDriver_infraActDetect.h"
 
 /*********************
  *      DEFINES
  *********************/
-#define DEVICE_TYPE_LIST_NUM			8
+#define DEVICE_TYPE_LIST_NUM			9
 #define HOMEPAGE_THEMETYPE_NUM			3
 
 /**********************
@@ -48,6 +49,7 @@ void devStatusRecordIF_paramSet(stt_devStatusRecord *param, bool nvsRecord_IF);
 void devStatusRecordIF_paramGet(stt_devStatusRecord *param);
 void currentDev_dataPointGet(stt_devDataPonitTypedef *param);
 void currentDev_dataPointSet(stt_devDataPonitTypedef *param, bool nvsRecord_IF, bool mutualCtrlTrig_IF, bool statusUploadMedthod);
+void currentDev_extParamSet(void *param, uint8_t devType);
 void devInfo_statusRecord_action(void);
 void funcation_usrAppMutualCtrlActionTrig(void);
 void devDriverManageBussiness_initialition(void);

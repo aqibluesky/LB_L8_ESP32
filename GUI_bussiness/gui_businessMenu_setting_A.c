@@ -41,7 +41,8 @@ static const char *deviceType_listTab = {
 	"Fans\n"
 	"Scenario\n"
 	"Curtain\n"	
-	"Heater"
+	"Heater\n"
+	"Thermostat"
 };
 
 static const char *homepageThemeStyle_listTab = {
@@ -66,6 +67,7 @@ static const struct stt_deviceTypeTab_disp{
 	{devTypeDef_scenario,			5},
 	{devTypeDef_curtain,			6},
 	{devTypeDef_heater,				7},	
+	{devTypeDef_thermostat,			8},	
 };
 
 static lv_style_t stylePage_funSetOption;
@@ -151,7 +153,6 @@ static lv_res_t funCb_ddlistHomepageThemeDef(lv_obj_t *ddlist){
 
 	return LV_RES_OK;
 }
-
 
 static lv_res_t funCb_swDevStatusRecordIF(lv_obj_t *sw){
 

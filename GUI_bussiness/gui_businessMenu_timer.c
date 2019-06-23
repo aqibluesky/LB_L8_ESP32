@@ -17,12 +17,12 @@
 /* lvgl includes */
 #include "iot_lvgl.h"
 
-#include "gui_businessMenu_statistics.h"
+#include "gui_businessMenu_timer.h"
 #include "gui_businessHome.h"
 
-void lvGui_businessMenu_statistics(lv_obj_t * obj_Parent){
+void lvGui_businessMenu_timer(lv_obj_t * obj_Parent){
 
-
+	
 }
 
 

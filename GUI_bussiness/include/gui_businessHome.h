@@ -26,15 +26,15 @@ typedef enum{
 
 	bussinessType_Home = 0,
 	bussinessType_Menu,
-	bussinessType_menuPageDeviceManage,
-	bussinessType_menuPageScence,
-	bussinessType_menuPageSecurity,
-	bussinessType_menuPageStatistics,
+	bussinessType_menuPageOther,
+	bussinessType_menuPageDelayer,
+	bussinessType_menuPageTimer,
+	bussinessType_menuPageLinkageConfig,
 	bussinessType_menuPageSetting,
 	bussinessType_menuPageSetting_A,
 	bussinessType_menuPageSetting_B,
 	bussinessType_menuPageSetting_C,
-	bussinessType_menuPageDeviceInfo,
+	bussinessType_menuPageWifiConfig,
 }usrGuiBussiness_type;
 
 enum{

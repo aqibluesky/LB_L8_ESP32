@@ -138,7 +138,12 @@ extern "C" {
  
 		 uint8_t devHeater_swEnumVal;
 	 }devType_heater;
+
+	 struct{
  
+		 uint8_t devThermostat_tempratureTarget;
+	 }devType_thermostat;
+
 	 struct{
  
 		 uint8_t devFans_swEnumVal;
@@ -164,6 +169,7 @@ typedef enum{
 	devTypeDef_fans,
 	devTypeDef_scenario,
 	devTypeDef_curtain,
+	devTypeDef_thermostat = (L8_DEVICE_TYPEDEFINE_BASE_ADDR + 0x1E),
 	devTypeDef_heater = (L8_DEVICE_TYPEDEFINE_BASE_ADDR + 0x1F),
 }devTypeDef_enum;
 
