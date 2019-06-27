@@ -33,9 +33,9 @@ static const char *TAG = "lanbon_L8 - menuSetting";
 
 static const usrGuiBussiness_type settingChildOption[LABEL_SETTING_NUM] = {
 
-	bussinessType_menuPageSetting_A,
-	bussinessType_menuPageSetting_B,
-	bussinessType_menuPageSetting_C,
+//	bussinessType_menuPageSetting_A,
+//	bussinessType_menuPageSetting_B,
+//	bussinessType_menuPageSetting_C,
 };
 static const char *setting_label[LABEL_SETTING_NUM] = {
 

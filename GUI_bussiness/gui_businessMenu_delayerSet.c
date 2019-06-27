@@ -23,7 +23,7 @@
 
 #include "bussiness_timerHard.h"
 
-#include "gui_businessMenu_setting_C.h"
+#include "gui_businessMenu_delayerSet.h"
 #include "gui_businessHome.h"
 
 LV_FONT_DECLARE(lv_font_dejavu_15);
@@ -121,7 +121,7 @@ static void currentGui_elementClear(void){
 static lv_res_t funCb_btnActionClick_menuBtn_funBack(lv_obj_t *btn){
 
 	currentGui_elementClear();
-	lvGui_usrSwitch(bussinessType_menuPageSetting);
+	lvGui_usrSwitch(bussinessType_Menu);
 
 	return LV_RES_OK;
 }
@@ -279,7 +279,7 @@ static lv_res_t funCb_swOp_greenModeSet_runSetUp(lv_obj_t *sw){
 	return LV_RES_OK;
 }
 
-void lvGui_businessMenu_setting_C(lv_obj_t * obj_Parent){
+void lvGui_businessMenu_delayerSet(lv_obj_t * obj_Parent){
 
 	uint16_t delayTrig_timeCount = 0;
 	uint16_t greenMode_timeCount = 0;

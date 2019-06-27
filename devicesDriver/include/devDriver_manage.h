@@ -49,7 +49,7 @@ void devStatusRecordIF_paramSet(stt_devStatusRecord *param, bool nvsRecord_IF);
 void devStatusRecordIF_paramGet(stt_devStatusRecord *param);
 void currentDev_dataPointGet(stt_devDataPonitTypedef *param);
 void currentDev_dataPointSet(stt_devDataPonitTypedef *param, bool nvsRecord_IF, bool mutualCtrlTrig_IF, bool statusUploadMedthod);
-void currentDev_extParamSet(void *param, uint8_t devType);
+void currentDev_extParamSet(void *param);
 void devInfo_statusRecord_action(void);
 void funcation_usrAppMutualCtrlActionTrig(void);
 void devDriverManageBussiness_initialition(void);

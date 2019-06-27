@@ -83,6 +83,8 @@ void IRAM_ATTR devDriverBussiness_thermostatSwitch_runningDetectLoop(void){
 
 	devParam_thermostat.temperatureVal_current = (uint16_t)tempratureRead_temp;
 
+	if(!devParam_thermostat.deviceRunning_EN)return; //设备启用失能，直接返回
+
 	(devParam_thermostat.workModeInNight_IF)?
 		(adjustTrig_shortVal = 1):
 		(adjustTrig_shortVal = 5);
@@ -103,6 +105,9 @@ void devDriverBussiness_thermostatSwitch_periphStatusReales(stt_devDataPonitType
 	devTypeDef_enum swCurrentDevType = currentDev_typeGet();
 
 	if(swCurrentDevType == devTypeDef_thermostat){
+
+		devParam_thermostat.deviceRunning_EN = 
+			param->devType_thermostat.devThermostat_running_en;
 
 		devParam_thermostat.temperatureVal_target = 
 			param->devType_thermostat.devThermostat_tempratureTarget;

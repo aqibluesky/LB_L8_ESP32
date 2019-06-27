@@ -48,6 +48,10 @@
 	修改源文件mlink_handle.c<line359-384>	
 		更改相关回复数据的 json body 数据
 
+	GUI界面为wifiConfig时，wifi配置成功后进行跳转回homepage界面
+	修改源文件mlink_handle.c<line388>	
+		添加gui跳转判断
+
 	设备发现时UDP回复数据内加上当前设备IP地址信息内容
 	修改源文件mlink_notice.c<line177-179、line266>
 		获取当前IP地址添加进UDP回复数据内

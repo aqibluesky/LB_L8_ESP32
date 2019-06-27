@@ -29,7 +29,10 @@
 
 static bool devDriver_moudleInitialize_Flg = false;
 
-static stt_Curtain_motorAttr devParam_curtain = {0};
+static stt_Curtain_motorAttr devParam_curtain = {
+
+	.devRunningParam.act_period = 5000,
+};
 static uint32_t curtainOrbitalPositionTimeSet = 0;
 
 xQueueHandle msgQh_devCurtainDriver = NULL;
@@ -47,6 +50,11 @@ void devCurtain_runningParamSet(stt_devCurtain_runningParam *param, bool nvsReco
 void devCurtain_runningParamGet(stt_devCurtain_runningParam *param){ //轨道时间为ms，注意设置获取时进行千倍除
 
 	memcpy(param, &(devParam_curtain.devRunningParam), sizeof(stt_devCurtain_runningParam));
+}
+
+void devCurtain_currentOrbitalPeriodTimeSet(uint8_t timeVal){
+
+	devParam_curtain.devRunningParam.act_period = (uint32_t)timeVal * 1000UL;
 }
 
 uint8_t devCurtain_currentPositionPercentGet(void){
@@ -104,8 +112,6 @@ void devDriverBussiness_curtainSwitch_moudleInit(void){
 	devDriverBussiness_curtainSwitch_periphInit();
 
 	msgQh_devCurtainDriver = xQueueCreate(1, sizeof(stt_msgDats_devCurtainDriver)); //队列长度为1，保证实时性
-
-	devParam_curtain.devRunningParam.act_period = 5000;
 
 	devDriver_moudleInitialize_Flg = true;
 }

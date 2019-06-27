@@ -91,6 +91,7 @@ extern xQueueHandle msgQh_devCurtainDriver;
 void devDriverBussiness_curtainSwitch_moudleInit(void);
 void devDriverBussiness_curtainSwitch_moudleDeinit(void);
 void devCurtain_runningParamSet(stt_devCurtain_runningParam *param, bool nvsRecord_IF);
+void devCurtain_currentOrbitalPeriodTimeSet(uint8_t timeVal);
 bool IRAM_ATTR devDriverBussiness_curtainSwitch_devRunningDetect(void);
 uint8_t devCurtain_currentPositionPercentGet(void);
 stt_devCurtain_runningStatus devCurtain_currentRunningStatusGet(void);

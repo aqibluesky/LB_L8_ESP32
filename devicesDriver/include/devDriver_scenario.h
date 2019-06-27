@@ -15,17 +15,27 @@ extern "C" {
  *********************/
 #include "esp_types.h"
 
+#include "devDriver_manage.h"
+
 /*********************
  *      DEFINES
  *********************/
+#define DEVSCENARIO_OPREATION_OBJ_NUM		3 		//场景开关 单个设备 最大操作场景个数
+#define DEVSCENARIO_DRIVER_CALMDOWN_PERIOD	4000	//场景开关 驱动触发 冷却时间 单位：ms	
 
 /**********************
  *      TYPEDEFS
  **********************/
- 
+
 /**********************
  * GLOBAL PROTOTYPES
  **********************/
+void devDriverBussiness_scnarioSwitch_moudleInit(void);
+void devDriverBussiness_scnarioSwitch_moudleDeinit(void);
+void devDriverBussiness_scnarioSwitch_driverClamDown_refresh(void);
+uint16_t devDriverBussiness_scnarioSwitch_driverClamDown_get(void);
+void devDriverBussiness_scnarioSwitch_dataParam_save(stt_scenarioSwitchData_nvsOpreat *param);
+void devDriverBussiness_scnarioSwitch_scenarioStatusReales(stt_devDataPonitTypedef *param);
 
 #ifdef __cplusplus
 } /* extern "C" */

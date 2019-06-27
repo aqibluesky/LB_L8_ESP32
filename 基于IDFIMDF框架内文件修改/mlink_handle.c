@@ -356,6 +356,8 @@ static mdf_err_t mlink_handle_get_status(mlink_handle_data_t *handle_data)
         switch (mlink_get_characteristics_format(cids[i])) {
             case CHARACTERISTIC_FORMAT_INT:{
 
+				extern void lvGui_wifiConfig_bussiness_configComplete_tipsTrig(void);
+
 				uint8_t sta_mac[MWIFI_ADDR_LEN] = {0};
 				char mac_str[MWIFI_ADDR_LEN * 2 + 1] = {0};
 				devTypeDef_enum devType_temp = currentDev_typeGet();
@@ -382,6 +384,8 @@ static mdf_err_t mlink_handle_get_status(mlink_handle_data_t *handle_data)
 				mlink_json_pack(&tmp_str, "devType", devType_temp);
 				mlink_json_pack(&tmp_str, "mac", (char *)mac_str);
 				mlink_json_pack(&tmp_str, "value", (int)devData_temp);
+
+				lvGui_wifiConfig_bussiness_configComplete_tipsTrig();
 
 			}break;
 

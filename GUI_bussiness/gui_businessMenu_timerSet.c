@@ -23,7 +23,7 @@
 
 #include "bussiness_timerSoft.h"
 
-#include "gui_businessMenu_setting_B.h"
+#include "gui_businessMenu_timerSet.h"
 #include "gui_businessHome.h"
 
 #define LV_OBJ_FREENUM_BASE_BTN_TIMESETPAGEA	0x10
@@ -154,7 +154,7 @@ static void currentGui_elementClear(void){
 static lv_res_t funCb_btnActionClick_menuBtn_funBack(lv_obj_t *btn){
 
 	currentGui_elementClear();
-	lvGui_usrSwitch(bussinessType_menuPageSetting);
+	lvGui_usrSwitch(bussinessType_Menu);
 
 	return LV_RES_OK;
 }
@@ -946,7 +946,7 @@ static void lvGui_businessMenu_timerSetUnitOpreat(lv_obj_t * obj_Parent, uint8_t
 	lv_obj_set_style(objLabel_timeSet_minute, &styleText_menuTimeSet);
 }
 
-void lvGui_businessMenu_setting_B(lv_obj_t * obj_Parent){
+void lvGui_businessMenu_timerSet(lv_obj_t * obj_Parent){
 
 	guiObj_parentTemp = obj_Parent;
 	lvGui_businessMenu_timerSetPageA(obj_Parent);	

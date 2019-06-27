@@ -1,5 +1,7 @@
 #include "dataTrans_localHandler.h"
 
+#include "os.h"
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
@@ -167,6 +169,54 @@ void dataHandler_devNodeMeshData(const uint8_t *src_addr, const mlink_httpd_type
 		
 		}break; 
 
+		case L8DEV_MESH_CMD_EXT_PARAM_SET:{
+
+			currentDev_extParamSet(&dataRcv_temp[1]);
+			
+			ESP_LOGI(TAG, "<R2N>mesh data rcv, cmdExtParamSet.\n");
+
+		}break;
+
+		case L8DEV_MESH_CMD_SCENARIO_SET:{
+
+			const uint8_t *dataRcv_kernel = &dataRcv_temp[1];
+
+			uint8_t scenarioParam_ist = dataRcv_kernel[1];
+			stt_scenarioSwitchData_nvsOpreat *scenarioParamData = nvsDataOpreation_devScenarioParam_get(scenarioParam_ist);
+			uint8_t dataParamHalf_flg = dataRcv_kernel[2];
+			
+			if(dataParamHalf_flg == 0xA1){
+			
+				memset(scenarioParamData, 0, sizeof(stt_scenarioSwitchData_nvsOpreat));
+				scenarioParamData->dataRef.scenarioDevice_sum = dataRcv_kernel[0];
+				scenarioParamData->dataRef.scenarioInsert_num = scenarioParam_ist;
+				if(scenarioParamData->dataRef.scenarioDevice_sum > DEVSCENARIO_NVSDATA_HALFOPREAT_NUM)
+					memcpy(scenarioParamData->dataHalf_A, &(dataRcv_kernel[9]), sizeof(stt_scenarioUnitOpreatParam) * DEVSCENARIO_NVSDATA_HALFOPREAT_NUM);
+				else
+					memcpy(scenarioParamData->dataHalf_A, &(dataRcv_kernel[9]), sizeof(stt_scenarioUnitOpreatParam) * scenarioParamData->dataRef.scenarioDevice_sum);
+			
+				devDriverBussiness_scnarioSwitch_dataParam_save(scenarioParamData);
+			}
+			else
+			if(dataParamHalf_flg == 0xA2){
+			
+				uint8_t scenarioDeviceSum_reserve = scenarioParamData->dataRef.scenarioDevice_sum - DEVSCENARIO_NVSDATA_HALFOPREAT_NUM;
+			
+				memcpy(scenarioParamData->dataHalf_B, &(dataRcv_kernel[9]), sizeof(stt_scenarioUnitOpreatParam) * scenarioDeviceSum_reserve);
+			
+				devDriverBussiness_scnarioSwitch_dataParam_save(scenarioParamData);
+			}
+			
+			printf("scenario set cmd coming! sum:%d, ist:%d, part:%02X.\n", scenarioParamData->dataRef.scenarioDevice_sum,
+																		 	scenarioParamData->dataRef.scenarioInsert_num,
+																		 	dataParamHalf_flg);
+			
+			os_free(scenarioParamData);
+
+			ESP_LOGI(TAG, "<R2N>mesh data rcv, cmdScenarioSet.\n");
+
+		}break;
+
 		case L8DEV_MESH_CMD_SCENARIO_CTRL:{
 
 			uint8_t scenarioOpreatVal = dataRcv_temp[1];
@@ -292,6 +342,8 @@ void dataHandler_devNodeMeshData(const uint8_t *src_addr, const mlink_httpd_type
 			
 			usrAppHomepageBtnTextDisp_paramSet(&dataTextObjDisp_temp, true);
 
+			ESP_LOGI(TAG, "<R2N>mesh data rcv, cmd btnTextSet.\n");
+
 		}break;
 
 		case L8DEV_MESH_CMD_CTRLOBJ_ICONSET:{
@@ -299,6 +351,8 @@ void dataHandler_devNodeMeshData(const uint8_t *src_addr, const mlink_httpd_type
 			const uint8_t *dataRcv_kernel = &dataRcv_temp[1];
 
 			usrAppHomepageBtnIconNumDisp_paramSet((uint8_t *)&dataRcv_kernel, true);
+
+			ESP_LOGI(TAG, "<R2N>mesh data rcv, cmd btnIconSet.\n");
 
 		}break;
 
@@ -309,6 +363,38 @@ void dataHandler_devNodeMeshData(const uint8_t *src_addr, const mlink_httpd_type
 			extern void usrAppHomepageThemeType_Set(const uint8_t themeType_flg, bool nvsRecord_IF);
 			
 			usrAppHomepageThemeType_Set(uiThemeStyleFlg_set, true);
+
+			ESP_LOGI(TAG, "<R2N>mesh data rcv, cmd guiHome themeSet.\n");
+
+		}break;
+
+		case L8DEV_MESH_CMD_NEIWORK_PARAM_CHG:{
+
+			if(esp_mesh_get_layer() != MESH_ROOT){ //非根节点响应
+
+				mwifi_config_t ap_config = {0x0};
+				struct stt_paramWifiConfig{
+				
+					char router_ssid[32];
+					char router_password[64];
+					uint8_t router_bssid[6];
+					
+				}param_wifiConfig = {0};
+
+				//wifi信息更改
+				memcpy(&param_wifiConfig, &dataRcv_temp[1], sizeof(struct stt_paramWifiConfig));
+				mdf_info_load("ap_config", &ap_config, sizeof(mwifi_config_t));
+				memcpy(ap_config.router_ssid, param_wifiConfig.router_ssid, sizeof(char) * 32);
+				memcpy(ap_config.router_password, param_wifiConfig.router_password, sizeof(char) * 64);
+				memcpy(ap_config.router_bssid, param_wifiConfig.router_bssid, sizeof(uint8_t) * 6);
+				memcpy(ap_config.mesh_id, param_wifiConfig.router_bssid, sizeof(uint8_t) * 6);
+				mdf_info_save("ap_config", &ap_config, sizeof(mwifi_config_t));
+
+				//倒计时重启触发
+				usrApplication_systemRestartTrig(5);
+			}
+
+			ESP_LOGI(TAG, "<R2N>mesh data rcv, cmd wifi change.\n");
 
 		}break;
 						

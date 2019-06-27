@@ -957,6 +957,7 @@ static mdf_err_t event_loop_cb(mdf_event_loop_t event, void *ctx)
 			IP2STR(&ip_info.netmask),
 			IP2STR(&ip_info.gw));
 
+			meshNetwork_connectReserve_IF_set(true);
 			flgSet_gotRouterOrMeshConnect(true);
 
             ret = mlink_notice_init();
@@ -1292,6 +1293,8 @@ void app_main()
         } else {
 //            light_driver_set_switch(true);
         }
+
+		meshNetwork_connectReserve_IF_set(true);
 		
     } else {
 //        light_driver_breath_start(255, 255, 0); /**< yellow blink */
@@ -1299,6 +1302,8 @@ void app_main()
         MDF_LOGI("mconfig, ssid: %s, password: %s, mesh_id: " MACSTR,
                  ap_config.router_ssid, ap_config.router_password,
                  MAC2STR(ap_config.mesh_id));
+
+		meshNetwork_connectReserve_IF_set(false);
     }
 
     /**

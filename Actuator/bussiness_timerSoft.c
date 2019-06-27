@@ -19,9 +19,12 @@
 
 extern stt_nodeDev_hbDataManage *listHead_nodeDevDataManage;
 extern uint8_t devRunningTimeFromPowerUp_couter;
+extern uint8_t devRestartDelay_counter;
+extern uint8_t wifiConfigComplete_tipsStartCounter;
 extern uint16_t ctrlObj_slidingCalmDownCounter;
 
 EventGroupHandle_t xEventGp_devApplication = NULL;
+xQueueHandle msgQh_systemRestartDelayCounterTips = NULL;
 
 static const char* TAG = "lanbon_L8 - timerSoft";
 
@@ -33,7 +36,7 @@ static stt_localTime devSystemTime_current = { //系统时间初始化
 	.time_Week 		= 1,
 	.time_Hour 		= 0,
 	.time_Minute 	= 0,
-	.time_Second 	= 0
+	.time_Second 	= 0,
 };
 static stt_timeZone devSystemTimeZone = {0, 0};
 uint16_t devSysTimeKeep_counter = 0;
@@ -376,6 +379,8 @@ static void funCB_bussinessSoftTimer(void *timer){
 
 	if(ctrlObj_slidingCalmDownCounter)ctrlObj_slidingCalmDownCounter --; //home界面控件滑动冷却计时业务
 
+	devDriverBussiness_scnarioSwitch_driverClamDown_refresh(); //场景开关驱动冷却时间刷新
+
 	/*100ms特殊*/
 	if(loopTimer_devSelfLightDrvRefresh.loopCounter < loopTimer_devSelfLightDrvRefresh.loopPeriod)loopTimer_devSelfLightDrvRefresh.loopCounter ++;
 	else{
@@ -391,6 +396,39 @@ static void funCB_bussinessSoftTimer(void *timer){
 	else{
 
 		loopTimer_1second.loopCounter = 0;
+
+		//设备重启，延时执行时间
+		if(devRestartDelay_counter != COUNTER_DISENABLE_MASK_SPECIALVAL_U8){
+
+			if(devRestartDelay_counter){
+
+				devRestartDelay_counter --;
+
+				xQueueSend(msgQh_systemRestartDelayCounterTips, &devRestartDelay_counter, 1 / portTICK_PERIOD_MS);
+			}
+			else
+			{
+				devRestartDelay_counter = COUNTER_DISENABLE_MASK_SPECIALVAL_U8;
+				printf("system restart now!.\n");
+				esp_restart();
+			}
+		}
+
+		//wifi配置成功，提示时间
+		if(wifiConfigComplete_tipsStartCounter != COUNTER_DISENABLE_MASK_SPECIALVAL_U8){
+
+			if(wifiConfigComplete_tipsStartCounter){
+
+				wifiConfigComplete_tipsStartCounter --;
+			}
+			else
+			{
+				extern void lvGui_wifiConfig_bussiness_configComplete_tipsOver(void);
+			
+				wifiConfigComplete_tipsStartCounter = COUNTER_DISENABLE_MASK_SPECIALVAL_U8;
+				lvGui_wifiConfig_bussiness_configComplete_tipsOver();
+			}
+		}
 
 		//设备启动时间计时
 		if(devRunningTimeFromPowerUp_couter < (L8_DEV_LISTMANAGE_REALES_CONFIRM + 10))devRunningTimeFromPowerUp_couter ++;
@@ -546,6 +584,7 @@ void usrApp_bussinessSoftTimer_Init(void){
 
 	xEventGp_tipsLoopTimer = xEventGroupCreate();
 	xEventGp_devApplication =  xEventGroupCreate();
+	msgQh_systemRestartDelayCounterTips = xQueueCreate(2, sizeof(uint8_t)); //消息数据为当前倒计时时间
 }
 
 

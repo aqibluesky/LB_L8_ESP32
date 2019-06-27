@@ -45,9 +45,12 @@ static const char cmdTopic_m2s_list[DEVMQTT_TOPIC_NUM_M2S][DEVMQTT_TOPIC_CASE_LE
 	
 	"/cmdMutualSet",
 	"/cmdScenario/opCtrl",
+	"/cmdScenario/opSet",
 
 	"/cmdDevLock/multiple", 
 	"/cmdUiStyle/multiple",
+
+	"/cmdWifiChg/overall",
 
 	"/m2s/cmdQuery",
 };
@@ -67,9 +70,12 @@ enum{
 	
 	cmdTopicM2SInsert_cmdMutualSet,
 	cmdTopicM2SInsert_cmdScenario_opCtrl,
+	cmdTopicM2SInsert_cmdScenario_opSet,
 	
 	cmdTopicM2SInsert_cmdDevLock_multiple,
 	cmdTopicM2SInsert_cmdUiStyle_multiple,
+
+	cmdTopicM2SInsert_cmdWifiChg_overall,
 
 	cmdTopicM2SInsert_cmdQuery,
 };
@@ -161,6 +167,7 @@ static void mqtt_remoteDataHandler(esp_mqtt_event_handle_t event, uint8_t cmdTop
 	const uint8_t MACADDR_INSRT_START_CMDDELAYSET 		= DEV_HEX_PROTOCOL_APPLEN_DELAYSET; 	//MAC地址起始下标:延时设置
 	const uint8_t MACADDR_INSRT_START_CMDGREENMODESET 	= DEV_HEX_PROTOCOL_APPLEN_GREENMODESET; //MAC地址起始下标:绿色模式设置
 	const uint8_t MACADDR_INSRT_START_CMDNIGHTMODESET 	= DEV_HEX_PROTOCOL_APPLEN_NIGHTMODESET; //MAC地址起始下标:夜间模式设置
+	const uint8_t MACADDR_INSRT_START_CMDEXTPARAMSET	= DEV_HEX_PROTOCOL_APPLEN_EXTPARAMSET;  //MAC地址起始下标:额外其它参数设置
 
 	const uint8_t MACADDR_INSRT_START_CMDQUERY = 1; //MAC地址起始下标
 
@@ -480,7 +487,23 @@ static void mqtt_remoteDataHandler(esp_mqtt_event_handle_t event, uint8_t cmdTop
 
 		case cmdTopicM2SInsert_cmdExtParamSet:{
 
+			const uint16_t dataComming_lengthLimit = 10; //数据长度最短限制
 
+			if(event->data_len < dataComming_lengthLimit)break;
+			(!memcmp(devSelfMac, &(event->data[MACADDR_INSRT_START_CMDEXTPARAMSET]), DEVICE_MAC_ADDR_APPLICATION_LEN))?(data_sendToRoot_IF = true):(data_sendToRoot_IF = false);
+			if(data_sendToRoot_IF){
+
+				currentDev_extParamSet(event->data);
+			}
+			else //数据不是给主机，则转发
+			{
+				dataRespond_temp[0] = L8DEV_MESH_CMD_EXT_PARAM_SET;
+				memcpy(&dataRespond_temp[1], &event->data[0], MACADDR_INSRT_START_CMDEXTPARAMSET); //数据内容填充
+				
+				ret = mwifi_root_write((const uint8_t *)&event->data[MACADDR_INSRT_START_CMDEXTPARAMSET], 1,
+									   &data_type, dataRespond_temp, MACADDR_INSRT_START_CMDEXTPARAMSET + 1, true); // +1代表mesh内部传输时添加第一字节为命令字节
+				MDF_ERROR_BREAK(ret != MDF_OK, "<%s> mqtt mwifi_root_write", mdf_err_to_name(ret));
+			}
 
 		}break;
 
@@ -618,10 +641,100 @@ static void mqtt_remoteDataHandler(esp_mqtt_event_handle_t event, uint8_t cmdTop
 				
 					ret = mwifi_root_write((const uint8_t *)scenarioActionParam_unit.devMacAddr, 1,
 										 &data_type, dataRespond_temp, 1 + 1, true);  //数据内容填充 -头命令长度1 + 操作值数据长度1
-					MDF_ERROR_BREAK(ret != MDF_OK, "<%s> mqtt mwifi_root_write", mdf_err_to_name(ret));					
+					MDF_ERROR_CONTINUE(ret != MDF_OK, "<%s> mqtt mwifi_root_write", mdf_err_to_name(ret));					
 				}
 			}
 
+		}break;
+
+		case cmdTopicM2SInsert_cmdScenario_opSet:{
+
+			const uint8_t targetMacIstStart = 3; //数据包接收目标MAC地址起始索引
+			const uint16_t dataComming_lengthLimit = 9;
+		
+			if(event->data_len < dataComming_lengthLimit)break; //数据长度最短限制
+
+			if(!memcmp(devSelfMac, &(event->data[targetMacIstStart]), DEVICE_MAC_ADDR_APPLICATION_LEN)){
+
+				uint8_t scenarioParam_ist = event->data[1];
+				stt_scenarioSwitchData_nvsOpreat *scenarioParamData = nvsDataOpreation_devScenarioParam_get(scenarioParam_ist);
+				uint8_t dataParamHalf_flg = event->data[2];
+
+				if(dataParamHalf_flg == 0xA1){
+
+					memset(scenarioParamData, 0, sizeof(stt_scenarioSwitchData_nvsOpreat));
+					scenarioParamData->dataRef.scenarioDevice_sum = event->data[0];
+					scenarioParamData->dataRef.scenarioInsert_num = scenarioParam_ist;
+					if(scenarioParamData->dataRef.scenarioDevice_sum > DEVSCENARIO_NVSDATA_HALFOPREAT_NUM)
+						memcpy(scenarioParamData->dataHalf_A, &(event->data[9]), sizeof(stt_scenarioUnitOpreatParam) * DEVSCENARIO_NVSDATA_HALFOPREAT_NUM);
+					else
+						memcpy(scenarioParamData->dataHalf_A, &(event->data[9]), sizeof(stt_scenarioUnitOpreatParam) * scenarioParamData->dataRef.scenarioDevice_sum);
+
+					devDriverBussiness_scnarioSwitch_dataParam_save(scenarioParamData);
+				}
+				else
+				if(dataParamHalf_flg == 0xA2){
+
+					uint8_t scenarioDeviceSum_reserve = scenarioParamData->dataRef.scenarioDevice_sum - DEVSCENARIO_NVSDATA_HALFOPREAT_NUM;
+
+					memcpy(scenarioParamData->dataHalf_B, &(event->data[9]), sizeof(stt_scenarioUnitOpreatParam) * scenarioDeviceSum_reserve);
+
+					devDriverBussiness_scnarioSwitch_dataParam_save(scenarioParamData);
+				}
+
+				printf("scenario set cmd coming! sum:%d, ist:%d, part:%02X.\n", scenarioParamData->dataRef.scenarioDevice_sum,
+																  			 	scenarioParamData->dataRef.scenarioInsert_num,
+																            	dataParamHalf_flg);
+
+				os_free(scenarioParamData);
+			}
+			else
+			{
+				char *dataMeshReq_bufTemp = (char *)os_zalloc(sizeof(char) * (event->data_len + 1)); //额定stack缓存不足，重新申请heap缓存
+				dataMeshReq_bufTemp[0] = L8DEV_MESH_CMD_SCENARIO_SET; //mesh命令
+				memcpy(&dataMeshReq_bufTemp[1], event->data, event->data_len); //数据
+				
+				ret = mwifi_root_write((const uint8_t *)&(event->data[targetMacIstStart]), 1,
+									   &data_type, dataMeshReq_bufTemp, event->data_len + 1, true);  //数据内容填充 -头命令长度1 + 操作值数据长度1
+				MDF_ERROR_CHECK(ret != MDF_OK, ret, "<%s> mqtt mwifi_root_write", mdf_err_to_name(ret));	
+
+				os_free(dataMeshReq_bufTemp);
+			}
+
+		}break;
+
+		case cmdTopicM2SInsert_cmdWifiChg_overall:{
+
+			mwifi_config_t ap_config = {0x0};
+			struct stt_paramWifiConfig{
+
+				char router_ssid[32];
+				char router_password[64];
+				uint8_t router_bssid[6];
+				
+			}param_wifiConfig = {0};
+			const uint8_t boardcastAddr[MWIFI_ADDR_LEN] = MWIFI_ADDR_BROADCAST;
+
+			//自身wifi信息修改
+			memcpy(&param_wifiConfig, event->data, sizeof(struct stt_paramWifiConfig));
+			mdf_info_load("ap_config", &ap_config, sizeof(mwifi_config_t));
+			memcpy(ap_config.router_ssid, param_wifiConfig.router_ssid, sizeof(char) * 32);
+			memcpy(ap_config.router_password, param_wifiConfig.router_password, sizeof(char) * 64);
+			memcpy(ap_config.router_bssid, param_wifiConfig.router_bssid, sizeof(uint8_t) * 6);
+			memcpy(ap_config.mesh_id, param_wifiConfig.router_bssid, sizeof(uint8_t) * 6);
+			mdf_info_save("ap_config", &ap_config, sizeof(mwifi_config_t));
+
+			//通知网内所有设备wifi信息修改
+			dataRespond_temp[0] = L8DEV_MESH_CMD_NEIWORK_PARAM_CHG; //mesh命令
+			memcpy(&dataRespond_temp[1], &param_wifiConfig, sizeof(struct stt_paramWifiConfig)); //数据
+			
+			ret = mwifi_root_write(boardcastAddr, 1,
+								 &data_type, dataRespond_temp, sizeof(struct stt_paramWifiConfig) + 1, true);  //数据内容填充 -头命令长度1 + 操作值数据长度1
+			MDF_ERROR_BREAK(ret != MDF_OK, "<%s> mqtt mwifi_root_write", mdf_err_to_name(ret)); 
+
+			//倒计时重启触发
+			usrApplication_systemRestartTrig(5);
+			
 		}break;
 
 		case cmdTopicM2SInsert_cmdDevLock_multiple:{
@@ -640,37 +753,61 @@ static void mqtt_remoteDataHandler(esp_mqtt_event_handle_t event, uint8_t cmdTop
 			
 			if(event->data_len < dataComming_lengthLimit)break; //数据长度最短限制
 
-			for(loop = 0; loop < scenarioUnit_num; loop ++){
+			if(scenarioUnit_num == 0xFF){ //全改
 
-				os_memset(&devLockOpreatParam_unit, 0, dataParamUintTemp_length);
-				os_memcpy(&devLockOpreatParam_unit,
-						  &(event->data[loop * dataParamUintTemp_length + 1]), 
-						  dataParamUintTemp_length);
+				const uint8_t boardcastAddr[MWIFI_ADDR_LEN] = MWIFI_ADDR_BROADCAST;
+				uint8_t devLock_dats = event->data[7];
+				uint16_t devRunningFlg_temp = currentDevRunningFlg_paramGet();
+				
+				(devLock_dats)?
+					(devRunningFlg_temp |= DEV_RUNNING_FLG_BIT_DEVLOCK):
+					(devRunningFlg_temp &= (~DEV_RUNNING_FLG_BIT_DEVLOCK));
+				
+				currentDevRunningFlg_paramSet(devRunningFlg_temp, true);
 
-				if(!memcmp(devSelfMac, devLockOpreatParam_unit.devMacAddr, MWIFI_ADDR_LEN)){
-
-					uint16_t devRunningFlg_temp = currentDevRunningFlg_paramGet();
-					
-					(devLockOpreatParam_unit.devLockVal)?
-						(devRunningFlg_temp |= DEV_RUNNING_FLG_BIT_DEVLOCK):
-						(devRunningFlg_temp &= (~DEV_RUNNING_FLG_BIT_DEVLOCK));
-					
-					currentDevRunningFlg_paramSet(devRunningFlg_temp, true);
-				}
-				else
-				{
-					dataRespond_temp[0] = L8DEV_MESH_CMD_DEVLOCK; //mesh命令
-					memcpy(&dataRespond_temp[1], &(devLockOpreatParam_unit.devLockVal), 1); //数据
-
-					ret = mwifi_root_write((const uint8_t *)devLockOpreatParam_unit.devMacAddr, 1,
-										 &data_type, dataRespond_temp, 1 + 1, true);  //数据内容填充 -头命令长度1 + 操作值数据长度1
-					MDF_ERROR_BREAK(ret != MDF_OK, "<%s> mqtt mwifi_root_write", mdf_err_to_name(ret));					
+				dataRespond_temp[0] = L8DEV_MESH_CMD_DEVLOCK; //mesh命令
+				memcpy(&dataRespond_temp[1], &devLock_dats, 1); //数据
+				
+				ret = mwifi_root_write(boardcastAddr, 1,
+									 &data_type, dataRespond_temp, 1 + 1, true);  //数据内容填充 -头命令长度1 + 操作值数据长度1
+				MDF_ERROR_BREAK(ret != MDF_OK, "<%s> mqtt mwifi_root_write", mdf_err_to_name(ret)); 
+			}
+			else //选改
+			{
+				for(loop = 0; loop < scenarioUnit_num; loop ++){
+				
+					os_memset(&devLockOpreatParam_unit, 0, dataParamUintTemp_length);
+					os_memcpy(&devLockOpreatParam_unit,
+							  &(event->data[loop * dataParamUintTemp_length + 1]), 
+							  dataParamUintTemp_length);
+				
+					if(!memcmp(devSelfMac, devLockOpreatParam_unit.devMacAddr, MWIFI_ADDR_LEN)){
+				
+						uint16_t devRunningFlg_temp = currentDevRunningFlg_paramGet();
+						
+						(devLockOpreatParam_unit.devLockVal)?
+							(devRunningFlg_temp |= DEV_RUNNING_FLG_BIT_DEVLOCK):
+							(devRunningFlg_temp &= (~DEV_RUNNING_FLG_BIT_DEVLOCK));
+						
+						currentDevRunningFlg_paramSet(devRunningFlg_temp, true);
+					}
+					else
+					{
+						dataRespond_temp[0] = L8DEV_MESH_CMD_DEVLOCK; //mesh命令
+						memcpy(&dataRespond_temp[1], &(devLockOpreatParam_unit.devLockVal), 1); //数据
+				
+						ret = mwifi_root_write((const uint8_t *)devLockOpreatParam_unit.devMacAddr, 1,
+											 &data_type, dataRespond_temp, 1 + 1, true);  //数据内容填充 -头命令长度1 + 操作值数据长度1
+						MDF_ERROR_BREAK(ret != MDF_OK, "<%s> mqtt mwifi_root_write", mdf_err_to_name(ret)); 				
+					}
 				}
 			}
 
 		}break;
 
 		case cmdTopicM2SInsert_cmdUiStyle_multiple:{
+
+			extern void usrAppHomepageThemeType_Set(const uint8_t themeType_flg, bool nvsRecord_IF);
 
 			uint8_t loop = 0;
 			uint8_t scenarioUnit_num = event->data[0];
@@ -685,31 +822,46 @@ static void mqtt_remoteDataHandler(esp_mqtt_event_handle_t event, uint8_t cmdTop
 			const uint16_t dataComming_lengthLimit = 7;
 			
 			if(event->data_len < dataComming_lengthLimit)break; //数据长度最短限制
-			
-			for(loop = 0; loop < scenarioUnit_num; loop ++){
-			
-				os_memset(&uiThemeStyleParam_unit, 0, dataParamUintTemp_length);
-				os_memcpy(&uiThemeStyleParam_unit,
-						  &(event->data[loop * dataParamUintTemp_length + 1]), 
-						  dataParamUintTemp_length);
-			
-				if(!memcmp(devSelfMac, uiThemeStyleParam_unit.devMacAddr, MWIFI_ADDR_LEN)){
 
-					extern void usrAppHomepageThemeType_Set(const uint8_t themeType_flg, bool nvsRecord_IF);
+			if(scenarioUnit_num == 0xFF){ //全改
 
-					usrAppHomepageThemeType_Set(uiThemeStyleParam_unit.themeStyle_flg, true);
-				}
-				else
-				{
-					dataRespond_temp[0] = L8DEV_MESH_CMD_UISET_THEMESTYLE; //mesh命令
-					memcpy(&dataRespond_temp[1], &(uiThemeStyleParam_unit.themeStyle_flg), 1); //数据
+				const uint8_t boardcastAddr[MWIFI_ADDR_LEN] = MWIFI_ADDR_BROADCAST;
+				uint8_t themeStyleFlg = event->data[7];
+			
+				usrAppHomepageThemeType_Set(themeStyleFlg, true);
 				
-					ret = mwifi_root_write((const uint8_t *)uiThemeStyleParam_unit.devMacAddr, 1,
-										 &data_type, dataRespond_temp, 1 + 1, true);  //数据内容填充 -头命令长度1 + 操作值数据长度1
-					MDF_ERROR_BREAK(ret != MDF_OK, "<%s> mqtt mwifi_root_write", mdf_err_to_name(ret)); 				
+				dataRespond_temp[0] = L8DEV_MESH_CMD_UISET_THEMESTYLE; //mesh命令
+				memcpy(&dataRespond_temp[1], &themeStyleFlg, 1); //数据
+				
+				ret = mwifi_root_write(boardcastAddr, 1,
+									 &data_type, dataRespond_temp, 1 + 1, true);  //数据内容填充 -头命令长度1 + 操作值数据长度1
+				MDF_ERROR_BREAK(ret != MDF_OK, "<%s> mqtt mwifi_root_write", mdf_err_to_name(ret));
+			}
+			else //选改
+			{
+				for(loop = 0; loop < scenarioUnit_num; loop ++){
+				
+					os_memset(&uiThemeStyleParam_unit, 0, dataParamUintTemp_length);
+					os_memcpy(&uiThemeStyleParam_unit,
+							  &(event->data[loop * dataParamUintTemp_length + 1]), 
+							  dataParamUintTemp_length);
+				
+					if(!memcmp(devSelfMac, uiThemeStyleParam_unit.devMacAddr, MWIFI_ADDR_LEN)){
+
+						usrAppHomepageThemeType_Set(uiThemeStyleParam_unit.themeStyle_flg, true);
+					}
+					else
+					{
+						dataRespond_temp[0] = L8DEV_MESH_CMD_UISET_THEMESTYLE; //mesh命令
+						memcpy(&dataRespond_temp[1], &(uiThemeStyleParam_unit.themeStyle_flg), 1); //数据
+					
+						ret = mwifi_root_write((const uint8_t *)uiThemeStyleParam_unit.devMacAddr, 1,
+											 &data_type, dataRespond_temp, 1 + 1, true);  //数据内容填充 -头命令长度1 + 操作值数据长度1
+						MDF_ERROR_BREAK(ret != MDF_OK, "<%s> mqtt mwifi_root_write", mdf_err_to_name(ret)); 				
+					}
 				}
 			}
-
+	
 		}break;
 
 		case cmdTopicM2SInsert_cmdQuery:{

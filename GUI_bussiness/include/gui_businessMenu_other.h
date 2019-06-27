@@ -31,6 +31,7 @@ extern "C" {
  * Create a test screen with a lot objects and apply the given theme on them
  * @param th pointer to a theme
  */
+void lvGuiOther_devInfoRefresh(void);
 void lvGui_businessMenu_other(lv_obj_t * obj_Parent);
 
 #ifdef __cplusplus

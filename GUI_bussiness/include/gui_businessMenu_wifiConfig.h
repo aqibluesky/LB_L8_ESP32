@@ -33,6 +33,9 @@ extern "C" {
  */
 void lvGui_businessMenu_wifiConfig(lv_obj_t * obj_Parent);
 
+void lvGui_wifiConfig_bussiness_configComplete_tipsTrig(void);
+void lvGui_wifiConfig_bussiness_configComplete_tipsDetect(void);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

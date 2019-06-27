@@ -76,6 +76,8 @@ extern "C" {
 #define DEV_HEX_PROTOCOL_APPLEN_DELAYSET		3	//16进制字节格式协议应用数据长度:延时设置
 #define DEV_HEX_PROTOCOL_APPLEN_GREENMODESET	2	//16进制字节格式协议应用数据长度:绿色模式设置
 #define DEV_HEX_PROTOCOL_APPLEN_NIGHTMODESET	6	//16进制字节格式协议应用数据长度:夜间模式设置
+#define DEV_HEX_PROTOCOL_APPLEN_EXTPARAMSET		5	//16进制字节格式协议应用数据长度:开关除普通控制外的额外参数设置
+
 
 #define L8_NODEDEV_KEEPALIVE_PERIOD				60	//mesh内部心跳子节点生命周期
 
@@ -140,9 +142,16 @@ extern "C" {
 	 }devType_heater;
 
 	 struct{
- 
-		 uint8_t devThermostat_tempratureTarget;
+
+	 	 uint8_t devThermostat_running_en:1; //bit0
+	 	 uint8_t devThermostat_nightMode_en:1; //bit1
+		 uint8_t devThermostat_tempratureTarget:6; //bit2-7
 	 }devType_thermostat;
+
+	 struct{
+ 
+		 uint8_t devScenario_opNum;
+	 }devType_scenario;
 
 	 struct{
  
@@ -294,6 +303,27 @@ typedef struct{
 	uint8_t devStatusData_reserve:7;
 }stt_devStatusRecord;
 
+typedef struct{
+
+	uint8_t unitDevMac[6];
+	uint8_t unitDevOpreat_val;
+}stt_scenarioUnitOpreatParam;
+
+typedef struct{
+
+	uint8_t scenarioInsert_num; //场景索引
+	uint8_t scenarioDevice_sum; //场景内设备数量
+}stt_scenarioSwitchData_nvsOpreatRef; 
+/*单个场景数据最大存储长度：sizeof(stt_scenarioSwitchData_nvsOpreatRef) + 128 + 128*/ //数据说明头 + 数据上半部 + 数据下半部
+
+#define DEVSCENARIO_NVSDATA_HALFOPREAT_NUM	1 //场景数据半部存储数量
+typedef struct{
+
+	stt_scenarioSwitchData_nvsOpreatRef dataRef;
+	stt_scenarioUnitOpreatParam dataHalf_A[DEVSCENARIO_NVSDATA_HALFOPREAT_NUM];
+	stt_scenarioUnitOpreatParam dataHalf_B[DEVSCENARIO_NVSDATA_HALFOPREAT_NUM];
+}stt_scenarioSwitchData_nvsOpreat;
+
 #define GUIBUSSINESS_CTRLOBJ_MAX_NUM 3
 typedef struct{
 
@@ -330,6 +360,10 @@ typedef enum{
 
 	saveObj_devCurtain_runningParam,
 
+	saveObj_devScenario_paramDats_0,
+	saveObj_devScenario_paramDats_1,
+	saveObj_devScenario_paramDats_2,
+
 	saveObj_devDriver_iptRecalibration_set,
 }enum_dataSaveObj;
 
@@ -365,6 +399,8 @@ extern xQueueHandle msgQh_dataManagementHandle;
 //extern uint8_t *dataPtr_btnTextImg_sw_B;
 //extern uint8_t *dataPtr_btnTextImg_sw_C;
 
+uint8_t systemDevice_startUpTime_get(void);
+
 void gui_bussinessHome_btnText_dataReales(uint8_t picIst, uint8_t *picDataBuf, uint8_t *dataLoad, uint16_t dataLoad_len, uint8_t dataBagIst, bool lastFrame_If);
 
 void flgSet_gotRouterOrMeshConnect(bool valSet);
@@ -397,7 +433,12 @@ bool devMutualCtrlGroupInfo_unitCheckByInsert(stt_devMutualGroupParam *mutualGro
 uint16_t currentDevRunningFlg_paramGet(void);
 void currentDevRunningFlg_paramSet(uint16_t valFlg, bool nvsRecord_IF);
 
+void meshNetwork_connectReserve_IF_set(bool param);
+bool meshNetwork_connectReserve_IF_get(void);
+
 stt_blufiConfigDevInfo_resp *devBlufiConfig_respInfoGet(void);
+
+stt_scenarioSwitchData_nvsOpreat *nvsDataOpreation_devScenarioParam_get(uint8_t scenarioIst);
 
 void devSystemInfoLocalRecord_preSaveTest(void);
 void devSystemInfoLocalRecord_initialize(void);
@@ -416,6 +457,8 @@ bool L8devHbDataManageList_nodeRemove(stt_nodeDev_hbDataManage *pHead, uint8_t n
 void L8devHbDataManageList_bussinessKeepAliveManagePeriod1s(stt_nodeDev_hbDataManage *pHead);
 
 bool usrAppMethod_mwifiMacAddrRemoveFromList(uint8_t *macAddrList, uint8_t macAddrList_num, uint8_t macAddrRemove[MWIFI_ADDR_LEN]);
+
+void usrApplication_systemRestartTrig(uint8_t trigDelay);
 
 #ifdef __cplusplus
 } /* extern "C" */

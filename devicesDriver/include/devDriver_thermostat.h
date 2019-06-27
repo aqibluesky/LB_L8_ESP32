@@ -29,6 +29,7 @@ extern "C" {
  **********************/
 typedef struct{
 
+	uint16_t deviceRunning_EN:1;
 	uint16_t workModeInNight_IF:1;
 	uint16_t temperatureVal_target:6;
 	uint16_t temperatureVal_current:6;

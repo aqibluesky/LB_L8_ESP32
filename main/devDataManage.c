@@ -34,8 +34,9 @@ LV_IMG_DECLARE(homepageCtrlObjIcon3_7);LV_IMG_DECLARE(homepageCtrlObjIcon3_8);
 stt_nodeDev_hbDataManage *listHead_nodeDevDataManage = NULL;
 uint8_t listNum_nodeDevDataManage = 0;
 uint8_t devRunningTimeFromPowerUp_couter = 0; //设备启动时间 计时变量
+uint8_t devRestartDelay_counter = COUNTER_DISENABLE_MASK_SPECIALVAL_U8; //设备重启，倒计时延时执行时间
 
-xQueueHandle msgQh_dataManagementHandle = NULL;
+xQueueHandle msgQh_dataManagementHandle = NULL; //用于通知数据已被修改成功
 
 //uint8_t *dataPtr_btnTextImg_sw_A = NULL;
 //uint8_t *dataPtr_btnTextImg_sw_B = NULL;
@@ -69,6 +70,9 @@ static const char *DATA_DEV_GUIHOMEBTNTEXTPIC_C		= "devBtnTextPicC";
 static const char *DATA_DEV_GUIHOMETHEMETYPE		= "devThemeType";
 static const char *DATA_DEVCURTAIN_RUNNINGPARAM		= "devCurtainParam";
 static const char *DATA_DEVDRVIPT_RECALIBRAPARAM	= "devDrviptParam";
+static const char *DATA_DEVSCENARIO_DATA_PARAM_0	= "devScenDats_0";
+static const char *DATA_DEVSCENARIO_DATA_PARAM_1	= "devScenDats_1";
+static const char *DATA_DEVSCENARIO_DATA_PARAM_2	= "devScenDats_2";
 
 static stt_dataDisp_guiBussinessHome_btnText dataBtnTextObjDisp_bussinessHome = {
 
@@ -80,6 +84,8 @@ static stt_dataDisp_guiBussinessHome_btnText dataBtnTextObjDisp_bussinessHome = 
 static uint8_t dataBtnIconNumObjDisp_bussinessHome[GUIBUSSINESS_CTRLOBJ_MAX_NUM] = {12, 21, 31};
 
 static bool listNodeDevOpreating_Flg = false; //子节点链表是否正在被进行管理操作
+
+static bool meshNetworkParamReserve_Flg = false;
 
 static int8_t devSignalStrength2ParentVal = -127; //设备信号强度
 static uint16_t devMesh_currentNodeNum = 0; //当前所在mesh网络内节点数量
@@ -93,6 +99,11 @@ static uint8_t routerConnect_bssid[6] = {0};
 static stt_devMutualGroupParam devMutualCtrl_group[DEVICE_MUTUAL_CTRL_GROUP_NUM] = {0};
 
 static char devIptdrvParam_recalibration = 'N';
+
+uint8_t systemDevice_startUpTime_get(void){
+
+	return devRunningTimeFromPowerUp_couter;
+}
 
 void gui_bussinessHome_btnText_dataReales(uint8_t picIst, uint8_t *picDataBuf, uint8_t *dataLoad, uint16_t dataLoad_len, uint8_t dataBagIst, bool lastFrame_If){
 
@@ -300,6 +311,16 @@ bool usrApp_devIptdrv_paramRecalibration_get(void){
 		(res = false);
 
 	return res;
+}
+
+void meshNetwork_connectReserve_IF_set(bool param){
+
+	meshNetworkParamReserve_Flg = param;
+}
+
+bool meshNetwork_connectReserve_IF_get(void){
+
+	return meshNetworkParamReserve_Flg;
 }
 
 void flgSet_gotRouterOrMeshConnect(bool valSet){
@@ -937,6 +958,11 @@ void L8devHbDataManageList_bussinessKeepAliveManagePeriod1s(stt_nodeDev_hbDataMa
 	}
 }
 
+void usrApplication_systemRestartTrig(uint8_t trigDelay){
+
+	devRestartDelay_counter = trigDelay;
+}
+
 void devSystemInfoLocalRecord_preSaveTest(void){
 
 	nvs_handle handle;
@@ -954,6 +980,44 @@ void devSystemInfoLocalRecord_preSaveTest(void){
 
 	nvs_close(handle);
 	ESP_ERROR_CHECK( nvs_flash_deinit_partition(NVS_DATA_L8_PARTITION_NAME));
+}
+
+stt_scenarioSwitchData_nvsOpreat *nvsDataOpreation_devScenarioParam_get(uint8_t scenarioIst){
+
+	nvs_handle handle;
+
+	uint32_t dataLength = 0;
+	esp_err_t err;
+
+	stt_scenarioSwitchData_nvsOpreat *dataParam = (stt_scenarioSwitchData_nvsOpreat *)os_zalloc(sizeof(stt_scenarioSwitchData_nvsOpreat));
+	static const char *nvsOpreat_key = NULL;
+
+	switch(scenarioIst){
+
+		case 0:nvsOpreat_key = DATA_DEVSCENARIO_DATA_PARAM_0;break;
+		case 1:nvsOpreat_key = DATA_DEVSCENARIO_DATA_PARAM_1;break;
+		case 2:
+		default:nvsOpreat_key = DATA_DEVSCENARIO_DATA_PARAM_2;break;
+	}
+
+	ESP_ERROR_CHECK( nvs_flash_init_partition(NVS_DATA_L8_PARTITION_NAME));
+    ESP_ERROR_CHECK( nvs_open_from_partition(NVS_DATA_L8_PARTITION_NAME, NVS_DATA_SYSINFO_RECORD, NVS_READWRITE, &handle) );
+
+	dataLength = sizeof(stt_scenarioSwitchData_nvsOpreat);
+	err = nvs_get_blob(handle, nvsOpreat_key, dataParam, &dataLength);
+	if(err == ESP_OK){
+
+		ESP_LOGI(TAG,"nvs_data devScenario dataParam read success.\n");
+		
+	}else{
+
+		ESP_LOGI(TAG,"nvs_data devScenario dataParam not found, maybe first running, err:0x%04X.\n", err);
+	}
+
+    nvs_close(handle);
+	ESP_ERROR_CHECK( nvs_flash_deinit_partition(NVS_DATA_L8_PARTITION_NAME));
+
+	return dataParam;
 }
 
 void devSystemInfoLocalRecord_initialize(void){
@@ -1344,6 +1408,24 @@ void devSystemInfoLocalRecord_save(enum_dataSaveObj obj, void *dataSave){
 
 			ESP_ERROR_CHECK( nvs_set_blob( handle, DATA_DEVCURTAIN_RUNNINGPARAM, dataSave, sizeof(stt_devCurtain_runningParam)) );
 		
+		}break;
+
+		case saveObj_devScenario_paramDats_0:{
+
+			ESP_ERROR_CHECK( nvs_set_blob( handle, DATA_DEVSCENARIO_DATA_PARAM_0, dataSave, sizeof(stt_scenarioSwitchData_nvsOpreat)) );
+
+		}break;
+
+		case saveObj_devScenario_paramDats_1:{
+
+			ESP_ERROR_CHECK( nvs_set_blob( handle, DATA_DEVSCENARIO_DATA_PARAM_1, dataSave, sizeof(stt_scenarioSwitchData_nvsOpreat)) );
+
+		}break;
+
+		case saveObj_devScenario_paramDats_2:{
+
+			ESP_ERROR_CHECK( nvs_set_blob( handle, DATA_DEVSCENARIO_DATA_PARAM_2, dataSave, sizeof(stt_scenarioSwitchData_nvsOpreat)) );
+
 		}break;
 
 		case saveObj_devGuiBussinessHome_btnTextDisp:{

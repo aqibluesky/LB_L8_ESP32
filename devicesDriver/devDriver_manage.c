@@ -72,7 +72,11 @@ void currentDev_dataPointSet(stt_devDataPonitTypedef *param, bool nvsRecord_IF, 
 		
 		}break;
 		
-		case devTypeDef_scenario:{}break;
+		case devTypeDef_scenario:{
+
+			devDriverBussiness_scnarioSwitch_scenarioStatusReales(param);
+		
+		}break;
 		
 		case devTypeDef_curtain:{
 
@@ -104,9 +108,35 @@ void currentDev_dataPointSet(stt_devDataPonitTypedef *param, bool nvsRecord_IF, 
 	devScreenBkLight_weakUp(); //屏幕唤醒
 }
 
-void currentDev_extParamSet(void *param, uint8_t devType){
+void currentDev_extParamSet(void *param){
 
-	
+	uint8_t *dataParam = (uint8_t *)param;
+	uint8_t devType_rcv = dataParam[4];
+
+	if(devType_rcv == currentDev_typeGet()){
+
+		switch(currentDev_typeGet()){
+
+			case devTypeDef_curtain:{
+
+				uint8_t orbitalPeriodTime_valSet = dataParam[0];
+			
+				devCurtain_currentOrbitalPeriodTimeSet(orbitalPeriodTime_valSet);	
+
+			}break;
+			
+			case devTypeDef_heater:{
+
+				uint16_t customDownCounter_valSet = ((uint16_t)(dataParam[0]) << 8) | 
+													((uint16_t)(dataParam[1]) << 0);
+
+				devDriverBussiness_heaterSwitch_closePeriodCustom_Set(customDownCounter_valSet);
+
+			}break;
+
+			default:break;
+		}
+	}
 }
 
 void currentDev_dataPointGet(stt_devDataPonitTypedef *param){
@@ -297,7 +327,11 @@ void devDriverManageBussiness_initialition(void){
 
 		}break;
 		
-		case devTypeDef_scenario:{}break;
+		case devTypeDef_scenario:{
+
+			devDriverBussiness_scnarioSwitch_moudleInit();
+		
+		}break;
 		
 		case devTypeDef_curtain:{
 
@@ -329,6 +363,7 @@ void devDriverManageBussiness_deinitialition(void){
 	devDriverBussiness_fansSwitch_moudleDeinit();
 	devDriverBussiness_heaterSwitch_moudleDeinit();
 	devDriverBussiness_thermostatSwitch_moudleDeinit();
+	devDriverBussiness_scnarioSwitch_moudleDeinit();
 }
 
 void devDriverManageBussiness_deviceChangeRefresh(void){

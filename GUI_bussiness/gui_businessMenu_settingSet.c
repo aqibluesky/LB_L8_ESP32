@@ -21,7 +21,7 @@
 
 #include "devDriver_manage.h"
 
-#include "gui_businessMenu_setting_A.h"
+#include "gui_businessMenu_settingSet.h"
 #include "gui_businessHome.h"
 	
 #define OBJ_DDLIST_DEVTYPE_FREENUM		1
@@ -101,7 +101,7 @@ static void currentGui_elementClear(void){
 static lv_res_t funCb_btnActionClick_menuBtn_funBack(lv_obj_t *btn){
 
 	currentGui_elementClear();
-	lvGui_usrSwitch(bussinessType_menuPageSetting);
+	lvGui_usrSwitch(bussinessType_Menu);
 
 	return LV_RES_OK;
 }
@@ -175,7 +175,7 @@ static lv_res_t funCb_swDevStatusRecordIF(lv_obj_t *sw){
 	return LV_RES_OK;
 }
 
-void lvGui_businessMenu_setting_A(lv_obj_t * obj_Parent){
+void lvGui_businessMenu_settingSet(lv_obj_t * obj_Parent){
 
 	uint8_t loop = 0;
 	devTypeDef_enum devType_Temp;

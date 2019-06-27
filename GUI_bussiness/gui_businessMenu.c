@@ -53,15 +53,21 @@ static lv_res_t funCb_btnActionPress_menuBtn_funBack(lv_obj_t *btn){
 
 static lv_res_t funCb_btnActionClick_menuBtn_other(lv_obj_t *btn){
 
+	lvGui_usrSwitch(bussinessType_menuPageOther);
+	
 	return LV_RES_OK;
 }
 
 static lv_res_t funCb_btnActionClick_menuBtn_delayer(lv_obj_t *btn){
 
+	lvGui_usrSwitch(bussinessType_menuPageDelayer);
+
 	return LV_RES_OK;
 }
 
 static lv_res_t funCb_btnActionClick_menuBtn_timer(lv_obj_t *btn){
+
+	lvGui_usrSwitch(bussinessType_menuPageTimer);
 
 	return LV_RES_OK;
 }
@@ -187,7 +193,7 @@ void lvGui_businessMenu(lv_obj_t * obj_Parent){
 	styleText_menuLevel_B.text.color = LV_COLOR_WHITE;
 	
 	menuTextCho_other = lv_label_create(menuBtnChoIcon_other, NULL);
-	lv_label_set_text(menuTextCho_other, "Other");
+	lv_label_set_text(menuTextCho_other, "system\ninfo");
 	lv_obj_set_style(menuTextCho_other, &styleText_menuLevel_B);
 	lv_obj_set_protect(menuTextCho_other, LV_PROTECT_POS);
 	lv_obj_align(menuTextCho_other, NULL, LV_ALIGN_IN_LEFT_MID, 55, 5);

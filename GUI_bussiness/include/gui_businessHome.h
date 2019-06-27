@@ -31,9 +31,6 @@ typedef enum{
 	bussinessType_menuPageTimer,
 	bussinessType_menuPageLinkageConfig,
 	bussinessType_menuPageSetting,
-	bussinessType_menuPageSetting_A,
-	bussinessType_menuPageSetting_B,
-	bussinessType_menuPageSetting_C,
 	bussinessType_menuPageWifiConfig,
 }usrGuiBussiness_type;
 

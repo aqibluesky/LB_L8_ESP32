@@ -1,10 +1,10 @@
 /**
- * @file gui_businessMenu_setting_B.h
+ * @file gui_businessMenu_delayerSet_C.h
  *
  */
 
-#ifndef GUI_BUSINESSMENU_SETTING_B_H
-#define GUI_BUSINESSMENU_SETTING_B_H
+#ifndef GUI_BUSINESSMENU_DELAYERSET_H
+#define GUI_BUSINESSMENU_DELAYERSET_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,7 +27,7 @@ extern "C" {
  * GLOBAL PROTOTYPES
  **********************/
 
-void lvGui_businessMenu_setting_B(lv_obj_t * obj_Parent);
+void lvGui_businessMenu_delayerSet(lv_obj_t * obj_Parent);
 
 /**
  * Create a test screen with a lot objects and apply the given theme on them
@@ -38,7 +38,8 @@ void lvGui_businessMenu_setting_B(lv_obj_t * obj_Parent);
 } /* extern "C" */
 #endif
 
-#endif /*GUI_BUSINESSMENU_SETTING_B_H*/
+#endif /*GUI_BUSINESSMENU_DELAYERSET_H*/
+
 
 
 
