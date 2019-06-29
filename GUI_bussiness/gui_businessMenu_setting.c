@@ -53,9 +53,9 @@ static lv_style_t styleBtn_listBtnRel;
 static lv_style_t styleList_menuSetting;
 
 static lv_obj_t *text_Title;
-static lv_obj_t * menuBtnChoIcon_fun_back;
+static lv_obj_t *menuBtnChoIcon_fun_back;
 
-static lv_obj_t * objPageSetting_menuList;
+static lv_obj_t *objPageSetting_menuList;
 //static lv_obj_t * menuText_devMac;
 
 static void currentGui_elementClear(void){
@@ -107,18 +107,47 @@ static lv_res_t funCb_listBtnSettingRelease(lv_obj_t *list_btn){
 		}
 	}
 
-	if(loop >= LABEL_SETTING_NUM)MDF_LOGI("menuSetting touch not identify:%s.\n", lv_list_get_btn_text(list_btn));
+	if(loop >= LABEL_SETTING_NUM)
+		MDF_LOGI("menuSetting touch not identify:%s.\n", lv_list_get_btn_text(list_btn));
 
 	return LV_RES_OK;
 }
 
-void lvGui_businessMenu_setting(lv_obj_t * obj_Parent){
+static void lvGuiSetting_objStyle_Init(void){
 
-	//--------------原父对象基础新增-----------------------//
 	lv_style_copy(&styleText_menuLevel_A, &lv_style_plain);
 	styleText_menuLevel_A.text.font = &lv_font_dejavu_30;
 	styleText_menuLevel_A.text.color = LV_COLOR_WHITE;
 
+	lv_style_copy(&styleList_menuSetting, &lv_style_plain);
+	styleList_menuSetting.body.main_color = LV_COLOR_BLACK;
+	styleList_menuSetting.body.grad_color = LV_COLOR_BLACK;
+	styleList_menuSetting.body.border.part = LV_BORDER_NONE;
+	styleList_menuSetting.body.radius = 0;
+	styleList_menuSetting.body.opa = LV_OPA_60;
+	styleList_menuSetting.body.padding.hor = 3; 
+	styleList_menuSetting.body.padding.inner = 8;	
+
+    lv_style_copy(&styleBtn_listBtnRel, &lv_style_btn_rel);
+    styleBtn_listBtnRel.body.main_color = LV_COLOR_GRAY;
+    styleBtn_listBtnRel.body.grad_color = LV_COLOR_GRAY;
+    styleBtn_listBtnRel.body.border.color = LV_COLOR_SILVER;
+    styleBtn_listBtnRel.body.border.width = 1;
+    styleBtn_listBtnRel.body.border.opa = LV_OPA_50;
+    styleBtn_listBtnRel.body.radius = 0;
+	styleBtn_listBtnRel.body.border.part = LV_BORDER_BOTTOM;
+
+    lv_style_copy(&styleBtn_listBtnPre, &styleBtn_listBtnRel);
+    styleBtn_listBtnPre.body.main_color = LV_COLOR_MAKE(0x55, 0x96, 0xd8);
+    styleBtn_listBtnPre.body.grad_color = LV_COLOR_MAKE(0x37, 0x62, 0x90);
+    styleBtn_listBtnPre.text.color = LV_COLOR_MAKE(0xbb, 0xd5, 0xf1);
+}
+
+void lvGui_businessMenu_setting(lv_obj_t * obj_Parent){
+
+	lvGuiSetting_objStyle_Init();
+
+	//--------------原父对象基础新增-----------------------//
 	text_Title = lv_label_create(obj_Parent, NULL);
 	lv_label_set_text(text_Title, "Setting");
 	lv_obj_set_pos(text_Title, 90, 35);
@@ -135,31 +164,9 @@ void lvGui_businessMenu_setting(lv_obj_t * obj_Parent){
 	objPageSetting_menuList = lv_list_create(lv_scr_act(), NULL);
 	lv_obj_set_size(objPageSetting_menuList, 240, 245);
 	lv_obj_set_pos(objPageSetting_menuList, 0, 75);
-	lv_style_copy(&styleList_menuSetting, &lv_style_plain);
-	styleList_menuSetting.body.main_color = LV_COLOR_BLACK;
-	styleList_menuSetting.body.grad_color = LV_COLOR_BLACK;
-	styleList_menuSetting.body.border.part = LV_BORDER_NONE;
-	styleList_menuSetting.body.radius = 0;
-	styleList_menuSetting.body.opa = LV_OPA_60;
 	lv_list_set_style(objPageSetting_menuList, LV_PAGE_STYLE_BG, &styleList_menuSetting);	 
-	styleList_menuSetting.body.padding.hor = 3; 
-	styleList_menuSetting.body.padding.inner = 8;	
 	lv_list_set_style(objPageSetting_menuList, LV_PAGE_STYLE_SB, &styleList_menuSetting);	
 	lv_list_set_sb_mode(objPageSetting_menuList, LV_SB_MODE_DRAG);	 
-
-    lv_style_copy(&styleBtn_listBtnRel, &lv_style_btn_rel);
-    styleBtn_listBtnRel.body.main_color = LV_COLOR_GRAY;
-    styleBtn_listBtnRel.body.grad_color = LV_COLOR_GRAY;
-    styleBtn_listBtnRel.body.border.color = LV_COLOR_SILVER;
-    styleBtn_listBtnRel.body.border.width = 1;
-    styleBtn_listBtnRel.body.border.opa = LV_OPA_50;
-    styleBtn_listBtnRel.body.radius = 0;
-	styleBtn_listBtnRel.body.border.part = LV_BORDER_BOTTOM;
-
-    lv_style_copy(&styleBtn_listBtnPre, &styleBtn_listBtnRel);
-    styleBtn_listBtnPre.body.main_color = LV_COLOR_MAKE(0x55, 0x96, 0xd8);
-    styleBtn_listBtnPre.body.grad_color = LV_COLOR_MAKE(0x37, 0x62, 0x90);
-    styleBtn_listBtnPre.text.color = LV_COLOR_MAKE(0xbb, 0xd5, 0xf1);
 
     lv_list_set_style(objPageSetting_menuList, LV_LIST_STYLE_BG, &lv_style_transp_tight);
     lv_list_set_style(objPageSetting_menuList, LV_LIST_STYLE_SCRL, &lv_style_transp_tight);

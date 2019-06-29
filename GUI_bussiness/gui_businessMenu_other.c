@@ -178,7 +178,7 @@ void lvGuiOther_devInfoRefresh(void){
 
 void lvGui_businessMenu_other(lv_obj_t * obj_Parent){
 
-	const uint8_t textHorizontalDistance = 30;
+	const uint8_t textHorizontalDistance = 15;
 	const uint8_t textVerticalDistance = 55;
 
 	lvGuiOther_styleApplicationInit();

@@ -74,6 +74,8 @@ static lv_res_t funCb_btnActionClick_menuBtn_timer(lv_obj_t *btn){
 
 static lv_res_t funCb_btnActionClick_menuBtn_linkageConfig(lv_obj_t *btn){
 
+	lvGui_usrSwitch(bussinessType_menuPageLinkageConfig);
+
 	return LV_RES_OK;
 }
 

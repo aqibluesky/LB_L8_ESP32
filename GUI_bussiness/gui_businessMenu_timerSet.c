@@ -382,8 +382,8 @@ static void lvGui_bMenuSet_B_pageReaptSet_creat(uint8_t currentWeekHoldBit){
 	lv_label_set_text(objpageLabel_title, "reapt setting");
 	lv_obj_set_protect(objpageLabel_title, LV_PROTECT_POS);
 	lv_obj_align(objpageLabel_title, objpage_reaptSet, LV_ALIGN_IN_TOP_MID, 0, -5);
+	
 	lv_style_copy(&stylePageCb_reaptSet, &lv_style_plain);
-
 	stylePageCb_reaptSet.body.main_color = LV_COLOR_SILVER;
 	stylePageCb_reaptSet.body.grad_color = LV_COLOR_SILVER;
 	stylePageCb_reaptSet.body.border.part = LV_BORDER_NONE;

@@ -1020,6 +1020,17 @@ stt_scenarioSwitchData_nvsOpreat *nvsDataOpreation_devScenarioParam_get(uint8_t 
 	return dataParam;
 }
 
+void devSystemInfoLocalRecord_allErase(void){
+
+	nvs_handle handle;
+
+	ESP_ERROR_CHECK( nvs_flash_init_partition(NVS_DATA_L8_PARTITION_NAME) );
+    ESP_ERROR_CHECK( nvs_open_from_partition(NVS_DATA_L8_PARTITION_NAME, NVS_DATA_SYSINFO_RECORD, NVS_READWRITE, &handle) );
+	ESP_ERROR_CHECK( nvs_erase_all(handle) );
+    nvs_close(handle);
+	ESP_ERROR_CHECK( nvs_flash_deinit_partition(NVS_DATA_L8_PARTITION_NAME) );
+}
+
 void devSystemInfoLocalRecord_initialize(void){
 
 	nvs_handle handle;

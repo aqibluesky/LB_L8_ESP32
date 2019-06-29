@@ -441,6 +441,7 @@ stt_blufiConfigDevInfo_resp *devBlufiConfig_respInfoGet(void);
 stt_scenarioSwitchData_nvsOpreat *nvsDataOpreation_devScenarioParam_get(uint8_t scenarioIst);
 
 void devSystemInfoLocalRecord_preSaveTest(void);
+void devSystemInfoLocalRecord_allErase(void);
 void devSystemInfoLocalRecord_initialize(void);
 void devSystemInfoLocalRecord_save(enum_dataSaveObj obj, void *dataSave);
 

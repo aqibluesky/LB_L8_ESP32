@@ -1046,10 +1046,9 @@ static lv_res_t funCb_btnmActionClick_devHeater_gearBtnm(lv_obj_t *btnm, const c
 		if(devDataPoint.devType_heater.devHeater_swEnumVal == heaterOpreatAct_closeAfterTimeCustom){
 
 			if(imgBtn_devHeater_timeSet == NULL)
-				imgBtn_devHeater_timeSet = lv_imgbtn_create(lv_scr_act(), NULL);
+				imgBtn_devHeater_timeSet = lv_imgbtn_create(lv_obj_get_parent(btnm), NULL);
 			lv_obj_set_protect(imgBtn_devHeater_timeSet, LV_PROTECT_POS);
 			lv_obj_set_pos(imgBtn_devHeater_timeSet, 185, 205);
-//			lv_obj_align(imgBtn_devHeater_timeSet, btnm_bk_devHeater, LV_ALIGN_OUT_TOP_RIGHT, 0, 0);
 			lv_imgbtn_set_src(imgBtn_devHeater_timeSet, LV_BTN_STATE_REL, &iconSet_HomePageDeviceHeater);
 			lv_imgbtn_set_src(imgBtn_devHeater_timeSet, LV_BTN_STATE_PR, &iconSet_HomePageDeviceHeater);
 			lv_imgbtn_set_action(imgBtn_devHeater_timeSet, LV_BTN_ACTION_CLICK, funCb_btnActionClick_devHeater_timeSet);
@@ -2004,7 +2003,7 @@ static void pageActivity_infoRefreshLoop(void){
 										lv_label_set_text(textTimeInstract_target_devHeater, "\0");
 										lv_btnm_set_toggle(btnm_bk_devHeater, true, 0);
 
-										if(imgBtn_devHeater_timeSet){ //补充操作
+										if(imgBtn_devHeater_timeSet && (guiPage_record == bussinessType_Home)){ //补充操作
 										
 											lv_obj_del(imgBtn_devHeater_timeSet);
 											imgBtn_devHeater_timeSet = NULL;
@@ -2364,7 +2363,7 @@ void pageHome_buttonMain_imageRefresh(bool freshNoRecord){ //界面切换时调�
 						if(devDataPoint.devType_heater.devHeater_swEnumVal == objDevHeater_btnmDispConferenceTab[loop].opreatActCurrent){
 
 							lv_btnm_set_toggle(btnm_bk_devHeater, true, loop);
-						
+							
 							break;
 						}
 					}	
@@ -2989,6 +2988,10 @@ static void local_guiHomeBussiness_curtain(lv_obj_t * obj_Parent){
 
 static void local_guiHomeBussiness_heater(lv_obj_t * obj_Parent){
 
+	stt_devDataPonitTypedef devDataPoint = {0};
+	
+	currentDev_dataPointGet(&devDataPoint);
+
 	icomImageA_devHeater = lv_img_create(obj_Parent, NULL);
 	lv_img_set_src(icomImageA_devHeater, &iconHeater_HomePageDeviceHeater);
 	lv_img_set_style(icomImageA_devHeater, &styleImage_devHeater_icon);
@@ -3016,6 +3019,16 @@ static void local_guiHomeBussiness_heater(lv_obj_t * obj_Parent){
 	lv_btnm_set_toggle(btnm_bk_devHeater, true, 0);
 	lv_obj_set_protect(btnm_bk_devHeater, LV_PROTECT_POS);
 	lv_obj_set_pos(btnm_bk_devHeater, 20, 245);
+
+	if(devDataPoint.devType_heater.devHeater_swEnumVal == heaterOpreatAct_closeAfterTimeCustom){
+
+		imgBtn_devHeater_timeSet = lv_imgbtn_create(obj_Parent, NULL);
+		lv_obj_set_protect(imgBtn_devHeater_timeSet, LV_PROTECT_POS);
+		lv_obj_set_pos(imgBtn_devHeater_timeSet, 185, 205);
+		lv_imgbtn_set_src(imgBtn_devHeater_timeSet, LV_BTN_STATE_REL, &iconSet_HomePageDeviceHeater);
+		lv_imgbtn_set_src(imgBtn_devHeater_timeSet, LV_BTN_STATE_PR, &iconSet_HomePageDeviceHeater);
+		lv_imgbtn_set_action(imgBtn_devHeater_timeSet, LV_BTN_ACTION_CLICK, funCb_btnActionClick_devHeater_timeSet);
+	}
 }
 
 static void guiBussiness_tipsLoopTimerCreat(const char *strTips){
@@ -3067,6 +3080,8 @@ static void guiBussiness_tipsSystemRestartCreat(const char *tipsDelayCounter){
 
 	lv_label_set_text(label_sysRestartTips_Counter, tipsDelayCounter);
 	lv_label_set_text(label_sysRestartTips_ref, "sys restart");
+
+	lv_obj_refresh_style(page_sysRestartTips);
 }
 
 static void guiBussiness_tipsLoopTimerDelete(void){
@@ -3322,7 +3337,6 @@ static void task_guiSwitch_Detecting(void *pvParameter){
 					lvGui_businessMenu_other(imageBK);
 					lv_obj_set_size(imageBK, 240, 75);
 					
-					
 				}break;
 				
 				case bussinessType_menuPageDelayer:{
@@ -3355,8 +3369,16 @@ static void task_guiSwitch_Detecting(void *pvParameter){
 				
 				case bussinessType_menuPageLinkageConfig:{
 					
-//					lvUsr_objBkReales2SecMenu();
-					
+					//控件风格设定：二级菜单白色底图对象
+					lv_style_copy(&styleBk_secMenu, &lv_style_plain);
+					styleBk_secMenu.body.main_color = LV_COLOR_BLACK;
+					styleBk_secMenu.body.grad_color = LV_COLOR_GRAY;
+					vTaskDelay(100 / portTICK_PERIOD_MS);
+					lvUsr_objBkReales2SecMenu();
+
+					lvGui_businessMenu_linkageConfig(imageBK);
+					lv_obj_set_size(imageBK, 240, 75);
+
 				}break;
 				
 				case bussinessType_menuPageSetting:{
