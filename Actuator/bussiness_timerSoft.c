@@ -255,7 +255,10 @@ static void bussiness_usrApp_actTrigTimer(void){
 
 							case devTypeDef_mulitSwOneBit:
 							case devTypeDef_mulitSwTwoBit:
-							case devTypeDef_mulitSwThreeBit:{
+							case devTypeDef_mulitSwThreeBit:
+							case devTypeDef_fans:
+							case devTypeDef_scenario:
+							case devTypeDef_heater:{
 
 								uint8_t timerUp_trigVal = usrApp_trigTimerGroup[loop].tmUp_swValTrig;
 
@@ -265,16 +268,27 @@ static void bussiness_usrApp_actTrigTimer(void){
 							
 							case devTypeDef_dimmer:{
 
-								(usrApp_trigTimerGroup[loop].tmUp_swValTrig)?
-									(devStatusValSet_temp.devType_dimmer.devDimmer_brightnessVal = DEVICE_DIMMER_BRIGHTNESS_MAX_VAL):
-									(devStatusValSet_temp.devType_dimmer.devDimmer_brightnessVal = 0);
+								const uint8_t dataValReaction_coef = DEVICE_DIMMER_BRIGHTNESS_MAX_VAL / 
+																	 DEV_TIMER_OPREATION_OBJSLIDER_VAL_DIV;
+									
+								uint8_t timerUp_trigVal = usrApp_trigTimerGroup[loop].tmUp_swValTrig * 
+														  dataValReaction_coef;
+								
+								memcpy(&devStatusValSet_temp, &timerUp_trigVal, sizeof(uint8_t));
 
 							}break;
-			
-							case devTypeDef_fans:
-							case devTypeDef_scenario:
-							case devTypeDef_curtain:
-							case devTypeDef_heater:
+							
+							case devTypeDef_curtain:{
+
+								const uint8_t dataValReaction_coef = DEVICE_CURTAIN_ORBITAL_POSITION_MAX_VAL / 
+																	 DEV_TIMER_OPREATION_OBJSLIDER_VAL_DIV;
+									
+								uint8_t timerUp_trigVal = usrApp_trigTimerGroup[loop].tmUp_swValTrig * 
+														  dataValReaction_coef;
+
+								memcpy(&devStatusValSet_temp, &timerUp_trigVal, sizeof(uint8_t));
+
+							}break;
 
 							default:break;
 						}
@@ -501,6 +515,9 @@ static void funCB_bussinessSoftTimer(void *timer){
 				}
 			}
 		}
+
+		//屏幕运行参数设置 存储动作延迟检测业务
+		devScreenDriver_configParamSave_actionDetect();
 
 		//sntp状态刷新业务
 		if(loopTimer5s_sntpRefresh.loopCounter < loopTimer5s_sntpRefresh.loopPeriod)loopTimer5s_sntpRefresh.loopCounter ++;

@@ -291,14 +291,17 @@ void devDriverBussiness_curtainSwitch_periphStatusRealesByBtn(stt_devDataPonitTy
 	}
 }
 
-void devDriverBussiness_curtainSwitch_periphStatusRealesBySlide(uint8_t positionPercentVal){
+void devDriverBussiness_curtainSwitch_periphStatusRealesBySlide(stt_devDataPonitTypedef *param){
 
 	devTypeDef_enum swCurrentDevType = currentDev_typeGet();
 
 	if(swCurrentDevType == devTypeDef_curtain){
 
 		devParam_curtain.act = curtainRunningStatus_cTact_custom;
-		curtainOrbitalPositionTimeSet = devParam_curtain.devRunningParam.act_period / 100 * positionPercentVal;
+	
+		curtainOrbitalPositionTimeSet = devParam_curtain.devRunningParam.act_period / 
+										DEVICE_CURTAIN_ORBITAL_POSITION_MAX_VAL * 
+										param->devType_curtain.devCurtain_actEnumVal;
 		printf("curtain orbital set:%d.\n", curtainOrbitalPositionTimeSet);
 	}
 }

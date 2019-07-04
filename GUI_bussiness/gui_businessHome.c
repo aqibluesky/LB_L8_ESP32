@@ -304,8 +304,8 @@ static bool mutualCtrlTrigIf_A = false;
 static bool mutualCtrlTrigIf_B = false;
 static bool mutualCtrlTrigIf_C = false;
 
-static const char *btnm_str_devHeater[DEVICE_HEATER_OPREAT_ACTION_NUM + 1] = {"X", "A", "B", "C", "D", ""};
-static const char *btnm_str_devFans[DEVICE_FANS_OPREAT_ACTION_NUM + 1] = {"C", "1", "2", "3", ""};
+const char *btnm_str_devHeater[DEVICE_HEATER_OPREAT_ACTION_NUM + 1] = {"X", "A", "B", "C", "D", ""};
+const char *btnm_str_devFans[DEVICE_FANS_OPREAT_ACTION_NUM + 1] = {"C", "1", "2", "3", ""};
 
 //不同类型开关所需的参照常量
 static const struct _rollerDispConferenceTab_devFans{
@@ -869,11 +869,21 @@ static lv_res_t funCb_btnmActionClick_devFans_gearBtnm(lv_obj_t *btnm, const cha
 
 static lv_res_t funCb_btnActionClick_devHeater_pageTimeSet_btnConfirm(lv_obj_t *btn){
 
+	char dataDispTemp[15] = {0};
 	uint32_t timeCountSet_temp = (lv_roller_get_selected(rollerH_timeSetPage_devHeater) * 3600UL) + 
 								 (lv_roller_get_selected(rollerM_timeSetPage_devHeater) * 60UL) + 
 								 (lv_roller_get_selected(rollerS_timeSetPage_devHeater) * 1UL);
+	const stt_devDataPonitTypedef datapointTemp = {
 
-	devDriverBussiness_heaterSwitch_closePeriodCustom_Set(timeCountSet_temp);
+		.devType_heater.devHeater_swEnumVal = heaterOpreatAct_closeAfterTimeCustom,
+	};
+
+	devDriverBussiness_heaterSwitch_closePeriodCustom_Set(timeCountSet_temp, true);
+	devDriverBussiness_heaterSwitch_periphStatusReales(&datapointTemp);
+	sprintf(dataDispTemp, "%02d:%02d:%02d", (int)lv_roller_get_selected(rollerH_timeSetPage_devHeater),
+											(int)lv_roller_get_selected(rollerM_timeSetPage_devHeater),
+											(int)lv_roller_get_selected(rollerS_timeSetPage_devHeater));
+	lv_label_set_text(textTimeInstract_target_devHeater, dataDispTemp);
 
 	if(page_timeSet_devHeater){
 
@@ -1027,6 +1037,8 @@ static lv_res_t funCb_btnmActionClick_devHeater_gearBtnm(lv_obj_t *btnm, const c
 
 	uint8_t loop = 0;
 
+//	printf("btnm toggled %d is trig.\n", lv_btnm_get_toggled(btnm));
+
 	for(loop = 0; loop < DEVICE_HEATER_OPREAT_ACTION_NUM + 1; loop ++){
 
 		if(!strcmp(txt, btnm_str_devHeater[loop])){
@@ -1141,10 +1153,13 @@ static lv_res_t funCb_slidAction_devDimmer_mainSlider(lv_obj_t *slider){
 static lv_res_t funCb_slidAction_devCurtain_mainSlider(lv_obj_t *slider){
 
 	uint8_t orbitalTimePercent = (uint8_t)lv_slider_get_value(slider);
+	stt_devDataPonitTypedef devDataPoint = {0};
 
 	usrApp_ctrlObjSlidlingTrig(); //滑动冷却触发
 
-	devDriverBussiness_curtainSwitch_periphStatusRealesBySlide(orbitalTimePercent);
+	devDataPoint.devType_curtain.devCurtain_actEnumVal = orbitalTimePercent;
+
+	devDriverBussiness_curtainSwitch_periphStatusRealesBySlide(&devDataPoint);
 	sprintf(str_devParamPositionAdj_devCurtain, "%d%%", orbitalTimePercent);
 	lv_label_set_text(label_bk_devCurtain_positionAdj, str_devParamPositionAdj_devCurtain);
 
@@ -2683,7 +2698,7 @@ static void local_guiHomeBussiness_dimmer(lv_obj_t * obj_Parent){
 	lv_obj_set_protect(slider_bk_devDimmer, LV_PROTECT_POS);
 	lv_obj_set_pos(slider_bk_devDimmer, 20, 260);
 	lv_slider_set_action(slider_bk_devDimmer, funCb_slidAction_devDimmer_mainSlider);
-	lv_bar_set_value(slider_bk_devDimmer, DEVICE_DIMMER_BRIGHTNESS_MAX_VAL);
+	lv_slider_set_range(slider_bk_devDimmer, 0, DEVICE_DIMMER_BRIGHTNESS_MAX_VAL);
 
 	lv_slider_set_style(slider_bk_devDimmer, LV_SLIDER_STYLE_BG, &styleSliderBk_devDimmer_bg);
 	lv_slider_set_style(slider_bk_devDimmer, LV_SLIDER_STYLE_INDIC, &styleSliderBk_devDimmer_indic);

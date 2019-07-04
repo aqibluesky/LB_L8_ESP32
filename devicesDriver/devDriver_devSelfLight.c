@@ -31,8 +31,13 @@
 #define DEVLEDC_CHANNEL_ATMOSPHERE_LIGHT_LRen	LEDC_CHANNEL_3
 #define DEVLEDC_CHANNEL_ATMOSPHERE_LIGHT_UDen	LEDC_CHANNEL_4
 #define DEVLEDC_CHANNEL_SCREEN_BK_LIGHT			LEDC_CHANNEL_5
-#define DEVLEDC_DUTY_DEFAULT      				(8000)
+#define DEVLEDC_DUTY_DEFAULT      				(8000) 	//基础占空比
+#define DEVLEDC_SCREEN_BRIGHTNESS_DUTY_BASIC	(DEVLEDC_DUTY_DEFAULT / 10 * 1) //最低亮度分度
+#define DEVLEDC_SCREEN_BRIGHTNESS_DUTY_LIMITADJ	(DEVLEDC_DUTY_DEFAULT - DEVLEDC_SCREEN_BRIGHTNESS_DUTY_BASIC) //亮度占空比调节范围
+#define DEVLEDC_SCREEN_BRIGHTNESS_ADJ_PERCENT	(DEVLEDC_SCREEN_BRIGHTNESS_DUTY_LIMITADJ / DEVLEDC_SCREEN_BRIGHTNESS_LEVEL_DIV) //单分度对应占空比
+
 #define DEVLEDC_COLOR_DUTY_DIV					(8000 / 255)
+
 #define DEVLEDC_FADE_TIME_DEFAULT 				(1000)
 
 #define DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_R		0
@@ -44,8 +49,8 @@
 
 #define DEVLEDC_DRIVER_REFRESH_TIME_PERIOD_COEFFI	(1000 / DEVDRIVER_DEVSELFLIGHT_REFRESH_PERIOD)
 
-#define DEVVALUE_DEFAULT_PERIOD_SCRBKLT_WEAKDOWN	20 * DEVLEDC_DRIVER_REFRESH_TIME_PERIOD_COEFFI	//屏幕半亮灭活检测时间
-#define DEVVALUE_DEFAULT_PERIOD_SCRBKLT_SHUTDOWN	(DEVVALUE_DEFAULT_PERIOD_SCRBKLT_WEAKDOWN + (10 * DEVLEDC_DRIVER_REFRESH_TIME_PERIOD_COEFFI)) //屏幕全灭灭活检测时间
+#define DEVVALUE_DEFAULT_PERIOD_SCRBKLT_WEAKDOWN	20	//屏幕半亮灭活检测时间 单位：s
+#define DEVVALUE_DEFAULT_SCRBKLT_SHUTDOWN_TIMEDELAY	5	//屏幕全灭滞后时间 单位：s
 
 #define DEVLEDC_ATMOSPHERELED_COLORSET(r,g,b)		ledc_set_duty(devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_R].speed_mode, devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_R].channel, r * DEVLEDC_COLOR_DUTY_DIV);\
             										ledc_update_duty(devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_R].speed_mode, devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_R].channel);\
@@ -81,9 +86,14 @@ static const struct _stt_atmosphere_colorTab{
 	{ 50, 	0, 150},
 };
 
-static uint16_t timePeriod_devScreenBkLight_weakDown = DEVVALUE_DEFAULT_PERIOD_SCRBKLT_WEAKDOWN; //屏幕半亮灭活检测计时变量
-static uint16_t timePeriod_devScreenBkLight_shutDown = DEVVALUE_DEFAULT_PERIOD_SCRBKLT_SHUTDOWN; //屏幕全灭灭活检测计时变量
-static uint16_t timeCounter_devScreenBkLight_keepAlive = 0; //屏幕背光活力检查时间
+static stt_devScreenRunningParam devScreenConfigParam = {
+
+	.timePeriod_devScreenBkLight_weakDown = DEVVALUE_DEFAULT_PERIOD_SCRBKLT_WEAKDOWN,
+	.devScreenBkLight_brightness = 100,
+};
+static uint8_t  devScreenConfigParam_nvsSave_timeDelay_count = 0;	//存储延迟计时变量
+static uint32_t timePeriod_devScreenBkLight_shutDown = DEVVALUE_DEFAULT_PERIOD_SCRBKLT_WEAKDOWN + DEVVALUE_DEFAULT_SCRBKLT_SHUTDOWN_TIMEDELAY; //屏幕全灭灭活检测计时变量
+static uint32_t timeCounter_devScreenBkLight_keepAlive = 0; //屏幕背光活力计时器变量
 static bool 	screenBkLight_shutDownFLG = false; //屏幕背光熄灭标志
 static bool		screenBkLight_initializedFLG = false;
 
@@ -170,7 +180,7 @@ static void devScreenBkLight_brightnessSet(enum_screenBkLight_status val){
 
 			ledc_set_fade_with_time(devLight_lecCfgParam[DEVLEDC_PARAMNUM_SCREEN_BK_LIGHT].speed_mode, 
 									devLight_lecCfgParam[DEVLEDC_PARAMNUM_SCREEN_BK_LIGHT].channel, 
-									DEVLEDC_DUTY_DEFAULT / 10, 
+									DEVLEDC_SCREEN_BRIGHTNESS_DUTY_BASIC, 
 									DEVLEDC_FADE_TIME_DEFAULT);
 
 		}break;
@@ -179,7 +189,7 @@ static void devScreenBkLight_brightnessSet(enum_screenBkLight_status val){
 
 			ledc_set_fade_with_time(devLight_lecCfgParam[DEVLEDC_PARAMNUM_SCREEN_BK_LIGHT].speed_mode, 
 									devLight_lecCfgParam[DEVLEDC_PARAMNUM_SCREEN_BK_LIGHT].channel, 
-									DEVLEDC_DUTY_DEFAULT, 
+									(uint32_t)(devScreenConfigParam.devScreenBkLight_brightness) * DEVLEDC_SCREEN_BRIGHTNESS_ADJ_PERCENT + DEVLEDC_SCREEN_BRIGHTNESS_DUTY_BASIC, 
 									DEVLEDC_FADE_TIME_DEFAULT / 2);
 
 		}break;
@@ -271,11 +281,11 @@ void devScreenBkLight_statusRefresh(void){
 	}
 
 	//背光灯业务
-	if(timeCounter_devScreenBkLight_keepAlive < timePeriod_devScreenBkLight_shutDown){
+	if(timeCounter_devScreenBkLight_keepAlive < (timePeriod_devScreenBkLight_shutDown * DEVLEDC_DRIVER_REFRESH_TIME_PERIOD_COEFFI)){
 
 		timeCounter_devScreenBkLight_keepAlive ++;
 
-		if(timeCounter_devScreenBkLight_keepAlive > timePeriod_devScreenBkLight_weakDown){
+		if(timeCounter_devScreenBkLight_keepAlive > (devScreenConfigParam.timePeriod_devScreenBkLight_weakDown * DEVLEDC_DRIVER_REFRESH_TIME_PERIOD_COEFFI)){
 
 			devScreenBkLight_brightnessSet(screenBkLight_statusHalf);
 		}
@@ -516,6 +526,57 @@ void devAtmosphere_statusTips_trigSet(enum_atmosphereLightType tipsType){
 
 	if(tipsType == atmosphereLightType_dataSaveOpreat)
 		devAtmosphereStatus_record = atmosphereLightType_none;
+}
+
+static void devScreenDriver_configParamSave_actionTrig(void){
+
+	devSystemInfoLocalRecord_save(saveObj_devDriver_screenRunningParam_set, &devScreenConfigParam);
+}
+
+void devScreenDriver_configParamSave_actionDetect(void){ //检测是否有延迟存储要求，
+
+	if(devScreenConfigParam_nvsSave_timeDelay_count != COUNTER_DISENABLE_MASK_SPECIALVAL_U8){
+
+		if(devScreenConfigParam_nvsSave_timeDelay_count)devScreenConfigParam_nvsSave_timeDelay_count --;
+		else{
+
+			devScreenConfigParam_nvsSave_timeDelay_count = COUNTER_DISENABLE_MASK_SPECIALVAL_U8;
+			devScreenDriver_configParamSave_actionTrig();
+		}
+	}
+}
+
+void devScreenDriver_configParam_brightness_set(uint8_t brightnessVal, bool nvsRecord_IF){
+
+	printf("brightness set val:%d.\n", brightnessVal);
+
+	if(brightnessVal > DEVLEDC_SCREEN_BRIGHTNESS_LEVEL_DIV)
+		brightnessVal = DEVLEDC_SCREEN_BRIGHTNESS_LEVEL_DIV;
+
+	devScreenConfigParam.devScreenBkLight_brightness = brightnessVal;
+	devScreenBkLight_brightnessSet(screenBkLight_statusFull);	
+
+	if(nvsRecord_IF)
+		devScreenConfigParam_nvsSave_timeDelay_count = DEVDRIVER_DEVSELFLIGHT_SCR_PARAMSAVE_TIMEDELAY;
+}
+
+uint8_t devScreenDriver_configParam_brightness_get(void){
+
+	return devScreenConfigParam.devScreenBkLight_brightness;
+}
+
+void devScreenDriver_configParam_screenLightTime_set(uint32_t timeVal, bool nvsRecord_IF){
+
+	devScreenConfigParam.timePeriod_devScreenBkLight_weakDown = timeVal;
+	devScreenBkLight_weakUp();
+
+	if(nvsRecord_IF)
+		devScreenConfigParam_nvsSave_timeDelay_count = DEVDRIVER_DEVSELFLIGHT_SCR_PARAMSAVE_TIMEDELAY;
+}
+
+uint32_t devScreenDriver_configParam_screenLightTime_get(void){
+
+	return devScreenConfigParam.timePeriod_devScreenBkLight_weakDown;
 }
 
 void bussiness_devLight_testApp(void)

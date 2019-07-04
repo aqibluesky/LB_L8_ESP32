@@ -35,6 +35,7 @@ void devDriverBussiness_scnarioSwitch_moudleDeinit(void);
 void devDriverBussiness_scnarioSwitch_driverClamDown_refresh(void);
 uint16_t devDriverBussiness_scnarioSwitch_driverClamDown_get(void);
 void devDriverBussiness_scnarioSwitch_dataParam_save(stt_scenarioSwitchData_nvsOpreat *param);
+uint8_t devDriverBussiness_scnarioSwitch_swVal2Insert(uint8_t swVal);
 void devDriverBussiness_scnarioSwitch_scenarioStatusReales(stt_devDataPonitTypedef *param);
 
 #ifdef __cplusplus

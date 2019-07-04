@@ -78,10 +78,11 @@ extern "C" {
 #define DEV_HEX_PROTOCOL_APPLEN_NIGHTMODESET	6	//16进制字节格式协议应用数据长度:夜间模式设置
 #define DEV_HEX_PROTOCOL_APPLEN_EXTPARAMSET		5	//16进制字节格式协议应用数据长度:开关除普通控制外的额外参数设置
 
-
 #define L8_NODEDEV_KEEPALIVE_PERIOD				60	//mesh内部心跳子节点生命周期
 
 #define L8_DEV_LISTMANAGE_REALES_CONFIRM		60	//mesh内部心跳管理表确认可用时间，单位：s
+
+#define DEV_TIMER_OPREATION_OBJSLIDER_VAL_DIV	5	//设备设置定时业务开关响应值时，滑动条操作分量
 
 #define GUI_BUSSINESS_HOME_BTNTEXT_STR_UTF8_SIZE		40
 #define GUI_BUSSINESS_HOME_BTNTEXT_PIC_PIXEL_SIZE	   (120 * 20) //动态图片内存大小定义
@@ -214,6 +215,19 @@ typedef struct{
 	}msgData_dmHandle;
 
 }stt_msgDats_dataManagementHandle;
+
+typedef struct{
+
+	uint8_t linkageRunning_proxmity_en:1;
+	uint8_t linkageRunning_temprature_en:1;
+
+	int8_t linkageCondition_tempratureVal;
+
+	stt_devDataPonitTypedef linkageReaction_proxmity_swVal;
+	uint8_t 				linkageReaction_proxmity_scrLightTrigIf:1;
+	stt_devDataPonitTypedef linkageReaction_temprature_swVal;
+	
+}stt_paramLinkageConfig;
 
 typedef struct{
 
@@ -351,6 +365,7 @@ typedef enum{
 	saveObj_devStatusRecordIF,
 	saveObj_routerBssid,
 	saveObj_mutualCtrlInfo,
+	saveObj_devDriver_linkageConfigParam_set,
 	saveObj_devGuiBussinessHome_btnTextDisp,
 	saveObj_devGuiBussinessHome_btnIconDisp,
 	saveObj_devGuiBussinessHome_btnTextPic_A,
@@ -358,13 +373,17 @@ typedef enum{
 	saveObj_devGuiBussinessHome_btnTextPic_C,
 	saveObj_devGuiBussinessHome_themeType,
 
+	saveObj_devDriver_iptRecalibration_set,
+	saveObj_devDriver_screenRunningParam_set,
+
 	saveObj_devCurtain_runningParam,
 
 	saveObj_devScenario_paramDats_0,
 	saveObj_devScenario_paramDats_1,
 	saveObj_devScenario_paramDats_2,
 
-	saveObj_devDriver_iptRecalibration_set,
+	saveObj_devHeater_customTimeParam,
+	
 }enum_dataSaveObj;
 
 /*-------------------------------心跳数据管理链表 数据结构--------------------------------------*/
@@ -429,6 +448,9 @@ void devMutualCtrlGroupInfo_Set(stt_devMutualGroupParam *mutualGroupParam, uint8
 void devMutualCtrlGroupInfo_Get(stt_devMutualGroupParam mutualGroupParam[DEVICE_MUTUAL_CTRL_GROUP_NUM]);
 void devMutualCtrlGroupInfo_groupInsertGet(uint8_t groupInsert[DEVICE_MUTUAL_CTRL_GROUP_NUM]);
 bool devMutualCtrlGroupInfo_unitCheckByInsert(stt_devMutualGroupParam *mutualGroupParamUnit, uint8_t *groupNum, uint8_t paramInsert);
+
+void devSystemOpration_linkageConfig_paramSet(stt_paramLinkageConfig *param, bool nvsRecord_IF);
+void devSystemOpration_linkageConfig_paramGet(stt_paramLinkageConfig *param);
 
 uint16_t currentDevRunningFlg_paramGet(void);
 void currentDevRunningFlg_paramSet(uint16_t valFlg, bool nvsRecord_IF);

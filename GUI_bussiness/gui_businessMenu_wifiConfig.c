@@ -75,6 +75,36 @@ static lv_res_t funCb_btnActionPress_menuBtn_funBack(lv_obj_t *btn){
 	return LV_RES_OK;
 }
 
+static void lvGui_businessMenu_wifiConfig_qrCode_refresh(void){
+
+	uint8_t	qrCode_devMacBuff[6] = {0};
+	char str_devMacBuff[30] = {0};
+
+	esp_wifi_get_mac(ESP_IF_WIFI_STA, qrCode_devMacBuff);
+
+	sprintf(str_devMacBuff, "%02X%02X%02X%02X%02X%02X,%d", qrCode_devMacBuff[0],
+														   qrCode_devMacBuff[1],
+														   qrCode_devMacBuff[2],
+														   qrCode_devMacBuff[3],
+														   qrCode_devMacBuff[4],
+														   qrCode_devMacBuff[5],
+														   (int)meshNetwork_connectReserve_IF_get());
+	printf("Qr code creat res:%d.\n", EncodeData(str_devMacBuff));
+//	printf("Qr code creat res:%d.\n", EncodeData("hellow, Lanbon!"));
+
+	externSocket_ex_disp_fill(0, QR_BASIC_POSITION_Y, 240, 320, LV_COLOR_WHITE);
+	vTaskDelay(100 / portTICK_PERIOD_MS);
+	for(uint8_t loopa = 0; loopa < MAX_MODULESIZE; loopa ++){
+
+		for(uint8_t loopb = 0; loopb < MAX_MODULESIZE; loopb ++){
+
+			(m_byModuleData[loopa][loopb])?
+				(externSocket_ex_disp_fill(QR_BASIC_POSITION_X + loopa * QR_PIXEL_SIZE, QR_BASIC_POSITION_Y + loopb * QR_PIXEL_SIZE, QR_BASIC_POSITION_X + QR_PIXEL_SIZE + loopa * QR_PIXEL_SIZE, QR_BASIC_POSITION_Y + QR_PIXEL_SIZE + loopb * QR_PIXEL_SIZE, LV_COLOR_BLACK)):
+				(externSocket_ex_disp_fill(QR_BASIC_POSITION_X + loopa * QR_PIXEL_SIZE, QR_BASIC_POSITION_Y + loopb * QR_PIXEL_SIZE, QR_BASIC_POSITION_X + QR_PIXEL_SIZE + loopa * QR_PIXEL_SIZE, QR_BASIC_POSITION_Y + QR_PIXEL_SIZE + loopb * QR_PIXEL_SIZE, LV_COLOR_WHITE));
+		}
+	}
+}
+
 void lvGui_businessMenu_wifiConfig(lv_obj_t * obj_Parent){
 
 	lv_obj_t *text_Title;
@@ -90,18 +120,7 @@ void lvGui_businessMenu_wifiConfig(lv_obj_t * obj_Parent){
 
 	esp_wifi_get_mac(ESP_IF_WIFI_STA, qrCode_devMacBuff);
 
-//	printf("Qr code creat res:%d.\n", EncodeData("hellow, Lanbon!"));
-
 	menuText_devMac = lv_label_create(lv_scr_act(), NULL);
-
-	sprintf(str_devMacBuff, "%02X%02X%02X%02X%02X%02X,%d", qrCode_devMacBuff[0],
-														   qrCode_devMacBuff[1],
-														   qrCode_devMacBuff[2],
-														   qrCode_devMacBuff[3],
-														   qrCode_devMacBuff[4],
-														   qrCode_devMacBuff[5],
-														   (int)meshNetwork_connectReserve_IF_get());
-	printf("Qr code creat res:%d.\n", EncodeData(str_devMacBuff));
 
 	lv_style_copy(&styleText_menuLevel_A, &lv_style_plain);
 	styleText_menuLevel_A.text.font = &lv_font_dejavu_30;
@@ -130,18 +149,7 @@ void lvGui_businessMenu_wifiConfig(lv_obj_t * obj_Parent){
 	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
 	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
 
-	externSocket_ex_disp_fill(0, QR_BASIC_POSITION_Y, 240, 320, LV_COLOR_WHITE);
-	vTaskDelay(100 / portTICK_PERIOD_MS);
-
-	for(uint8_t loopa = 0; loopa < MAX_MODULESIZE; loopa ++){
-
-		for(uint8_t loopb = 0; loopb < MAX_MODULESIZE; loopb ++){
-
-			(m_byModuleData[loopa][loopb])?
-				(externSocket_ex_disp_fill(QR_BASIC_POSITION_X + loopa * QR_PIXEL_SIZE, QR_BASIC_POSITION_Y + loopb * QR_PIXEL_SIZE, QR_BASIC_POSITION_X + QR_PIXEL_SIZE + loopa * QR_PIXEL_SIZE, QR_BASIC_POSITION_Y + QR_PIXEL_SIZE + loopb * QR_PIXEL_SIZE, LV_COLOR_BLACK)):
-				(externSocket_ex_disp_fill(QR_BASIC_POSITION_X + loopa * QR_PIXEL_SIZE, QR_BASIC_POSITION_Y + loopb * QR_PIXEL_SIZE, QR_BASIC_POSITION_X + QR_PIXEL_SIZE + loopa * QR_PIXEL_SIZE, QR_BASIC_POSITION_Y + QR_PIXEL_SIZE + loopb * QR_PIXEL_SIZE, LV_COLOR_WHITE));
-		}
-	}
+	lvGui_businessMenu_wifiConfig_qrCode_refresh();
 
 	lv_style_copy(&styleText_menuLevel_B_infoMac, &lv_style_plain);
 	styleText_menuLevel_B_infoMac.text.font = &lv_font_dejavu_15;
@@ -177,6 +185,21 @@ void lvGui_wifiConfig_bussiness_configComplete_tipsOver(void){
 void lvGui_wifiConfig_bussiness_configComplete_tipsDetect(void){
 
 	uint8_t msgQh_rptrDataWifiConfig = 0;
+	static bool devNetworkReserve_flg = false;
+
+	if(meshNetwork_connectReserve_IF_get()){
+
+		if(!devNetworkReserve_flg){
+
+			lvGui_businessMenu_wifiConfig_qrCode_refresh();			
+			devNetworkReserve_flg = true;
+		}
+	}
+	else
+	{
+		if(devNetworkReserve_flg)
+			devNetworkReserve_flg = false;
+	}
 
 	if(xQueueReceive(msgQh_wifiConfigCompleteTips, &msgQh_rptrDataWifiConfig, 1 / portTICK_RATE_MS) == pdTRUE){
 

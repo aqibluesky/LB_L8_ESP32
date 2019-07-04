@@ -62,17 +62,20 @@ static const char *DATA_TIMEZONE					= "devTimeZone";
 static const char *DATA_DEV_TYPEDEF					= "devTypeDef";
 static const char *DATA_DEV_ROUTER_BSSID			= "devRouterBssid";
 static const char *DATA_DEV_MUTUALCTRL_INFO			= "devMutualInfo";
+static const char *DATA_DEV_LINKAGE_CONFIG			= "devLinkageCfg";
 static const char *DATA_DEV_GUIHOMEBTNTEXTDISP		= "devBtnTextDisp";
 static const char *DATA_DEV_GUIHOMEBTNICONDISP		= "devBtnIconDisp";
 static const char *DATA_DEV_GUIHOMEBTNTEXTPIC_A		= "devBtnTextPicA";
 static const char *DATA_DEV_GUIHOMEBTNTEXTPIC_B		= "devBtnTextPicB";
 static const char *DATA_DEV_GUIHOMEBTNTEXTPIC_C		= "devBtnTextPicC";
 static const char *DATA_DEV_GUIHOMETHEMETYPE		= "devThemeType";
+static const char *DATA_DEVDRVIPT_RECALIBRAPARAM	= "devDrviptParam";		//屏幕重新校准使能参数
+static const char *DATA_DEVSCREEN_CONFIGPARAM		= "devScreenParam"; 
 static const char *DATA_DEVCURTAIN_RUNNINGPARAM		= "devCurtainParam";
-static const char *DATA_DEVDRVIPT_RECALIBRAPARAM	= "devDrviptParam";
 static const char *DATA_DEVSCENARIO_DATA_PARAM_0	= "devScenDats_0";
 static const char *DATA_DEVSCENARIO_DATA_PARAM_1	= "devScenDats_1";
 static const char *DATA_DEVSCENARIO_DATA_PARAM_2	= "devScenDats_2";
+static const char *DATA_DEVHEATER_CUSTOMTIME		= "devHeaterCstTim";
 
 static stt_dataDisp_guiBussinessHome_btnText dataBtnTextObjDisp_bussinessHome = {
 
@@ -99,6 +102,8 @@ static uint8_t routerConnect_bssid[6] = {0};
 static stt_devMutualGroupParam devMutualCtrl_group[DEVICE_MUTUAL_CTRL_GROUP_NUM] = {0};
 
 static char devIptdrvParam_recalibration = 'N';
+
+static stt_paramLinkageConfig devSysParam_linkageConfig = {0};
 
 uint8_t systemDevice_startUpTime_get(void){
 
@@ -445,6 +450,19 @@ bool devMutualCtrlGroupInfo_unitCheckByInsert(stt_devMutualGroupParam *mutualGro
 	}
 
 	return infoGet_res;
+}
+
+void devSystemOpration_linkageConfig_paramSet(stt_paramLinkageConfig *param, bool nvsRecord_IF){
+
+	memcpy(&devSysParam_linkageConfig, param, sizeof(stt_paramLinkageConfig));
+
+	if(nvsRecord_IF)
+		devSystemInfoLocalRecord_save(saveObj_devDriver_linkageConfigParam_set, &devSysParam_linkageConfig);
+}
+
+void devSystemOpration_linkageConfig_paramGet(stt_paramLinkageConfig *param){
+
+	memcpy(param, &devSysParam_linkageConfig, sizeof(stt_paramLinkageConfig));
 }
 
 uint16_t currentDevRunningFlg_paramGet(void){
@@ -1048,11 +1066,14 @@ void devSystemInfoLocalRecord_initialize(void){
 	stt_devStatusRecord 					dataTemp_devStatusRecordIF 										= {0};
 	uint8_t 								dataTemp_devRouterConnectBssid[DEVICE_MAC_ADDR_APPLICATION_LEN] = {0};
 	stt_devMutualGroupParam 				dataTemp_devMutaulCtrlInfo[DEVICE_MUTUAL_CTRL_GROUP_NUM] 		= {0};
+	stt_paramLinkageConfig					dataTemp_devLinkageCfg											= {0};
 	stt_devCurtain_runningParam				dataTemp_devCurtainParam										= {0};
+	uint32_t 								dataTemp_devHeaterGearCustomTime								= 0;
 	stt_dataDisp_guiBussinessHome_btnText	dataTemp_homepageBtnTextDisp									= {0};
 	uint8_t									dataTemp_homepageBtnIconNumDisp[GUIBUSSINESS_CTRLOBJ_MAX_NUM]	= {0};
 	uint8_t									dataTemp_homepageThemeType										= 0;
 	char 									dataTemp_devDrviptRecalibraParam								= 0;
+	stt_devScreenRunningParam				dataTemp_devScreenRunningConfigParam							= {0};
 
 	/*子设备管理表，单链初始化*/
 	listHead_nodeDevDataManage = (stt_nodeDev_hbDataManage *)os_zalloc(sizeof(stt_nodeDev_hbDataManage));
@@ -1214,6 +1235,19 @@ void devSystemInfoLocalRecord_initialize(void){
 		ESP_LOGI(TAG,"nvs_data devMutaulCtrl info not found, maybe first running, err:0x%04X.\n", err);
 	}
 
+	/*掉电数据更新 --联动配置数据*/
+	dataLength = sizeof(stt_paramLinkageConfig);
+	err = nvs_get_blob(handle, DATA_DEV_LINKAGE_CONFIG, &dataTemp_devLinkageCfg, &dataLength);
+	if(err == ESP_OK){
+
+		devSystemOpration_linkageConfig_paramSet(&dataTemp_devLinkageCfg, false);
+		ESP_LOGI(TAG,"nvs_data devLinkage config data read success.\n");
+		
+	}else{
+
+		ESP_LOGI(TAG,"nvs_data devLinkage config data not found, maybe first running, err:0x%04X.\n", err);
+	}
+
 	/*掉电数据更新 --窗帘开关设备运行参数（轨道时间）*/
 	dataLength = sizeof(stt_Curtain_motorAttr);
 	err = nvs_get_blob(handle, DATA_DEVCURTAIN_RUNNINGPARAM, &dataTemp_devCurtainParam, &dataLength);
@@ -1226,6 +1260,20 @@ void devSystemInfoLocalRecord_initialize(void){
 	}else{
 
 		ESP_LOGI(TAG,"nvs_data devCurtain running param not found, maybe first running, err:0x%04X.\n", err);
+	}
+
+	/*掉电数据更新 --热水器开关自定义档位 延时时间（单位：s）*/
+	dataLength = sizeof(uint32_t);
+	err = nvs_get_blob(handle, DATA_DEVHEATER_CUSTOMTIME, &dataTemp_devHeaterGearCustomTime, &dataLength);
+	if(err == ESP_OK){
+
+		devDriverBussiness_heaterSwitch_closePeriodCustom_Set(dataTemp_devHeaterGearCustomTime, false);
+		
+		ESP_LOGI(TAG,"nvs_data devHeater gearCustom time read success.\n");
+		
+	}else{
+
+		ESP_LOGI(TAG,"nvs_data devHeater gearCustom time not found, maybe first running, err:0x%04X.\n", err);
 	}
 
 	/*掉电数据更新 --home界面按键显示文字*/
@@ -1284,11 +1332,27 @@ void devSystemInfoLocalRecord_initialize(void){
 			ESP_ERROR_CHECK( nvs_set_blob( handle, DATA_DEVDRVIPT_RECALIBRAPARAM, &dataTemp_devDrviptRecalibraParam, sizeof(char)) );
 		}
 		
-		ESP_LOGI(TAG,"nvs_data devDrvInpt paramRecalibra success.\n");
+		ESP_LOGI(TAG,"nvs_data devDrvInpt paramRecalibra read success.\n");
 		
 	}else{
 
 		ESP_LOGI(TAG,"nvs_data  devDrvInpt paramRecalibra not found, maybe first running, err:0x%04X.\n", err);
+	}
+
+	/*掉电数据更新 --屏幕运行相关参数*/
+	dataLength = sizeof(stt_devScreenRunningParam);
+	err = nvs_get_blob(handle, DATA_DEVSCREEN_CONFIGPARAM, &dataTemp_devScreenRunningConfigParam, &dataLength);
+	if(err == ESP_OK){	
+
+		devScreenDriver_configParam_brightness_set(dataTemp_devScreenRunningConfigParam.devScreenBkLight_brightness, false);
+		devScreenDriver_configParam_screenLightTime_set(dataTemp_devScreenRunningConfigParam.timePeriod_devScreenBkLight_weakDown, false);
+		
+		ESP_LOGI(TAG,"nvs_data devScreen runningParam read success, brightness:%d, lightTime:%d.\n", dataTemp_devScreenRunningConfigParam.devScreenBkLight_brightness,
+																									 dataTemp_devScreenRunningConfigParam.timePeriod_devScreenBkLight_weakDown);
+		
+	}else{
+
+		ESP_LOGI(TAG,"nvs_data devScreen runningParam not found, maybe first running, err:0x%04X.\n", err);
 	}
 
 
@@ -1415,6 +1479,42 @@ void devSystemInfoLocalRecord_save(enum_dataSaveObj obj, void *dataSave){
 
 		}break;
 
+		case saveObj_devDriver_linkageConfigParam_set:{
+
+			ESP_ERROR_CHECK( nvs_set_blob( handle, DATA_DEV_LINKAGE_CONFIG, dataSave, sizeof(stt_paramLinkageConfig)) );
+
+		}break;
+
+		case saveObj_devGuiBussinessHome_themeType:{
+
+			ESP_ERROR_CHECK( nvs_set_blob( handle, DATA_DEV_GUIHOMETHEMETYPE, dataSave, sizeof(uint8_t)) );
+
+		}break;
+
+		case saveObj_devDriver_iptRecalibration_set:{
+
+			ESP_ERROR_CHECK( nvs_set_blob( handle, DATA_DEVDRVIPT_RECALIBRAPARAM, dataSave, sizeof(char)) );
+
+		}break;
+
+		case saveObj_devDriver_screenRunningParam_set:{
+
+			ESP_ERROR_CHECK( nvs_set_blob( handle, DATA_DEVSCREEN_CONFIGPARAM, dataSave, sizeof(stt_devScreenRunningParam)) );
+
+		}break;
+
+		case saveObj_devGuiBussinessHome_btnTextDisp:{
+
+			ESP_ERROR_CHECK( nvs_set_blob( handle, DATA_DEV_GUIHOMEBTNTEXTDISP, dataSave, sizeof(stt_dataDisp_guiBussinessHome_btnText)) );
+
+		}break;
+
+		case saveObj_devGuiBussinessHome_btnIconDisp:{
+
+			ESP_ERROR_CHECK( nvs_set_blob( handle, DATA_DEV_GUIHOMEBTNICONDISP, dataSave, sizeof(uint8_t) * GUIBUSSINESS_CTRLOBJ_MAX_NUM) );
+
+		}break;
+
 		case saveObj_devCurtain_runningParam:{
 
 			ESP_ERROR_CHECK( nvs_set_blob( handle, DATA_DEVCURTAIN_RUNNINGPARAM, dataSave, sizeof(stt_devCurtain_runningParam)) );
@@ -1439,15 +1539,9 @@ void devSystemInfoLocalRecord_save(enum_dataSaveObj obj, void *dataSave){
 
 		}break;
 
-		case saveObj_devGuiBussinessHome_btnTextDisp:{
+		case saveObj_devHeater_customTimeParam:{
 
-			ESP_ERROR_CHECK( nvs_set_blob( handle, DATA_DEV_GUIHOMEBTNTEXTDISP, dataSave, sizeof(stt_dataDisp_guiBussinessHome_btnText)) );
-
-		}break;
-
-		case saveObj_devGuiBussinessHome_btnIconDisp:{
-
-			ESP_ERROR_CHECK( nvs_set_blob( handle, DATA_DEV_GUIHOMEBTNICONDISP, dataSave, sizeof(uint8_t) * GUIBUSSINESS_CTRLOBJ_MAX_NUM) );
+			ESP_ERROR_CHECK( nvs_set_blob( handle, DATA_DEVHEATER_CUSTOMTIME, dataSave, sizeof(uint32_t)) );
 
 		}break;
 
@@ -1468,18 +1562,6 @@ void devSystemInfoLocalRecord_save(enum_dataSaveObj obj, void *dataSave){
 //			ESP_ERROR_CHECK( nvs_set_blob( handle, DATA_DEV_GUIHOMEBTNTEXTPIC_C, dataSave, sizeof(uint8_t) * GUI_BUSSINESS_HOME_BTNTEXT_PIC_PIXEL_SIZE * LV_IMG_PX_SIZE_ALPHA_BYTE) );
 
 //		}break;
-
-		case saveObj_devGuiBussinessHome_themeType:{
-
-			ESP_ERROR_CHECK( nvs_set_blob( handle, DATA_DEV_GUIHOMETHEMETYPE, dataSave, sizeof(uint8_t)) );
-
-		}break;
-
-		case saveObj_devDriver_iptRecalibration_set:{
-
-			ESP_ERROR_CHECK( nvs_set_blob( handle, DATA_DEVDRVIPT_RECALIBRAPARAM, dataSave, sizeof(char)) );
-
-		}break;
 
 		default:break;
 	}

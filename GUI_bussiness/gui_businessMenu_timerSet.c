@@ -26,6 +26,8 @@
 #include "gui_businessMenu_timerSet.h"
 #include "gui_businessHome.h"
 
+#include "gui_businessReuse_reactionObjPage.h"
+
 #define LV_OBJ_FREENUM_BASE_BTN_TIMESETPAGEA	0x10
 #define LV_OBJ_FREENUM_BASE_SW_TIMESETPAGEA		0x20
 #define LV_OBJ_FREENUM_BASE_TIMERSETINFO_NUM	0x30
@@ -260,37 +262,45 @@ static lv_res_t funCb_cbOpreat_timerUnitSetOpreation(lv_obj_t *cb){
 	return LV_RES_OK;
 }
 
-static lv_res_t funCb_swOpreat_timerUnitSetOpreation(lv_obj_t *sw){
+//static lv_res_t funCb_swOpreat_timerUnitSetOpreation(lv_obj_t *sw){
 
-	LV_OBJ_FREE_NUM_TYPE id = lv_obj_get_free_num(sw);
+//	LV_OBJ_FREE_NUM_TYPE id = lv_obj_get_free_num(sw);
 
-	switch(id){
+//	switch(id){
 
-		case (LV_OBJ_FREENUM_BASE_TIMER_UNITOP_SW + 0):
-		case (LV_OBJ_FREENUM_BASE_TIMER_UNITOP_SW + 1):
-		case (LV_OBJ_FREENUM_BASE_TIMER_UNITOP_SW + 2):{
+//		case (LV_OBJ_FREENUM_BASE_TIMER_UNITOP_SW + 0):
+//		case (LV_OBJ_FREENUM_BASE_TIMER_UNITOP_SW + 1):
+//		case (LV_OBJ_FREENUM_BASE_TIMER_UNITOP_SW + 2):{
 
-			uint8_t bitNum = id - LV_OBJ_FREENUM_BASE_TIMER_UNITOP_SW;
-			bool opVal_get = !lv_sw_get_state(sw);
+//			uint8_t bitNum = id - LV_OBJ_FREENUM_BASE_TIMER_UNITOP_SW;
+//			bool opVal_get = !lv_sw_get_state(sw);
 
-			printf("timerSet op valTrig:%d, val:%d\n", bitNum, opVal_get);
+//			printf("timerSet op valTrig:%d, val:%d\n", bitNum, opVal_get);
 
-			(opVal_get)?
-				(timerSetInfo_temp.tmUp_swValTrig |= (1 << bitNum)):
-				(timerSetInfo_temp.tmUp_swValTrig &= ~(1 << bitNum));
+//			(opVal_get)?
+//				(timerSetInfo_temp.tmUp_swValTrig |= (1 << bitNum)):
+//				(timerSetInfo_temp.tmUp_swValTrig &= ~(1 << bitNum));
 
-		}break;
+//		}break;
 
-		default:break;
-	}
+//		default:break;
+//	}
 
-	return LV_RES_OK;
-}
+//	return LV_RES_OK;
+//}
 
 static lv_res_t funCb_btnActionClick_timerSetUnit_opreatSave(lv_obj_t *btn){
 
 	LV_OBJ_FREE_NUM_TYPE id = lv_obj_get_free_num(btn);
 	uint8_t tmOpNum = id - LV_OBJ_FREENUM_BASE_TIMERSETINFO_NUM;
+	stt_devDataPonitTypedef datapointParamSet_temp = {0};
+	uint8_t dataTemp = 0;
+
+	lvGui_businessReuse_reactionObjPageElement_funValConfig_get(PAGEREACTION_REUSE_BUSSINESS_TIMERSET_IST, &datapointParamSet_temp);
+	memcpy(&dataTemp, &datapointParamSet_temp, sizeof(uint8_t));
+	timerSetInfo_temp.tmUp_swValTrig = dataTemp;
+
+//	printf("timer dimmer set trigVal:%d.\n", datapointParamSet_temp.devType_dimmer.devDimmer_brightnessVal);
 
 	printf("timer%dParamSave trig, upVal:%d, en:%d, weekbit:%d, hour:%d, minute:%d", tmOpNum,
 																					 timerSetInfo_temp.tmUp_swValTrig,
@@ -726,6 +736,7 @@ static void lvGui_businessMenu_timerSetUnitOpreat(lv_obj_t * obj_Parent, uint8_t
 	lv_page_set_style(bGround_obj, LV_PAGE_STYLE_BG, &styleBk_objBground);
 	lv_page_set_sb_mode(bGround_obj, LV_SB_MODE_HIDE); 	
 	lv_page_set_scrl_fit(bGround_obj, false, true); //key opration
+	lv_page_set_scrl_height(bGround_obj, 300);
 	lv_page_set_scrl_layout(bGround_obj, LV_LAYOUT_PRETTY);
 
 	//设置类分割线绘制
@@ -777,54 +788,60 @@ static void lvGui_businessMenu_timerSetUnitOpreat(lv_obj_t * obj_Parent, uint8_t
 	styleSw_devStatus_knobOn.body.shadow.width = 4;
 	styleSw_devStatus_knobOn.body.shadow.type = LV_SHADOW_BOTTOM;
 
-	objSw_devStatus_A = lv_sw_create(bGround_obj, NULL);
-	lv_obj_set_size(objSw_devStatus_A, 55, 25);
-	lv_sw_set_style(objSw_devStatus_A, LV_SW_STYLE_BG, &styleSw_devStatus_bg);
-	lv_sw_set_style(objSw_devStatus_A, LV_SW_STYLE_INDIC, &styleSw_devStatus_indic);
-	lv_sw_set_style(objSw_devStatus_A, LV_SW_STYLE_KNOB_ON, &styleSw_devStatus_knobOn);
-	lv_sw_set_style(objSw_devStatus_A, LV_SW_STYLE_KNOB_OFF, &styleSw_devStatus_knobOff);
-	lv_sw_set_anim_time(objSw_devStatus_A, 100);
-	lv_obj_set_protect(objSw_devStatus_A, LV_PROTECT_POS);
-	lv_obj_align(objSw_devStatus_A, objLine_timeSet_limit_A, LV_ALIGN_OUT_BOTTOM_RIGHT, -15, 35);
-	objSw_devStatus_B = lv_sw_create(bGround_obj, objSw_devStatus_A);
-	lv_obj_set_protect(objSw_devStatus_A, LV_PROTECT_POS);
-	lv_obj_align(objSw_devStatus_B, objSw_devStatus_A, LV_ALIGN_CENTER, 0, 35);
-	objSw_devStatus_C = lv_sw_create(bGround_obj, objSw_devStatus_A);
-	lv_obj_set_protect(objSw_devStatus_C, LV_PROTECT_POS);
-	lv_obj_align(objSw_devStatus_C, objSw_devStatus_B, LV_ALIGN_CENTER, 0, 35);
-	lv_obj_set_free_num(objSw_devStatus_A, LV_OBJ_FREENUM_BASE_TIMER_UNITOP_SW + 0);
-	lv_obj_set_free_num(objSw_devStatus_B, LV_OBJ_FREENUM_BASE_TIMER_UNITOP_SW + 1);
-	lv_obj_set_free_num(objSw_devStatus_C, LV_OBJ_FREENUM_BASE_TIMER_UNITOP_SW + 2);
-	lv_sw_set_action(objSw_devStatus_A, funCb_swOpreat_timerUnitSetOpreation);
-	lv_sw_set_action(objSw_devStatus_B, funCb_swOpreat_timerUnitSetOpreation);
-	lv_sw_set_action(objSw_devStatus_C, funCb_swOpreat_timerUnitSetOpreation);
-	(timerSetInfoTemp_currentUnit.tmUp_swValTrig & (1 << 0))?
-		(lv_sw_on(objSw_devStatus_A)):
-		(lv_sw_off(objSw_devStatus_A));
-	(timerSetInfoTemp_currentUnit.tmUp_swValTrig & (1 << 1))?
-		(lv_sw_on(objSw_devStatus_B)):
-		(lv_sw_off(objSw_devStatus_B));
-	(timerSetInfoTemp_currentUnit.tmUp_swValTrig & (1 << 2))?
-		(lv_sw_on(objSw_devStatus_C)):
-		(lv_sw_off(objSw_devStatus_C));
+//	objSw_devStatus_A = lv_sw_create(bGround_obj, NULL);
+//	lv_obj_set_size(objSw_devStatus_A, 55, 25);
+//	lv_sw_set_style(objSw_devStatus_A, LV_SW_STYLE_BG, &styleSw_devStatus_bg);
+//	lv_sw_set_style(objSw_devStatus_A, LV_SW_STYLE_INDIC, &styleSw_devStatus_indic);
+//	lv_sw_set_style(objSw_devStatus_A, LV_SW_STYLE_KNOB_ON, &styleSw_devStatus_knobOn);
+//	lv_sw_set_style(objSw_devStatus_A, LV_SW_STYLE_KNOB_OFF, &styleSw_devStatus_knobOff);
+//	lv_sw_set_anim_time(objSw_devStatus_A, 100);
+//	lv_obj_set_protect(objSw_devStatus_A, LV_PROTECT_POS);
+//	lv_obj_align(objSw_devStatus_A, objLine_timeSet_limit_A, LV_ALIGN_OUT_BOTTOM_RIGHT, -15, 35);
+//	objSw_devStatus_B = lv_sw_create(bGround_obj, objSw_devStatus_A);
+//	lv_obj_set_protect(objSw_devStatus_A, LV_PROTECT_POS);
+//	lv_obj_align(objSw_devStatus_B, objSw_devStatus_A, LV_ALIGN_CENTER, 0, 35);
+//	objSw_devStatus_C = lv_sw_create(bGround_obj, objSw_devStatus_A);
+//	lv_obj_set_protect(objSw_devStatus_C, LV_PROTECT_POS);
+//	lv_obj_align(objSw_devStatus_C, objSw_devStatus_B, LV_ALIGN_CENTER, 0, 35);
+//	lv_obj_set_free_num(objSw_devStatus_A, LV_OBJ_FREENUM_BASE_TIMER_UNITOP_SW + 0);
+//	lv_obj_set_free_num(objSw_devStatus_B, LV_OBJ_FREENUM_BASE_TIMER_UNITOP_SW + 1);
+//	lv_obj_set_free_num(objSw_devStatus_C, LV_OBJ_FREENUM_BASE_TIMER_UNITOP_SW + 2);
+//	lv_sw_set_action(objSw_devStatus_A, funCb_swOpreat_timerUnitSetOpreation);
+//	lv_sw_set_action(objSw_devStatus_B, funCb_swOpreat_timerUnitSetOpreation);
+//	lv_sw_set_action(objSw_devStatus_C, funCb_swOpreat_timerUnitSetOpreation);
+//	(timerSetInfoTemp_currentUnit.tmUp_swValTrig & (1 << 0))?
+//		(lv_sw_on(objSw_devStatus_A)):
+//		(lv_sw_off(objSw_devStatus_A));
+//	(timerSetInfoTemp_currentUnit.tmUp_swValTrig & (1 << 1))?
+//		(lv_sw_on(objSw_devStatus_B)):
+//		(lv_sw_off(objSw_devStatus_B));
+//	(timerSetInfoTemp_currentUnit.tmUp_swValTrig & (1 << 2))?
+//		(lv_sw_on(objSw_devStatus_C)):
+//		(lv_sw_off(objSw_devStatus_C));
 
-	lv_style_copy(&styleText_menuDevStatus, &lv_style_plain);
-	styleText_menuDevStatus.text.font = &lv_font_consola_16;
-	styleText_menuDevStatus.text.color = LV_COLOR_BLACK;
+//	lv_style_copy(&styleText_menuDevStatus, &lv_style_plain);
+//	styleText_menuDevStatus.text.font = &lv_font_consola_16;
+//	styleText_menuDevStatus.text.color = LV_COLOR_BLACK;
 
-	objLabel_devStatus_A = lv_label_create(bGround_obj, NULL);
-	lv_label_set_text(objLabel_devStatus_A, "switch-A:");
-	lv_obj_set_protect(objLabel_devStatus_A, LV_PROTECT_POS);
-	lv_obj_align(objLabel_devStatus_A, objLine_timeSet_limit_A, LV_ALIGN_OUT_BOTTOM_LEFT, 50, 40);
-	lv_obj_set_style(objLabel_devStatus_A, &styleText_menuDevStatus);
-	objLabel_devStatus_B = lv_label_create(bGround_obj, objLabel_devStatus_A);
-	lv_label_set_text(objLabel_devStatus_B, "switch-B:");
-	lv_obj_set_protect(objLabel_devStatus_B, LV_PROTECT_POS);
-	lv_obj_align(objLabel_devStatus_B, objLabel_devStatus_A, LV_ALIGN_CENTER, 0, 35);
-	objLabel_devStatus_C = lv_label_create(bGround_obj, objLabel_devStatus_A);
-	lv_label_set_text(objLabel_devStatus_C, "switch-C:");
-	lv_obj_set_protect(objLabel_devStatus_C, LV_PROTECT_POS);
-	lv_obj_align(objLabel_devStatus_C, objLabel_devStatus_B, LV_ALIGN_CENTER, 0, 35);
+//	objLabel_devStatus_A = lv_label_create(bGround_obj, NULL);
+//	lv_label_set_text(objLabel_devStatus_A, "switch-A:");
+//	lv_obj_set_protect(objLabel_devStatus_A, LV_PROTECT_POS);
+//	lv_obj_align(objLabel_devStatus_A, objLine_timeSet_limit_A, LV_ALIGN_OUT_BOTTOM_LEFT, 50, 40);
+//	lv_obj_set_style(objLabel_devStatus_A, &styleText_menuDevStatus);
+//	objLabel_devStatus_B = lv_label_create(bGround_obj, objLabel_devStatus_A);
+//	lv_label_set_text(objLabel_devStatus_B, "switch-B:");
+//	lv_obj_set_protect(objLabel_devStatus_B, LV_PROTECT_POS);
+//	lv_obj_align(objLabel_devStatus_B, objLabel_devStatus_A, LV_ALIGN_CENTER, 0, 35);
+//	objLabel_devStatus_C = lv_label_create(bGround_obj, objLabel_devStatus_A);
+//	lv_label_set_text(objLabel_devStatus_C, "switch-C:");
+//	lv_obj_set_protect(objLabel_devStatus_C, LV_PROTECT_POS);
+//	lv_obj_align(objLabel_devStatus_C, objLabel_devStatus_B, LV_ALIGN_CENTER, 0, 35);
+
+	uint8_t datapointReaction_temp = timerSetInfo_temp.tmUp_swValTrig;
+	lvGui_businessReuse_reactionObjPageElement_creat(bGround_obj, 
+													 PAGEREACTION_REUSE_BUSSINESS_TIMERSET_IST,
+													 52,
+													 (stt_devDataPonitTypedef *)&datapointReaction_temp);
 
 	objBtn_reaptSet = lv_btn_create(bGround_obj, NULL);
     lv_btn_set_style(objBtn_reaptSet, LV_BTN_STYLE_REL, &styleBtn_specialTransparent_rel);

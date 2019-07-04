@@ -59,10 +59,22 @@ void currentDev_dataPointSet(stt_devDataPonitTypedef *param, bool nvsRecord_IF, 
 			devDriverBussiness_mulitBitSwitch_periphStatusReales(param);
 
 		}break;
-		
+
+		case devTypeDef_thermostat:{
+
+			devDriverBussiness_thermostatSwitch_periphStatusReales(param);
+
+		}break;
+
 		case devTypeDef_dimmer:{
 
 			devDriverBussiness_dimmerSwitch_periphStatusReales(param);
+
+		}break;
+
+		case devTypeDef_curtain:{
+
+			devDriverBussiness_curtainSwitch_periphStatusRealesBySlide(param);
 
 		}break;
 		
@@ -71,28 +83,16 @@ void currentDev_dataPointSet(stt_devDataPonitTypedef *param, bool nvsRecord_IF, 
 			devDriverBussiness_fansSwitch_periphStatusReales(param);
 		
 		}break;
-		
+	
 		case devTypeDef_scenario:{
 
 			devDriverBussiness_scnarioSwitch_scenarioStatusReales(param);
 		
 		}break;
 		
-		case devTypeDef_curtain:{
-
-			devDriverBussiness_curtainSwitch_periphStatusRealesByBtn(param);
-
-		}break;
-		
 		case devTypeDef_heater:{
 
 			devDriverBussiness_heaterSwitch_periphStatusReales(param);
-
-		}break;
-
-		case devTypeDef_thermostat:{
-
-			devDriverBussiness_thermostatSwitch_periphStatusReales(param);
 
 		}break;
 		
@@ -130,7 +130,7 @@ void currentDev_extParamSet(void *param){
 				uint16_t customDownCounter_valSet = ((uint16_t)(dataParam[0]) << 8) | 
 													((uint16_t)(dataParam[1]) << 0);
 
-				devDriverBussiness_heaterSwitch_closePeriodCustom_Set(customDownCounter_valSet);
+				devDriverBussiness_heaterSwitch_closePeriodCustom_Set(customDownCounter_valSet, true);
 
 			}break;
 

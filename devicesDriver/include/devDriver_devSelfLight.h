@@ -18,7 +18,11 @@ extern "C" {
 /*********************
  *      DEFINES
  *********************/
-#define DEVDRIVER_DEVSELFLIGHT_REFRESH_PERIOD		250
+#define DEVDRIVER_DEVSELFLIGHT_REFRESH_PERIOD			250			//业务更新时间分量
+
+#define DEVLEDC_SCREEN_BRIGHTNESS_LEVEL_DIV				(100) 		//背光分度
+
+#define DEVDRIVER_DEVSELFLIGHT_SCR_PARAMSAVE_TIMEDELAY	3			//屏幕运行参数存储 动作延迟 时间 单位：s
 
 /**********************
  *      TYPEDEFS
@@ -46,6 +50,12 @@ typedef struct{
 	uint8_t linkageWith_swRelay:1;
 }stt_infraActDetectCombineFLG;
 
+typedef struct{
+
+	uint32_t timePeriod_devScreenBkLight_weakDown;
+	uint8_t devScreenBkLight_brightness;
+}stt_devScreenRunningParam;
+
 /**********************
  * GLOBAL PROTOTYPES
  **********************/
@@ -56,6 +66,12 @@ void devAtmosphere_statusTips_trigSet(enum_atmosphereLightType tipsType);
 bool devPirStatus_Get(void);
 void devScreenBkLight_statusRefresh(void);
 void devScreenBkLight_weakUp(void);
+
+void devScreenDriver_configParamSave_actionDetect(void);
+void devScreenDriver_configParam_brightness_set(uint8_t brightnessVal, bool nvsRecord_IF);
+uint8_t devScreenDriver_configParam_brightness_get(void);
+void devScreenDriver_configParam_screenLightTime_set(uint32_t timeVal, bool nvsRecord_IF);
+uint32_t devScreenDriver_configParam_screenLightTime_get(void);
 
 #ifdef __cplusplus
 } /* extern "C" */

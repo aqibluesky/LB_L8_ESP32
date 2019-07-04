@@ -20,6 +20,17 @@ static const char *TAG = "lanbon_L8 - devDriverScenario";
 
 static uint16_t scnarioSwitchDriver_clamDown_counter = 0;
 
+uint8_t devDriverBussiness_scnarioSwitch_swVal2Insert(uint8_t swVal){
+
+	switch(swVal){
+
+		case 1:return 1;
+		case 2:return 2;
+		case 4:return 3;
+		default:return 1;
+	}
+}
+
 void devDriverBussiness_scnarioSwitch_moudleInit(void){
 
 	
@@ -105,13 +116,9 @@ void devDriverBussiness_scnarioSwitch_scenarioStatusReales(stt_devDataPonitTyped
 			uint8_t scenarioDataParam_ist = 0;
 			stt_scenarioSwitchData_nvsOpreat *scenarioParamData = NULL;
 
-			switch(param->devType_scenario.devScenario_opNum){
+			scenarioDataParam_ist = devDriverBussiness_scnarioSwitch_swVal2Insert(param->devType_scenario.devScenario_opNum);
 
-				case 1:scenarioDataParam_ist = 1;break;
-				case 2:scenarioDataParam_ist = 2;break;
-				case 4:scenarioDataParam_ist = 3;break;
-				default:return; //参数无效，不予驱动
-			}
+			if(!scenarioDataParam_ist)return; //参数无效，不予驱动
 
 			scenarioParamData = nvsDataOpreation_devScenarioParam_get(scenarioDataParam_ist);
 

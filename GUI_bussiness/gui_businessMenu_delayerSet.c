@@ -26,6 +26,8 @@
 #include "gui_businessMenu_delayerSet.h"
 #include "gui_businessHome.h"
 
+#include "gui_businessReuse_reactionObjPage.h"
+
 LV_FONT_DECLARE(lv_font_dejavu_15);
 LV_FONT_DECLARE(lv_font_consola_13);
 LV_FONT_DECLARE(lv_font_consola_16);
@@ -138,7 +140,11 @@ static lv_res_t funCb_btnActionClick_tabDelayTrigSet_funSave(lv_obj_t *btn){
 
 	uint16_t delayTrig_timeCount = (param_delayTrigTimeSet.hour * 3600) + 
 								   (param_delayTrigTimeSet.minute * 60);	
-	
+	stt_devDataPonitTypedef datapointParamSet_temp = {0};
+
+	lvGui_businessReuse_reactionObjPageElement_funValConfig_get(PAGEREACTION_REUSE_BUSSINESS_DELAYSET_IST, &datapointParamSet_temp);
+	memcpy(&param_delayTrigSwTrigSet, &datapointParamSet_temp, sizeof(stt_devDataPonitTypedef));
+
 	paramSetTemp_delayTrig[0] = (uint8_t)(delayTrig_timeCount >> 8);
 	paramSetTemp_delayTrig[1] = (uint8_t)(delayTrig_timeCount & 0x00FF);
 	memcpy(&paramSetTemp_delayTrig[2], &param_delayTrigSwTrigSet, sizeof(stt_devDataPonitTypedef));
@@ -162,32 +168,32 @@ static lv_res_t funCb_rollerOpreat_delayTrigSetUnitSetMinute(lv_obj_t *rol){
 	return LV_RES_OK;
 }
 
-static lv_res_t funCb_swOp_delayTrigSet_trigValSet_A(lv_obj_t *sw){
+//static lv_res_t funCb_swOp_delayTrigSet_trigValSet_A(lv_obj_t *sw){
 
-	(lv_sw_get_state(sw))?
-		(param_delayTrigSwTrigSet.devType_mulitSwitch_threeBit.swVal_bit1 = 0):
-		(param_delayTrigSwTrigSet.devType_mulitSwitch_threeBit.swVal_bit1 = 1);
+//	(lv_sw_get_state(sw))?
+//		(param_delayTrigSwTrigSet.devType_mulitSwitch_threeBit.swVal_bit1 = 0):
+//		(param_delayTrigSwTrigSet.devType_mulitSwitch_threeBit.swVal_bit1 = 1);
 
-	return LV_RES_OK;
-}
+//	return LV_RES_OK;
+//}
 
-static lv_res_t funCb_swOp_delayTrigSet_trigValSet_B(lv_obj_t *sw){
+//static lv_res_t funCb_swOp_delayTrigSet_trigValSet_B(lv_obj_t *sw){
 
-	(lv_sw_get_state(sw))?
-		(param_delayTrigSwTrigSet.devType_mulitSwitch_threeBit.swVal_bit2 = 0):
-		(param_delayTrigSwTrigSet.devType_mulitSwitch_threeBit.swVal_bit2 = 1);
+//	(lv_sw_get_state(sw))?
+//		(param_delayTrigSwTrigSet.devType_mulitSwitch_threeBit.swVal_bit2 = 0):
+//		(param_delayTrigSwTrigSet.devType_mulitSwitch_threeBit.swVal_bit2 = 1);
 
-	return LV_RES_OK;
-}
+//	return LV_RES_OK;
+//}
 
-static lv_res_t funCb_swOp_delayTrigSet_trigValSet_C(lv_obj_t *sw){
+//static lv_res_t funCb_swOp_delayTrigSet_trigValSet_C(lv_obj_t *sw){
 
-	(lv_sw_get_state(sw))?
-		(param_delayTrigSwTrigSet.devType_mulitSwitch_threeBit.swVal_bit3 = 0):
-		(param_delayTrigSwTrigSet.devType_mulitSwitch_threeBit.swVal_bit3 = 1);
+//	(lv_sw_get_state(sw))?
+//		(param_delayTrigSwTrigSet.devType_mulitSwitch_threeBit.swVal_bit3 = 0):
+//		(param_delayTrigSwTrigSet.devType_mulitSwitch_threeBit.swVal_bit3 = 1);
 
-	return LV_RES_OK;
-}
+//	return LV_RES_OK;
+//}
 
 static lv_res_t funCb_btnActionClick_tabGreenModeSet_funSave(lv_obj_t *btn){
 
@@ -284,7 +290,7 @@ void lvGui_businessMenu_delayerSet(lv_obj_t * obj_Parent){
 	uint16_t delayTrig_timeCount = 0;
 	uint16_t greenMode_timeCount = 0;
 
-	usrAppParamSet_devDelayTrig(paramSetTemp_delayTrig);
+	usrAppParamGet_devDelayTrig(paramSetTemp_delayTrig);
 	delayTrig_timeCount = ((uint8_t)paramSetTemp_delayTrig[0] << 8) | ((uint8_t)paramSetTemp_delayTrig[1]);
 	memcpy(&param_delayTrigSwTrigSet, &paramSetTemp_delayTrig[2], sizeof(stt_devDataPonitTypedef));
 	param_delayTrigTimeSet.hour = (delayTrig_timeCount / 3600) % 24;
@@ -443,47 +449,51 @@ void lvGui_businessMenu_delayerSet(lv_obj_t * obj_Parent){
 	objLabel_delayTrigSet_hour = lv_label_create(objTab_delayTrigSet, NULL);
 	lv_label_set_text(objLabel_delayTrigSet_hour, "hour");
 	lv_obj_set_protect(objLabel_delayTrigSet_hour, LV_PROTECT_POS);
-	lv_obj_align(objLabel_delayTrigSet_hour, objRoller_delayTrigSet_hour, LV_ALIGN_IN_RIGHT_MID, 35, 3);
+	lv_obj_align(objLabel_delayTrigSet_hour, objRoller_delayTrigSet_hour, LV_ALIGN_IN_RIGHT_MID, 40, 3);
 	lv_obj_set_style(objLabel_delayTrigSet_hour, &styleLabel_gmdyTimeSet_rollerIns);
 
 	objLabel_delayTrigSet_minute = lv_label_create(objTab_delayTrigSet, objLabel_delayTrigSet_hour);
 	lv_label_set_text(objLabel_delayTrigSet_minute, "minute");
 	lv_obj_set_protect(objLabel_delayTrigSet_minute, LV_PROTECT_POS);
-	lv_obj_align(objLabel_delayTrigSet_minute, objRoller_delayTrigSet_minute, LV_ALIGN_IN_RIGHT_MID, 35, 0);
+	lv_obj_align(objLabel_delayTrigSet_minute, objRoller_delayTrigSet_minute, LV_ALIGN_IN_RIGHT_MID, 40, 0);
 	lv_obj_set_style(objLabel_delayTrigSet_minute, &styleLabel_gmdyTimeSet_rollerIns);
 
-	for(uint8_t loop = 0; loop < 3; loop ++){
+//	for(uint8_t loop = 0; loop < 3; loop ++){
 
-		objLabel_delayTrigSet_swTrigSet[loop] = lv_label_create(objTab_delayTrigSet, NULL);
-		lv_obj_set_style(objLabel_delayTrigSet_swTrigSet[loop], &styleLabel_gmdyTimeSet_title);
-	}
-	lv_label_set_text(objLabel_delayTrigSet_swTrigSet[0], "switch-A:");
-	lv_label_set_text(objLabel_delayTrigSet_swTrigSet[1], "switch-B:");
-	lv_label_set_text(objLabel_delayTrigSet_swTrigSet[2], "switch-C:");
-	lv_obj_align(objLabel_delayTrigSet_swTrigSet[0], objLine_delayTrigSet_limit_B, LV_ALIGN_OUT_BOTTOM_LEFT, 25, 40);
-	lv_obj_align(objLabel_delayTrigSet_swTrigSet[1], objLabel_delayTrigSet_swTrigSet[0], LV_ALIGN_OUT_BOTTOM_LEFT, 0, 12);
-	lv_obj_align(objLabel_delayTrigSet_swTrigSet[2], objLabel_delayTrigSet_swTrigSet[1], LV_ALIGN_OUT_BOTTOM_LEFT, 0, 12);
+//		objLabel_delayTrigSet_swTrigSet[loop] = lv_label_create(objTab_delayTrigSet, NULL);
+//		lv_obj_set_style(objLabel_delayTrigSet_swTrigSet[loop], &styleLabel_gmdyTimeSet_title);
+//	}
+//	lv_label_set_text(objLabel_delayTrigSet_swTrigSet[0], "switch-A:");
+//	lv_label_set_text(objLabel_delayTrigSet_swTrigSet[1], "switch-B:");
+//	lv_label_set_text(objLabel_delayTrigSet_swTrigSet[2], "switch-C:");
+//	lv_obj_align(objLabel_delayTrigSet_swTrigSet[0], objLine_delayTrigSet_limit_B, LV_ALIGN_OUT_BOTTOM_LEFT, 25, 40);
+//	lv_obj_align(objLabel_delayTrigSet_swTrigSet[1], objLabel_delayTrigSet_swTrigSet[0], LV_ALIGN_OUT_BOTTOM_LEFT, 0, 12);
+//	lv_obj_align(objLabel_delayTrigSet_swTrigSet[2], objLabel_delayTrigSet_swTrigSet[1], LV_ALIGN_OUT_BOTTOM_LEFT, 0, 12);
 
-	for(uint8_t loop = 0; loop < 3; loop ++){
+//	for(uint8_t loop = 0; loop < 3; loop ++){
 
-		objSw_delayTrigSet_swTrigSet[loop] = lv_sw_create(objTab_delayTrigSet, NULL);
-		lv_obj_set_size(objSw_delayTrigSet_swTrigSet[loop] , 40, 20);
-		lv_obj_align(objSw_delayTrigSet_swTrigSet[loop], objLabel_delayTrigSet_swTrigSet[loop], LV_ALIGN_OUT_RIGHT_MID, 50, 0);
-	}
-	
-	lv_sw_set_action(objSw_delayTrigSet_swTrigSet[0], funCb_swOp_delayTrigSet_trigValSet_A);
-	lv_sw_set_action(objSw_delayTrigSet_swTrigSet[1], funCb_swOp_delayTrigSet_trigValSet_B);
-	lv_sw_set_action(objSw_delayTrigSet_swTrigSet[2], funCb_swOp_delayTrigSet_trigValSet_C);
-	(param_delayTrigSwTrigSet.devType_mulitSwitch_threeBit.swVal_bit1)?
-		(lv_sw_off(objSw_delayTrigSet_swTrigSet[0])):
-		(lv_sw_on(objSw_delayTrigSet_swTrigSet[0]));
-	(param_delayTrigSwTrigSet.devType_mulitSwitch_threeBit.swVal_bit2)?
-		(lv_sw_off(objSw_delayTrigSet_swTrigSet[1])):
-		(lv_sw_on(objSw_delayTrigSet_swTrigSet[1]));
-	(param_delayTrigSwTrigSet.devType_mulitSwitch_threeBit.swVal_bit3)?
-		(lv_sw_off(objSw_delayTrigSet_swTrigSet[2])):
-		(lv_sw_on(objSw_delayTrigSet_swTrigSet[2]));
+//		objSw_delayTrigSet_swTrigSet[loop] = lv_sw_create(objTab_delayTrigSet, NULL);
+//		lv_obj_set_size(objSw_delayTrigSet_swTrigSet[loop] , 40, 20);
+//		lv_obj_align(objSw_delayTrigSet_swTrigSet[loop], objLabel_delayTrigSet_swTrigSet[loop], LV_ALIGN_OUT_RIGHT_MID, 50, 0);
+//	}
+//	
+//	lv_sw_set_action(objSw_delayTrigSet_swTrigSet[0], funCb_swOp_delayTrigSet_trigValSet_A);
+//	lv_sw_set_action(objSw_delayTrigSet_swTrigSet[1], funCb_swOp_delayTrigSet_trigValSet_B);
+//	lv_sw_set_action(objSw_delayTrigSet_swTrigSet[2], funCb_swOp_delayTrigSet_trigValSet_C);
+//	(param_delayTrigSwTrigSet.devType_mulitSwitch_threeBit.swVal_bit1)?
+//		(lv_sw_off(objSw_delayTrigSet_swTrigSet[0])):
+//		(lv_sw_on(objSw_delayTrigSet_swTrigSet[0]));
+//	(param_delayTrigSwTrigSet.devType_mulitSwitch_threeBit.swVal_bit2)?
+//		(lv_sw_off(objSw_delayTrigSet_swTrigSet[1])):
+//		(lv_sw_on(objSw_delayTrigSet_swTrigSet[1]));
+//	(param_delayTrigSwTrigSet.devType_mulitSwitch_threeBit.swVal_bit3)?
+//		(lv_sw_off(objSw_delayTrigSet_swTrigSet[2])):
+//		(lv_sw_on(objSw_delayTrigSet_swTrigSet[2]));
 		
+	lvGui_businessReuse_reactionObjPageElement_creat(objTab_delayTrigSet, 
+													 PAGEREACTION_REUSE_BUSSINESS_DELAYSET_IST,
+													 lv_obj_get_y(objLine_delayTrigSet_limit_B) + 35,
+													 &param_delayTrigSwTrigSet);
 
     objBtn_greenModeSet_save = lv_btn_create(objTab_greenModeSet, NULL);
 	lv_btn_set_action(objBtn_greenModeSet_save, LV_BTN_ACTION_CLICK, funCb_btnActionClick_tabGreenModeSet_funSave);

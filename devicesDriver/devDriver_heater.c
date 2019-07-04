@@ -248,9 +248,15 @@ uint32_t devDriverBussiness_heaterSwitch_closePeriodCustom_Get(void){
 	return devParam_heater.timeCountParam.timeUp_period_customSet / DEVHEATER_COEFFICIENT_TIME_SECOND;
 }
 
-void devDriverBussiness_heaterSwitch_closePeriodCustom_Set(uint32_t valSet){
+void devDriverBussiness_heaterSwitch_closePeriodCustom_Set(uint32_t valSet, bool nvsRecord_IF){
 
-	devParam_heater.timeCountParam.timeUp_period_customSet = valSet * DEVHEATER_COEFFICIENT_TIME_SECOND;
+	devParam_heater.timeCountParam.timeUp_period_customSet = 
+	valSet * DEVHEATER_COEFFICIENT_TIME_SECOND;
+
+	if(nvsRecord_IF){
+
+		devSystemInfoLocalRecord_save(saveObj_devHeater_customTimeParam, &valSet);
+	}
 }
 
 

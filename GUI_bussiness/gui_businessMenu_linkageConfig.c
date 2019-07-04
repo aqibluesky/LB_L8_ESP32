@@ -20,6 +20,10 @@
 #include "gui_businessMenu_linkageConfig.h"
 #include "gui_businessHome.h"
 
+#include "gui_businessReuse_reactionObjPage.h"
+
+#define PAGEREACTION_REUSE_LINKAGETEMPRATURE_THRESHOLDADJ_FNUM		(PAGEREACTION_REUSE_BUSSINESS_RESERVE_MAX + 1)
+
 LV_FONT_DECLARE(lv_font_dejavu_15);
 LV_FONT_DECLARE(lv_font_consola_16);
 LV_FONT_DECLARE(lv_font_consola_17);
@@ -72,6 +76,9 @@ static lv_obj_t	*textRollerThresholdTempSet_tempratureDetection = NULL;
 
 static char strTemp_textBtnTempratureDetection_tempThresholdAdj[60] = {0};
 
+static uint8_t cfgDataTemp_linkageCondition_temprature = 0;
+static bool cfgDataScrLight_linkageReaction_proximity = false;
+
 static void lvGuiLinkageConfig_childOptionObjCreat_proximityDetection(void);
 static void lvGuiLinkageConfig_childOptionObjDelete_proximityDetection(void);
 static void lvGuiLinkageConfig_childOptionObjCreat_tempratureDetection(void);
@@ -83,6 +90,14 @@ static void currentGui_elementClear(void){
 }
 
 static lv_res_t funCb_btnActionClick_menuBtn_funBack(lv_obj_t *btn){
+
+	stt_paramLinkageConfig linkageConfigParamSet_temp = {0};
+	
+	devSystemOpration_linkageConfig_paramGet(&linkageConfigParamSet_temp);
+
+	linkageConfigParamSet_temp.linkageReaction_proxmity_scrLightTrigIf = 
+		cfgDataScrLight_linkageReaction_proximity;
+	devSystemOpration_linkageConfig_paramSet(&linkageConfigParamSet_temp, true);
 
 	currentGui_elementClear();
 	lvGui_usrSwitch(bussinessType_Menu);
@@ -101,6 +116,9 @@ static lv_res_t funCb_btnActionPress_menuBtn_funBack(lv_obj_t *btn){
 static lv_res_t funCb_swOpreat_proximityDetection_reserveEn(lv_obj_t *sw){
 
 	bool opVal_get = lv_sw_get_state(sw);
+	stt_paramLinkageConfig linkageConfigParamSet_temp = {0};
+
+	devSystemOpration_linkageConfig_paramGet(&linkageConfigParamSet_temp);
 
 	if(opVal_get){ 
 
@@ -111,12 +129,20 @@ static lv_res_t funCb_swOpreat_proximityDetection_reserveEn(lv_obj_t *sw){
 		lvGuiLinkageConfig_childOptionObjDelete_proximityDetection();
 	}
 
+	(opVal_get)?
+		(linkageConfigParamSet_temp.linkageRunning_proxmity_en = 1):
+		(linkageConfigParamSet_temp.linkageRunning_proxmity_en = 0);
+	devSystemOpration_linkageConfig_paramSet(&linkageConfigParamSet_temp, true);
+	
 	return LV_RES_OK;
 }
 
 static lv_res_t funCb_swOpreat_tempratureDetection_reserveEn(lv_obj_t *sw){
 	
 	bool opVal_get = lv_sw_get_state(sw);
+	stt_paramLinkageConfig linkageConfigParamSet_temp = {0};
+
+	devSystemOpration_linkageConfig_paramGet(&linkageConfigParamSet_temp);
 
 	if(opVal_get){
 
@@ -127,10 +153,72 @@ static lv_res_t funCb_swOpreat_tempratureDetection_reserveEn(lv_obj_t *sw){
 		lvGuiLinkageConfig_childOptionObjDelete_tempratureDetection();
 	}
 
+	(opVal_get)?
+		(linkageConfigParamSet_temp.linkageRunning_temprature_en = 1):
+		(linkageConfigParamSet_temp.linkageRunning_temprature_en = 0);
+	devSystemOpration_linkageConfig_paramSet(&linkageConfigParamSet_temp, true);
+
 	return LV_RES_OK;
 }
 
 static lv_res_t funCb_btnActionClickDetailSet_pageChoiceSelect_confirm(lv_obj_t *btn){
+
+	LV_OBJ_FREE_NUM_TYPE btnmFreeNum = lv_obj_get_free_num(btn);
+
+	switch(btnmFreeNum){
+	 
+//		case PAGEREACTION_REUSE_BUSSINESS_TIMERSET_IST:{}break;
+//		
+//		case PAGEREACTION_REUSE_BUSSINESS_DELAYSET_IST:{}break;
+		
+		case PAGEREACTION_REUSE_BUSSINESS_LINKAGESET_TEMP:{
+
+			stt_devDataPonitTypedef dataPointReaction_valTemp = {0};
+			stt_paramLinkageConfig linkageConfigParamSet_temp = {0};
+			
+			devSystemOpration_linkageConfig_paramGet(&linkageConfigParamSet_temp);
+			lvGui_businessReuse_reactionObjPageElement_funValConfig_get(PAGEREACTION_REUSE_BUSSINESS_LINKAGESET_TEMP, 
+																		&dataPointReaction_valTemp);
+			
+			memcpy(&linkageConfigParamSet_temp.linkageReaction_temprature_swVal,
+				   &dataPointReaction_valTemp,
+				   sizeof(stt_devDataPonitTypedef));
+			devSystemOpration_linkageConfig_paramSet(&linkageConfigParamSet_temp, true);		
+
+		}break;
+		
+		case PAGEREACTION_REUSE_BUSSINESS_LINKAGESET_PROX:{
+
+			stt_devDataPonitTypedef dataPointReaction_valTemp = {0};
+			stt_paramLinkageConfig linkageConfigParamSet_temp = {0};
+
+			devSystemOpration_linkageConfig_paramGet(&linkageConfigParamSet_temp);
+			lvGui_businessReuse_reactionObjPageElement_funValConfig_get(PAGEREACTION_REUSE_BUSSINESS_LINKAGESET_PROX, 
+																		&dataPointReaction_valTemp);
+
+			memcpy(&linkageConfigParamSet_temp.linkageReaction_proxmity_swVal,
+				   &dataPointReaction_valTemp,
+				   sizeof(stt_devDataPonitTypedef));
+			devSystemOpration_linkageConfig_paramSet(&linkageConfigParamSet_temp, true);		
+
+		}break;
+
+		case PAGEREACTION_REUSE_LINKAGETEMPRATURE_THRESHOLDADJ_FNUM:{
+
+			stt_paramLinkageConfig linkageConfigParamSet_temp = {0};
+			
+			devSystemOpration_linkageConfig_paramGet(&linkageConfigParamSet_temp);
+
+			linkageConfigParamSet_temp.linkageCondition_tempratureVal = cfgDataTemp_linkageCondition_temprature;
+			devSystemOpration_linkageConfig_paramSet(&linkageConfigParamSet_temp, true);
+
+			sprintf(strTemp_textBtnTempratureDetection_tempThresholdAdj, " #00A2E8 > temprature set##C0C0FF [%d\"C]#", cfgDataTemp_linkageCondition_temprature); //温度设定值显示更新
+			lv_label_set_text(textBtnTempratureDetection_tempThresholdAdj, strTemp_textBtnTempratureDetection_tempThresholdAdj);	
+
+		}break;
+
+		default:break;
+	}
 
 	if(pageLinkage_detailSetting){
 
@@ -152,7 +240,7 @@ static lv_res_t funCb_btnActionClickDetailSet_pageChoiceSelect_cancel(lv_obj_t *
 	return LV_RES_OK;
 }
 
-static lv_obj_t *lvGui_pageFunctionDetailSet_creat(const char * pageTitleName){
+static lv_obj_t *lvGui_pageFunctionDetailSet_creat(const char * pageTitleName, uint8_t pageObjIst){
 
 	if(pageLinkage_detailSetting == NULL)
 		pageLinkage_detailSetting = lv_page_create(lv_scr_act(), NULL);
@@ -184,9 +272,11 @@ static lv_obj_t *lvGui_pageFunctionDetailSet_creat(const char * pageTitleName){
 	lv_obj_set_protect(btnConfirm_pageLinkageDetailSetting, LV_PROTECT_POS);
 	lv_obj_align(btnConfirm_pageLinkageDetailSetting, pageLinkage_detailSetting, LV_ALIGN_IN_BOTTOM_LEFT, 25, -1);
 	lv_btn_set_action(btnConfirm_pageLinkageDetailSetting, LV_BTN_ACTION_CLICK, funCb_btnActionClickDetailSet_pageChoiceSelect_confirm);
+	lv_obj_set_free_num(btnConfirm_pageLinkageDetailSetting, pageObjIst);
 	btnCancel_pageLinkageDetailSetting = lv_btn_create(pageLinkage_detailSetting, btnConfirm_pageLinkageDetailSetting);
 	lv_obj_align(btnCancel_pageLinkageDetailSetting, btnConfirm_pageLinkageDetailSetting, LV_ALIGN_CENTER, 85, 0);
 	lv_btn_set_action(btnCancel_pageLinkageDetailSetting, LV_BTN_ACTION_CLICK, funCb_btnActionClickDetailSet_pageChoiceSelect_cancel);
+	lv_obj_set_free_num(btnCancel_pageLinkageDetailSetting, pageObjIst);
 
 	textBtnConfirm_pageLinkageDetailSetting = lv_label_create(btnConfirm_pageLinkageDetailSetting, NULL);
 	lv_obj_set_style(textBtnConfirm_pageLinkageDetailSetting, &styleTextBtn_linkageDetailSetting);
@@ -198,19 +288,42 @@ static lv_obj_t *lvGui_pageFunctionDetailSet_creat(const char * pageTitleName){
 	return pageLinkage_detailSetting;
 }
 
+static lv_res_t funCb_cbActionCheckDetailSet_trigScrLight_proximity(lv_obj_t *cb){
+
+	bool opVal_get = lv_cb_is_checked(cb);
+
+	cfgDataScrLight_linkageReaction_proximity = opVal_get;
+
+	return LV_RES_OK;
+}
+
 static lv_res_t funCb_btnActionClickDetailSet_switchTrigSet_proximity(lv_obj_t *btn){
 
-	lvGui_pageFunctionDetailSet_creat("switch set");
+	stt_paramLinkageConfig devLinkageCfg_dataTemp = {0};
+	lv_obj_t *pageDetailSet = lvGui_pageFunctionDetailSet_creat("switch set", PAGEREACTION_REUSE_BUSSINESS_LINKAGESET_PROX);
+
+	devSystemOpration_linkageConfig_paramGet(&devLinkageCfg_dataTemp);
+
+	lvGui_businessReuse_reactionObjPageElement_creat(pageDetailSet, PAGEREACTION_REUSE_BUSSINESS_LINKAGESET_PROX, 80, &(devLinkageCfg_dataTemp.linkageReaction_proxmity_swVal));
+
+	return LV_RES_OK;
+}
+
+static lv_res_t funCb_rollerActionTrigDetailSet_conditionValSet_temprature(lv_obj_t *roller){
+
+	uint8_t opVal_get = lv_roller_get_selected(roller);
+
+	cfgDataTemp_linkageCondition_temprature = opVal_get;
 
 	return LV_RES_OK;
 }
 
 static lv_res_t funCb_btnActionClickDetailSet_valThresholdAdj_temprature(lv_obj_t *btn){
 
-	lv_obj_t *pageSetting = lvGui_pageFunctionDetailSet_creat("temprature set");
+	lv_obj_t *pageSetting = lvGui_pageFunctionDetailSet_creat("temprature set", PAGEREACTION_REUSE_LINKAGETEMPRATURE_THRESHOLDADJ_FNUM);
 
 	rollerThresholdTempSet_tempratureDetection = lv_roller_create(pageSetting, NULL);
-	lv_roller_set_action(rollerThresholdTempSet_tempratureDetection, NULL);
+	lv_roller_set_action(rollerThresholdTempSet_tempratureDetection, funCb_rollerActionTrigDetailSet_conditionValSet_temprature);
 	lv_roller_set_options(rollerThresholdTempSet_tempratureDetection, "00\n""01\n""02\n""03\n""04\n""05\n"
 																	  "06\n""07\n""08\n""09\n""10\n""11\n"
 																	  "12\n""13\n""14\n""15\n""16\n""17\n"
@@ -227,6 +340,9 @@ static lv_res_t funCb_btnActionClickDetailSet_valThresholdAdj_temprature(lv_obj_
 	lv_roller_set_visible_row_count(rollerThresholdTempSet_tempratureDetection, 4);
 	lv_roller_set_style(rollerThresholdTempSet_tempratureDetection, LV_ROLLER_STYLE_BG, &styleRoller_bg_tempThresholdAdj);
 	lv_roller_set_style(rollerThresholdTempSet_tempratureDetection, LV_ROLLER_STYLE_SEL, &styleRoller_sel_tempThresholdAdj);
+	lv_roller_set_selected(rollerThresholdTempSet_tempratureDetection, 
+						   cfgDataTemp_linkageCondition_temprature, 
+						   true);
 
 	textRollerThresholdTempSet_tempratureDetection = lv_label_create(pageSetting, NULL);
 	lv_label_set_recolor(textRollerThresholdTempSet_tempratureDetection, true);
@@ -240,8 +356,13 @@ static lv_res_t funCb_btnActionClickDetailSet_valThresholdAdj_temprature(lv_obj_
 
 static lv_res_t funCb_btnActionClickDetailSet_switchTrigSet_temprature(lv_obj_t *btn){
 
-	lvGui_pageFunctionDetailSet_creat("switch set");
-	
+	stt_paramLinkageConfig devLinkageCfg_dataTemp = {0};
+	lv_obj_t *pageDetailSet = lvGui_pageFunctionDetailSet_creat("switch set", PAGEREACTION_REUSE_BUSSINESS_LINKAGESET_TEMP);
+
+	devSystemOpration_linkageConfig_paramGet(&devLinkageCfg_dataTemp);
+
+	lvGui_businessReuse_reactionObjPageElement_creat(pageDetailSet, PAGEREACTION_REUSE_BUSSINESS_LINKAGESET_TEMP, 80, &(devLinkageCfg_dataTemp.linkageReaction_temprature_swVal));
+
 	return LV_RES_OK;
 }
 
@@ -337,6 +458,11 @@ static void lvGuiLinkageConfig_animationChildOptionActivity(lv_obj_t *optionObj,
 static void lvGuiLinkageConfig_childOptionObjCreat_proximityDetection(void){
 
 	lv_anim_t a,b,c,d;	
+	stt_paramLinkageConfig linkageConfigParamSet_temp = {0};
+	
+	devSystemOpration_linkageConfig_paramGet(&linkageConfigParamSet_temp);
+
+	cfgDataScrLight_linkageReaction_proximity = linkageConfigParamSet_temp.linkageReaction_proxmity_scrLightTrigIf;
 
 	lvGuiLinkageConfig_animationChildOptionActivity(textSettingA_tempratureDetection, 
 													lv_obj_get_y(textSettingA_proximityDetection) + 30,
@@ -362,11 +488,13 @@ static void lvGuiLinkageConfig_childOptionObjCreat_proximityDetection(void){
 	}
 
 	cbProximityDetection_screenLight = lv_cb_create(page_funSetOption, NULL);
+	lv_cb_set_action(cbProximityDetection_screenLight, funCb_cbActionCheckDetailSet_trigScrLight_proximity);
 	lv_obj_set_protect(cbProximityDetection_screenLight, LV_PROTECT_POS);
 	lv_obj_align(cbProximityDetection_screenLight, textSettingA_proximityDetection, LV_ALIGN_OUT_BOTTOM_LEFT, 17, 15);
 	lv_obj_set_width(cbProximityDetection_screenLight, 175);
 	lv_cb_set_style(cbProximityDetection_screenLight, LV_CB_STYLE_BG, &styleCb_proximityDetection_screenLight);
 	lv_cb_set_text(cbProximityDetection_screenLight, " light the screen");
+	lv_cb_set_checked(cbProximityDetection_screenLight, cfgDataScrLight_linkageReaction_proximity);
 
 	btnProximityDetection_switchTrig = lv_btn_create(page_funSetOption, NULL);
 	lv_obj_set_size(btnProximityDetection_switchTrig, 200, 20);
@@ -428,6 +556,12 @@ static void lvGuiLinkageConfig_childOptionObjDelete_proximityDetection(void){
 
 static void lvGuiLinkageConfig_childOptionObjCreat_tempratureDetection(void){
 
+	stt_paramLinkageConfig linkageConfigParamSet_temp = {0};
+	
+	devSystemOpration_linkageConfig_paramGet(&linkageConfigParamSet_temp);
+
+	cfgDataTemp_linkageCondition_temprature = linkageConfigParamSet_temp.linkageCondition_tempratureVal;
+
 	btnTempratureDetection_tempThresholdAdj = lv_btn_create(page_funSetOption, NULL);
 	lv_obj_set_size(btnTempratureDetection_tempThresholdAdj, 200, 20);
 	lv_obj_set_protect(btnTempratureDetection_tempThresholdAdj, LV_PROTECT_POS);
@@ -439,7 +573,7 @@ static void lvGuiLinkageConfig_childOptionObjCreat_tempratureDetection(void){
 	lv_btn_set_style(btnTempratureDetection_tempThresholdAdj, LV_BTN_STYLE_TGL_PR, &styleBtn_specialTransparent);
 	textBtnTempratureDetection_tempThresholdAdj = lv_label_create(btnTempratureDetection_tempThresholdAdj, NULL);
 	lv_label_set_recolor(textBtnTempratureDetection_tempThresholdAdj, true);
-	sprintf(strTemp_textBtnTempratureDetection_tempThresholdAdj, " #00A2E8 > temprature set##C0C0FF [%d\"C]#", 25);
+	sprintf(strTemp_textBtnTempratureDetection_tempThresholdAdj, " #00A2E8 > temprature set##C0C0FF [%d\"C]#", cfgDataTemp_linkageCondition_temprature);
 	lv_label_set_text(textBtnTempratureDetection_tempThresholdAdj, strTemp_textBtnTempratureDetection_tempThresholdAdj);
 	lv_obj_set_size(textBtnTempratureDetection_tempThresholdAdj, 200, 20);
 	lv_label_set_align(textBtnTempratureDetection_tempThresholdAdj, LV_LABEL_ALIGN_LEFT);
@@ -478,6 +612,10 @@ static void lvGuiLinkageConfig_childOptionObjDelete_tempratureDetection(void){
 }
 
 void lvGui_businessMenu_linkageConfig(lv_obj_t * obj_Parent){
+
+	stt_paramLinkageConfig linkageConfigParamSet_temp = {0};
+
+	devSystemOpration_linkageConfig_paramGet(&linkageConfigParamSet_temp);
 
 	lvGuiLinkageConfig_objStyle_Init();
 
@@ -529,6 +667,23 @@ void lvGui_businessMenu_linkageConfig(lv_obj_t * obj_Parent){
 	lv_obj_set_size(swReserveSet_tempratureDetection, 45, 15);
 	lv_obj_set_protect(swReserveSet_tempratureDetection, LV_PROTECT_POS);
 	lv_obj_align(swReserveSet_tempratureDetection, swReserveSet_proximityDetection, LV_ALIGN_OUT_BOTTOM_MID, 0, 30);
+
+	if(linkageConfigParamSet_temp.linkageRunning_temprature_en){
+
+		lv_sw_on(swReserveSet_tempratureDetection);
+		lvGuiLinkageConfig_childOptionObjCreat_tempratureDetection();
+	}
+
+	if(linkageConfigParamSet_temp.linkageRunning_proxmity_en){
+
+		lv_sw_on(swReserveSet_proximityDetection);
+		lvGuiLinkageConfig_childOptionObjCreat_proximityDetection();
+	}
+
+	lv_obj_animate(textSettingA_proximityDetection,  LV_ANIM_FLOAT_RIGHT, 200,	  0,	NULL);
+	lv_obj_animate(swReserveSet_proximityDetection,  LV_ANIM_FLOAT_RIGHT, 200,	100,	NULL);
+	lv_obj_animate(textSettingA_tempratureDetection, LV_ANIM_FLOAT_RIGHT, 200,	200,	NULL);
+	lv_obj_animate(swReserveSet_tempratureDetection, LV_ANIM_FLOAT_RIGHT, 200,	300,	NULL);
 }
 
 

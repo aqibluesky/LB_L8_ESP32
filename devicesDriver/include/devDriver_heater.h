@@ -90,10 +90,11 @@ void devDriverBussiness_heaterSwitch_moudleInit(void);
 void devDriverBussiness_heaterSwitch_moudleDeinit(void);
 void IRAM_ATTR devDriverBussiness_heaterSwitch_runningDetectLoop(void);
 void devDriverBussiness_heaterSwitch_periphStatusReales(stt_devDataPonitTypedef *param);
+void devDriverBussiness_heaterSwitch_gearCustomTime_set(uint32_t timeParam, bool nvsRecord_IF);
 void devDriverBussiness_heaterSwitch_devParam_Get(stt_Heater_actAttr *param);
 uint32_t devDriverBussiness_heaterSwitch_devParam_closeCounter_Get(void);
 uint32_t devDriverBussiness_heaterSwitch_closePeriodCustom_Get(void);
-void devDriverBussiness_heaterSwitch_closePeriodCustom_Set(uint32_t valSet);
+void devDriverBussiness_heaterSwitch_closePeriodCustom_Set(uint32_t valSet, bool nvsRecord_IF);
 
 #ifdef __cplusplus
 } /* extern "C" */

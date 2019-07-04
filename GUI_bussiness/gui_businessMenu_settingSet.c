@@ -97,6 +97,8 @@ static const struct stt_gearScreenLightTime{
 	{60 * 30 + 1 * 00, "#FFFF00 30##C0C0FF min##FFFF00 00##C0C0FF sec#"}
 };
 
+static const uint8_t screenBrightness_sliderAdj_div = 20;
+
 static lv_style_t stylePage_funSetOption;
 static lv_style_t styleText_menuLevel_A;
 static lv_style_t styleText_menuLevel_B;
@@ -247,6 +249,10 @@ static lv_res_t funCb_mboxBtnActionClick_touchRecalibration(lv_obj_t * mbox, con
 
 static lv_res_t funCb_slidAction_functionSet_screenBrightnessAdj(lv_obj_t *slider){
 
+	uint8_t devScreen_brightneesValSet = lv_slider_get_value(slider) * (DEVLEDC_SCREEN_BRIGHTNESS_LEVEL_DIV / screenBrightness_sliderAdj_div);
+
+	devScreenDriver_configParam_brightness_set(devScreen_brightneesValSet, true);
+
 	return LV_RES_OK;
 }
 
@@ -258,6 +264,8 @@ static lv_res_t funCb_btnActionClick_functionSet_screenLightTimeAdd(lv_obj_t *bt
 	lv_label_set_text(textBtnTimeRef_screenLightTime, screenLightTimeGear_refTab[functionGearScreenTime_ref].strDisp_ref);
 	lv_obj_refresh_style(textBtnTimeRef_screenLightTime);
 
+	devScreenDriver_configParam_screenLightTime_set(screenLightTimeGear_refTab[functionGearScreenTime_ref].screenLightTime2Sec, true);
+
 	return LV_RES_OK;
 }
 
@@ -268,6 +276,8 @@ static lv_res_t funCb_btnActionClick_functionSet_screenLightTimeCut(lv_obj_t *bt
 
 	lv_label_set_text(textBtnTimeRef_screenLightTime, screenLightTimeGear_refTab[functionGearScreenTime_ref].strDisp_ref);
 	lv_obj_refresh_style(textBtnTimeRef_screenLightTime);
+
+	devScreenDriver_configParam_screenLightTime_set(screenLightTimeGear_refTab[functionGearScreenTime_ref].screenLightTime2Sec, true);
 
 	return LV_RES_OK;
 }
@@ -436,6 +446,10 @@ static void lvGuiSettingSet_objStyle_Init(void){
 
 void lvGui_businessMenu_settingSet(lv_obj_t * obj_Parent){
 
+	const uint16_t obj_animate_time = 200;
+	const uint16_t obj_animate_delay = 150;
+	uint16_t obj_animate_delayBasic = 0;
+
 	uint8_t loop = 0;
 	devTypeDef_enum devType_Temp;
 	uint8_t homepageThemeStyle_temp = 0;
@@ -462,8 +476,9 @@ void lvGui_businessMenu_settingSet(lv_obj_t * obj_Parent){
 	lv_page_set_sb_mode(page_funSetOption, LV_SB_MODE_HIDE);
 	lv_page_set_scrl_fit(page_funSetOption, false, false); //key opration
 	lv_page_set_scrl_width(page_funSetOption, 220);
-	lv_page_set_scrl_height(page_funSetOption, 640);
+	lv_page_set_scrl_height(page_funSetOption, 720);
 	lv_page_set_scrl_layout(page_funSetOption, LV_LAYOUT_CENTER);
+//	lv_page_scroll_ver(page_funSetOption, 480);
 
 	textSettingA_deviceType = lv_label_create(page_funSetOption, NULL);
 	lv_label_set_text(textSettingA_deviceType, "device Type:");
@@ -580,7 +595,9 @@ void lvGui_businessMenu_settingSet(lv_obj_t * obj_Parent){
 	lv_obj_set_protect(sliderSettingA_screenBrightness, LV_PROTECT_POS);
 	lv_obj_align(sliderSettingA_screenBrightness, textSettingA_screenBrightness, LV_ALIGN_OUT_BOTTOM_LEFT, 10, 25);
 	lv_slider_set_action(sliderSettingA_screenBrightness, funCb_slidAction_functionSet_screenBrightnessAdj);
-	lv_bar_set_value(sliderSettingA_screenBrightness, 20);
+	lv_slider_set_range(sliderSettingA_screenBrightness, 0, screenBrightness_sliderAdj_div);
+	uint8_t brightnessSlider_valDisp = devScreenDriver_configParam_brightness_get();
+	lv_slider_set_value(sliderSettingA_screenBrightness, brightnessSlider_valDisp / (DEVLEDC_SCREEN_BRIGHTNESS_LEVEL_DIV / screenBrightness_sliderAdj_div));
 
 	textSettingA_screenLightTime = lv_label_create(page_funSetOption, NULL);
 	lv_label_set_text(textSettingA_screenLightTime, "screen light time");
@@ -589,6 +606,15 @@ void lvGui_businessMenu_settingSet(lv_obj_t * obj_Parent){
 	lv_obj_align(textSettingA_screenLightTime, textSettingA_screenBrightness, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 60);
 	textBtnTimeRef_screenLightTime = lv_label_create(page_funSetOption, NULL);
 	lv_label_set_recolor(textBtnTimeRef_screenLightTime, true);
+	uint32_t screenLightTime_temp = devScreenDriver_configParam_screenLightTime_get();
+	for(loop = 0; loop < FUNCTION_NUM_DEF_SCREENLIGHT_TIME; loop ++){
+
+		if(screenLightTime_temp == screenLightTimeGear_refTab[loop].screenLightTime2Sec){
+
+			functionGearScreenTime_ref = loop;
+			break;
+		}
+	}
 	lv_label_set_text(textBtnTimeRef_screenLightTime, screenLightTimeGear_refTab[functionGearScreenTime_ref].strDisp_ref);
 	lv_obj_set_style(textBtnTimeRef_screenLightTime, &styleText_menuLevel_B);
 	lv_obj_set_protect(textBtnTimeRef_screenLightTime, LV_PROTECT_POS);
@@ -640,6 +666,32 @@ void lvGui_businessMenu_settingSet(lv_obj_t * obj_Parent){
 	lv_page_glue_obj(textBtnTimeAdd_screenLightTime, true);
 	lv_page_glue_obj(btnTimeCut_screenLightTime, true);
 	lv_page_glue_obj(textBtnTimeCut_screenLightTime, true);
+
+	lv_obj_animate(textSettingA_deviceType, LV_ANIM_FLOAT_LEFT, obj_animate_time, obj_animate_delayBasic, NULL);
+	lv_obj_animate(ddlistSettingA_deviceType, LV_ANIM_FLOAT_LEFT, obj_animate_time, obj_animate_delayBasic += obj_animate_delay, NULL);
+	
+	lv_obj_animate(textSettingA_devStatusRecordIF, LV_ANIM_FLOAT_LEFT, obj_animate_time, obj_animate_delayBasic += obj_animate_delay, NULL);
+	lv_obj_animate(swSettingA_devStatusRecordIF, LV_ANIM_FLOAT_LEFT, obj_animate_time, obj_animate_delayBasic += obj_animate_delay, NULL);
+	
+	lv_obj_animate(textSettingA_homepageThemestyle, LV_ANIM_FLOAT_LEFT, obj_animate_time, obj_animate_delayBasic += obj_animate_delay, NULL);
+	lv_obj_animate(ddlistSettingA_homepageThemestyle, LV_ANIM_FLOAT_LEFT, obj_animate_time, obj_animate_delayBasic += obj_animate_delay, NULL);
+	
+	lv_obj_animate(textSettingA_factoryRecoveryIf, LV_ANIM_FLOAT_LEFT, obj_animate_time, obj_animate_delayBasic += obj_animate_delay, NULL);
+	lv_obj_animate(btnSettingA_factoryRecoveryIf, LV_ANIM_FLOAT_LEFT, obj_animate_time, obj_animate_delayBasic += obj_animate_delay, NULL);
+	
+	lv_obj_animate(textSettingA_touchRecalibrationIf, LV_ANIM_FLOAT_LEFT, obj_animate_time, obj_animate_delayBasic += obj_animate_delay, NULL);
+	lv_obj_animate(btnSettingA_touchRecalibrationIf, LV_ANIM_FLOAT_LEFT, obj_animate_time, obj_animate_delayBasic += obj_animate_delay, NULL);
+	
+	lv_obj_animate(textSettingA_screenBrightness, LV_ANIM_FLOAT_LEFT, obj_animate_time, obj_animate_delayBasic += obj_animate_delay, NULL);
+	lv_obj_animate(sliderSettingA_screenBrightness, LV_ANIM_FLOAT_LEFT, obj_animate_time, obj_animate_delayBasic += obj_animate_delay, NULL);
+	
+	lv_obj_animate(textSettingA_screenLightTime, LV_ANIM_FLOAT_LEFT, obj_animate_time, obj_animate_delayBasic += obj_animate_delay,  NULL);
+	lv_obj_animate(textBtnTimeRef_screenLightTime, LV_ANIM_FLOAT_LEFT, obj_animate_time, obj_animate_delayBasic += obj_animate_delay, NULL);
+	lv_obj_animate(btnTimeAdd_screenLightTime, LV_ANIM_FLOAT_LEFT, obj_animate_time, obj_animate_delayBasic, NULL);
+	lv_obj_animate(btnTimeCut_screenLightTime, LV_ANIM_FLOAT_LEFT, obj_animate_time, obj_animate_delayBasic, NULL);
+
+	vTaskDelay(500 / portTICK_RATE_MS);
+	lv_page_focus(page_funSetOption, btnTimeCut_screenLightTime, 1200);
 }
 
 
