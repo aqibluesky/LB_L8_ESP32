@@ -398,7 +398,7 @@ void lvGui_businessReuse_reactionObjPageElement_creat(lv_obj_t *obj_Parent, uint
 			lv_label_set_style(pageDetailSet_switchReaction_labelSwRef[0], &styleLabelRef_pageDetailSet);
 			lv_label_set_text(pageDetailSet_switchReaction_labelSwRef[0], "switch_A: ");
 			lv_obj_set_protect(pageDetailSet_switchReaction_labelSwRef[0], LV_PROTECT_POS);
-			lv_obj_align(pageDetailSet_switchReaction_labelSwRef[0], obj_Parent, LV_ALIGN_IN_TOP_LEFT, objPosOfs_x, cy);
+			lv_obj_align(pageDetailSet_switchReaction_labelSwRef[0], obj_Parent, LV_ALIGN_IN_TOP_LEFT, objPosOfs_x, cy + 30);
 
 			pageDetailSet_switchReaction_sw[0] = lv_sw_create(obj_Parent, NULL);
 			lv_sw_set_action(pageDetailSet_switchReaction_sw[0], sw1FunCb_trigAction_switchReaction_valSet);
@@ -419,9 +419,9 @@ void lvGui_businessReuse_reactionObjPageElement_creat(lv_obj_t *obj_Parent, uint
 			lv_label_set_style(pageDetailSet_switchReaction_labelSwRef[0], &styleLabelRef_pageDetailSet);
 			lv_label_set_text(pageDetailSet_switchReaction_labelSwRef[0], "switch_A: ");
 			lv_obj_set_protect(pageDetailSet_switchReaction_labelSwRef[0], LV_PROTECT_POS);
-			lv_obj_align(pageDetailSet_switchReaction_labelSwRef[0], obj_Parent, LV_ALIGN_IN_TOP_LEFT, objPosOfs_x, cy);
+			lv_obj_align(pageDetailSet_switchReaction_labelSwRef[0], obj_Parent, LV_ALIGN_IN_TOP_LEFT, objPosOfs_x, cy + 15);
 			pageDetailSet_switchReaction_labelSwRef[1] = lv_label_create(obj_Parent, pageDetailSet_switchReaction_labelSwRef[0]);
-			lv_label_set_text(pageDetailSet_switchReaction_labelSwRef[0], "switch_B: ");
+			lv_label_set_text(pageDetailSet_switchReaction_labelSwRef[1], "switch_B: ");
 			lv_obj_align(pageDetailSet_switchReaction_labelSwRef[1], pageDetailSet_switchReaction_labelSwRef[0], LV_ALIGN_OUT_BOTTOM_LEFT, 0, 15);
 
 			pageDetailSet_switchReaction_sw[0] = lv_sw_create(obj_Parent, NULL);
@@ -452,7 +452,7 @@ void lvGui_businessReuse_reactionObjPageElement_creat(lv_obj_t *obj_Parent, uint
 			lv_obj_set_protect(pageDetailSet_switchReaction_labelSwRef[0], LV_PROTECT_POS);
 			lv_obj_align(pageDetailSet_switchReaction_labelSwRef[0], obj_Parent, LV_ALIGN_IN_TOP_LEFT, objPosOfs_x, cy);
 			pageDetailSet_switchReaction_labelSwRef[1] = lv_label_create(obj_Parent, pageDetailSet_switchReaction_labelSwRef[0]);
-			lv_label_set_text(pageDetailSet_switchReaction_labelSwRef[0], "switch_B: ");
+			lv_label_set_text(pageDetailSet_switchReaction_labelSwRef[1], "switch_B: ");
 			lv_obj_align(pageDetailSet_switchReaction_labelSwRef[1], pageDetailSet_switchReaction_labelSwRef[0], LV_ALIGN_OUT_BOTTOM_LEFT, 0, 15);
 			pageDetailSet_switchReaction_labelSwRef[2] = lv_label_create(obj_Parent, pageDetailSet_switchReaction_labelSwRef[0]);
 			lv_label_set_text(pageDetailSet_switchReaction_labelSwRef[2], "switch_C: ");
@@ -486,6 +486,27 @@ void lvGui_businessReuse_reactionObjPageElement_creat(lv_obj_t *obj_Parent, uint
 			(deviceDataPoint_valSetTemp[pageObjIst_local].devType_mulitSwitch_threeBit.swVal_bit3)?
 				(lv_sw_on(pageDetailSet_switchReaction_sw[2])):
 				(lv_sw_off(pageDetailSet_switchReaction_sw[2]));
+
+		}break;
+
+		case devTypeDef_thermostat:{
+
+			pageDetailSet_switchReaction_labelSwRef[0] = lv_label_create(obj_Parent, NULL);
+			lv_label_set_style(pageDetailSet_switchReaction_labelSwRef[0], &styleLabelRef_pageDetailSet);
+			lv_label_set_text(pageDetailSet_switchReaction_labelSwRef[0], "thermostat open: ");
+			lv_obj_set_protect(pageDetailSet_switchReaction_labelSwRef[0], LV_PROTECT_POS);
+			lv_obj_align(pageDetailSet_switchReaction_labelSwRef[0], obj_Parent, LV_ALIGN_IN_TOP_LEFT, objPosOfs_x, cy);
+			
+			pageDetailSet_switchReaction_sw[0] = lv_sw_create(obj_Parent, NULL);
+			lv_sw_set_action(pageDetailSet_switchReaction_sw[0], sw1FunCb_trigAction_switchReaction_valSet);
+			lv_obj_set_protect(pageDetailSet_switchReaction_sw[0], LV_PROTECT_POS);
+			lv_obj_align(pageDetailSet_switchReaction_sw[0], pageDetailSet_switchReaction_labelSwRef[0], LV_ALIGN_OUT_BOTTOM_MID, 0, 15);
+			lv_obj_set_free_num(pageDetailSet_switchReaction_sw[0], pageObjIst);
+			lv_obj_set_size(pageDetailSet_switchReaction_sw[0], objSize_switchReaction_sw[0], objSize_switchReaction_sw[1]);
+
+			(deviceDataPoint_valSetTemp[pageObjIst_local].devType_thermostat.devThermostat_running_en)?
+				(lv_sw_on(pageDetailSet_switchReaction_sw[0])):
+				(lv_sw_off(pageDetailSet_switchReaction_sw[0]));
 
 		}break;
 		
@@ -624,27 +645,6 @@ void lvGui_businessReuse_reactionObjPageElement_creat(lv_obj_t *obj_Parent, uint
 			lv_obj_set_free_num(pageDetailSet_switchReaction_btnm, pageObjIst);
 
 			lv_btnm_set_toggle(pageDetailSet_switchReaction_btnm, true, scenarioIstDisp_Temp - 1);	
-
-		}break;
-		
-		case devTypeDef_thermostat:{
-
-			pageDetailSet_switchReaction_labelSwRef[0] = lv_label_create(obj_Parent, NULL);
-			lv_label_set_style(pageDetailSet_switchReaction_labelSwRef[0], &styleLabelRef_pageDetailSet);
-			lv_label_set_text(pageDetailSet_switchReaction_labelSwRef[0], "thermostat open: ");
-			lv_obj_set_protect(pageDetailSet_switchReaction_labelSwRef[0], LV_PROTECT_POS);
-			lv_obj_align(pageDetailSet_switchReaction_labelSwRef[0], obj_Parent, LV_ALIGN_IN_TOP_LEFT, objPosOfs_x, cy);
-			
-			pageDetailSet_switchReaction_sw[0] = lv_sw_create(obj_Parent, NULL);
-			lv_sw_set_action(pageDetailSet_switchReaction_sw[0], sw1FunCb_trigAction_switchReaction_valSet);
-			lv_obj_set_protect(pageDetailSet_switchReaction_sw[0], LV_PROTECT_POS);
-			lv_obj_align(pageDetailSet_switchReaction_sw[0], pageDetailSet_switchReaction_labelSwRef[0], LV_ALIGN_OUT_RIGHT_MID, 5, 0);
-			lv_obj_set_free_num(pageDetailSet_switchReaction_sw[0], pageObjIst);
-			lv_obj_set_size(pageDetailSet_switchReaction_sw[0], objSize_switchReaction_sw[0], objSize_switchReaction_sw[1]);
-
-			(deviceDataPoint_valSetTemp[pageObjIst_local].devType_thermostat.devThermostat_running_en)?
-				(lv_sw_on(pageDetailSet_switchReaction_sw[0])):
-				(lv_sw_off(pageDetailSet_switchReaction_sw[0]));
 
 		}break;
 		

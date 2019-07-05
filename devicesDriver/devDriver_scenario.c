@@ -61,13 +61,17 @@ void devDriverBussiness_scnarioSwitch_dataParam_save(stt_scenarioSwitchData_nvsO
 
 		enum_dataSaveObj objScenario_saveIst = saveObj_devScenario_paramDats_2;
 
-		switch(param->dataRef.scenarioInsert_num){
+		switch(devDriverBussiness_scnarioSwitch_swVal2Insert(param->dataRef.scenarioInsert_num)){
 
-			case 0:objScenario_saveIst = saveObj_devScenario_paramDats_0;break;
-			case 1:objScenario_saveIst = saveObj_devScenario_paramDats_1;break;
-			case 2:
+			case 1:objScenario_saveIst = saveObj_devScenario_paramDats_0;break;
+			case 2:objScenario_saveIst = saveObj_devScenario_paramDats_1;break;
+			case 3:
 			default:objScenario_saveIst = saveObj_devScenario_paramDats_2;break;
 		}
+
+//		printf("devSum:%d, macList get halfA[0]:"MACSTR",swVal:%02X.\n", param->dataRef.scenarioDevice_sum,
+//																		 MAC2STR(param->dataHalf_A[0].unitDevMac),
+//																		 param->dataHalf_A[0].unitDevOpreat_val);
 
 		devSystemInfoLocalRecord_save(objScenario_saveIst, param);
 	}
@@ -76,6 +80,11 @@ void devDriverBussiness_scnarioSwitch_dataParam_save(stt_scenarioSwitchData_nvsO
 static void devDriverBussiness_scnarioSwitch_bussinessDataReq(uint8_t dstMac[6], uint8_t opreatVal){
 
 	mdf_err_t ret = MDF_OK;
+	
+	const mlink_httpd_type_t type_L8mesh_cst = {
+	
+		.format = MLINK_HTTPD_FORMAT_HEX,
+	};
 	mwifi_data_type_t data_type = {
 		
 		.compression = true,
@@ -86,6 +95,8 @@ static void devDriverBussiness_scnarioSwitch_bussinessDataReq(uint8_t dstMac[6],
 
 	meshDatsRequest_temp[0] = L8DEV_MESH_CMD_SCENARIO_CTRL;
 	meshDatsRequest_temp[1] = opreatVal;
+
+	memcpy(&(data_type.custom), &type_L8mesh_cst, sizeof(uint32_t));
 	
 	if(esp_mesh_get_layer() == MESH_ROOT){
 	
@@ -122,6 +133,10 @@ void devDriverBussiness_scnarioSwitch_scenarioStatusReales(stt_devDataPonitTyped
 
 			scenarioParamData = nvsDataOpreation_devScenarioParam_get(scenarioDataParam_ist);
 
+//			printf("devSum:%d, macList get halfA[0]:"MACSTR",swVal:%02X.\n", scenarioParamData->dataRef.scenarioDevice_sum,
+//																			 MAC2STR(scenarioParamData->dataHalf_A[0].unitDevMac),
+//										   				  	   				 scenarioParamData->dataHalf_A[0].unitDevOpreat_val);
+
 			if(scenarioParamData->dataRef.scenarioDevice_sum <= DEVSCENARIO_NVSDATA_HALFOPREAT_NUM){
 			
 				for(dataReq_loop = 0; dataReq_loop < scenarioParamData->dataRef.scenarioDevice_sum; dataReq_loop ++){
@@ -130,8 +145,8 @@ void devDriverBussiness_scnarioSwitch_scenarioStatusReales(stt_devDataPonitTyped
 																	  scenarioParamData->dataHalf_A[dataReq_loop].unitDevOpreat_val);
 				}
 			}
-			else{
-
+			else
+			{
 				uint8_t dataReqLoop_reserve = scenarioParamData->dataRef.scenarioDevice_sum - DEVSCENARIO_NVSDATA_HALFOPREAT_NUM;
 
 				for(dataReq_loop = 0; dataReq_loop < DEVSCENARIO_NVSDATA_HALFOPREAT_NUM; dataReq_loop ++){

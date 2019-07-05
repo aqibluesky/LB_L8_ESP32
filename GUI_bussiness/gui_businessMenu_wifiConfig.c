@@ -185,7 +185,7 @@ void lvGui_wifiConfig_bussiness_configComplete_tipsOver(void){
 void lvGui_wifiConfig_bussiness_configComplete_tipsDetect(void){
 
 	uint8_t msgQh_rptrDataWifiConfig = 0;
-	static bool devNetworkReserve_flg = false;
+	static bool devNetworkReserve_flg = true;
 
 	if(meshNetwork_connectReserve_IF_get()){
 

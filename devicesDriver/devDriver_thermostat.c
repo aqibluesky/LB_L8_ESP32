@@ -109,6 +109,9 @@ void devDriverBussiness_thermostatSwitch_periphStatusReales(stt_devDataPonitType
 		devParam_thermostat.deviceRunning_EN = 
 			param->devType_thermostat.devThermostat_running_en;
 
+		devParam_thermostat.workModeInNight_IF = 
+			param->devType_thermostat.devThermostat_nightMode_en;
+
 		devParam_thermostat.temperatureVal_target = 
 			param->devType_thermostat.devThermostat_tempratureTarget;
 	}

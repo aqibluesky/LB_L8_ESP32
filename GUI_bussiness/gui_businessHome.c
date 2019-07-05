@@ -218,8 +218,8 @@ static lv_obj_t *textBtn_tempAdjAdd_devThermostat = NULL;
 static lv_obj_t *btn_tempAdjCut_devThermostat = NULL;
 static lv_obj_t *textBtn_tempAdjCut_devThermostat = NULL;
 static lv_obj_t *sw_devRunningEnable_devThermostat = NULL;
+static lv_obj_t *cb_devEcoEnable_devThermostat = NULL;
 static lv_obj_t *preload_driverCalmDown_devScenario = NULL;
-
 
 //home界面进入菜单按键对象
 static lv_obj_t *btn_homeMenu = NULL;
@@ -278,6 +278,7 @@ static lv_style_t styleSliderBk_devThermostat_bg;
 static lv_style_t styleSliderBk_devThermostat_indic;
 static lv_style_t styleSliderBk_devThermostat_knob;
 static lv_style_t styleTextBtnBk_devThermostat_tempAdj;
+static lv_style_t styleCb_devThermostat_EcoEn;
 static lv_style_t stylePreload_devScenario_driverCalmDown;
 static lv_style_t styleBtn_devScenario_driverCalmDown;
 static lv_style_t styleImgBk_underlying;
@@ -334,6 +335,8 @@ static const struct _rollerDispConferenceTab_devHeater{
 	{heaterOpreatAct_closeAfter60Min,		3},
 	{heaterOpreatAct_closeAfterTimeCustom,	4},
 };
+
+static void local_guiHomeBussiness_thermostat_EcoCb_creat(lv_obj_t * obj_Parent, bool cbVal);
 
 static void usrApp_ctrlObjSlidlingTrig(void){
 
@@ -668,8 +671,9 @@ static lv_res_t funCb_btnActionClick_devCurtain_open(lv_obj_t *btn){
 	stt_devDataPonitTypedef devDataPoint = {0};
 
 	devDataPoint.devType_curtain.devCurtain_actEnumVal = 1;
+	devDataPoint.devType_curtain.devCurtain_actMethod = 0; //按钮方式
 
-	currentDev_dataPointSet(&devDataPoint, false, true, true);
+	currentDev_dataPointSet(&devDataPoint, false, mutualCtrlTrigIf_A, true);
 
 	lv_imgbtn_set_style(btn_bk_devCurtain_open, LV_BTN_STATE_REL, &styleBtn_devCurtain_statusPre);
 	lv_imgbtn_set_style(btn_bk_devCurtain_stop, LV_BTN_STATE_REL, &styleBtn_devCurtain_statusRel);
@@ -683,8 +687,9 @@ static lv_res_t funCb_btnActionClick_devCurtain_stop(lv_obj_t *btn){
 	stt_devDataPonitTypedef devDataPoint = {0};
 
 	devDataPoint.devType_curtain.devCurtain_actEnumVal = 2;
+	devDataPoint.devType_curtain.devCurtain_actMethod = 0; //按钮方式
 
-	currentDev_dataPointSet(&devDataPoint, false, true, true);
+	currentDev_dataPointSet(&devDataPoint, false, mutualCtrlTrigIf_A, true);
 
 	lv_imgbtn_set_style(btn_bk_devCurtain_open, LV_BTN_STATE_REL, &styleBtn_devCurtain_statusRel);
 	lv_imgbtn_set_style(btn_bk_devCurtain_stop, LV_BTN_STATE_REL, &styleBtn_devCurtain_statusPre);
@@ -698,8 +703,9 @@ static lv_res_t funCb_btnActionClick_devCurtain_close(lv_obj_t *btn){
 	stt_devDataPonitTypedef devDataPoint = {0};
 
 	devDataPoint.devType_curtain.devCurtain_actEnumVal = 4;
+	devDataPoint.devType_curtain.devCurtain_actMethod = 0; //按钮方式
 
-	currentDev_dataPointSet(&devDataPoint, false, true, true);
+	currentDev_dataPointSet(&devDataPoint, false, mutualCtrlTrigIf_A, true);
 
 	lv_imgbtn_set_style(btn_bk_devCurtain_open, LV_BTN_STATE_REL, &styleBtn_devCurtain_statusRel);
 	lv_imgbtn_set_style(btn_bk_devCurtain_stop, LV_BTN_STATE_REL, &styleBtn_devCurtain_statusRel);
@@ -718,7 +724,9 @@ static lv_res_t funCb_btnActionClick_bindingBtnA(lv_obj_t *btn){
 		
 		case devTypeDef_mulitSwOneBit:
 		case devTypeDef_mulitSwTwoBit:
-		case devTypeDef_mulitSwThreeBit:{
+		case devTypeDef_mulitSwThreeBit:
+		case devTypeDef_dimmer:
+		case devTypeDef_curtain:{
 
 			mutualCtrlTrigIf_A = !mutualCtrlTrigIf_A;
 			(mutualCtrlTrigIf_A)?
@@ -1158,8 +1166,9 @@ static lv_res_t funCb_slidAction_devCurtain_mainSlider(lv_obj_t *slider){
 	usrApp_ctrlObjSlidlingTrig(); //滑动冷却触发
 
 	devDataPoint.devType_curtain.devCurtain_actEnumVal = orbitalTimePercent;
+	devDataPoint.devType_curtain.devCurtain_actMethod = 1; //滑条方式
 
-	devDriverBussiness_curtainSwitch_periphStatusRealesBySlide(&devDataPoint);
+	currentDev_dataPointSet(&devDataPoint, false, mutualCtrlTrigIf_A, true);
 	sprintf(str_devParamPositionAdj_devCurtain, "%d%%", orbitalTimePercent);
 	lv_label_set_text(label_bk_devCurtain_positionAdj, str_devParamPositionAdj_devCurtain);
 
@@ -1230,18 +1239,36 @@ static lv_res_t funCb_swAction_devThermostat_runningEnable(lv_obj_t *sw){
 
 	stt_devDataPonitTypedef devDataPoint = {0};
 
-	devStatusRecordIF_paramGet(&devDataPoint);
+	currentDev_dataPointGet(&devDataPoint);
 
 	if(lv_sw_get_state(sw)){
 
 		usrApp_devThermostat_ctrlObj_reserveSet(true);
 		devDataPoint.devType_thermostat.devThermostat_running_en = true;
+		local_guiHomeBussiness_thermostat_EcoCb_creat(lv_obj_get_parent(sw), devDataPoint.devType_thermostat.devThermostat_nightMode_en);
 	}
 	else
 	{
 		usrApp_devThermostat_ctrlObj_reserveSet(false);
 		devDataPoint.devType_thermostat.devThermostat_running_en = false;
+		lv_obj_del(cb_devEcoEnable_devThermostat);
+		cb_devEcoEnable_devThermostat = NULL;
 	}
+
+	currentDev_dataPointSet(&devDataPoint, true, false, true);
+
+	return LV_RES_OK;
+}
+
+static lv_res_t funCb_cbChecked_devThermostat_EcoEnable(lv_obj_t *cb){
+
+	stt_devDataPonitTypedef devDataPoint = {0};
+
+	currentDev_dataPointGet(&devDataPoint);
+
+	(lv_cb_is_checked(cb))?
+		(devDataPoint.devType_thermostat.devThermostat_nightMode_en = 1):
+		(devDataPoint.devType_thermostat.devThermostat_nightMode_en = 0);
 
 	currentDev_dataPointSet(&devDataPoint, true, false, true);
 
@@ -1837,6 +1864,66 @@ static void pageActivity_infoRefreshLoop(void){
 									lv_btn_set_action(iconBtn_binding_C, LV_BTN_ACTION_CLICK, funCb_btnActionClick_bindingBtnC);
 									lv_obj_set_protect(iconBtn_binding_C, LV_PROTECT_POS);
 									lv_obj_align(iconBtn_binding_C, NULL, LV_ALIGN_OUT_RIGHT_MID, -35, -24);
+								}
+							}
+						}
+
+					}break;
+
+					case devTypeDef_curtain:{
+
+						if(btnBindingStatus_record[0] != btnBindingStatus_temp[0]){
+
+							if(btnBindingStatus_temp[0] == DEVICE_MUTUALGROUP_INVALID_INSERT_A ||
+							   btnBindingStatus_temp[0] == DEVICE_MUTUALGROUP_INVALID_INSERT_B){
+
+								if(iconBtn_binding_A != NULL){
+
+								   lv_obj_del(iconBtn_binding_A);
+								   iconBtn_binding_A = NULL;
+								}
+							}
+							else
+							{
+								if(iconBtn_binding_A == NULL){
+
+									iconBtn_binding_A = lv_imgbtn_create(imageBK, NULL);
+									mutualCtrlTrigIf_A = true;
+									lv_imgbtn_set_src(iconBtn_binding_A, LV_BTN_STATE_REL, &iconPage_binding);
+									lv_imgbtn_set_src(iconBtn_binding_A, LV_BTN_STATE_PR, &iconPage_unbinding);
+									lv_btn_set_action(iconBtn_binding_A, LV_BTN_ACTION_CLICK, funCb_btnActionClick_bindingBtnA);
+									lv_obj_set_protect(iconBtn_binding_A, LV_PROTECT_POS);
+									lv_obj_align(iconBtn_binding_A, slider_bk_devCurtain, LV_ALIGN_OUT_TOP_LEFT, 0, -5);
+								}
+							}
+						}
+
+					}break;
+
+					case devTypeDef_dimmer:{
+
+						if(btnBindingStatus_record[0] != btnBindingStatus_temp[0]){
+
+							if(btnBindingStatus_temp[0] == DEVICE_MUTUALGROUP_INVALID_INSERT_A ||
+							   btnBindingStatus_temp[0] == DEVICE_MUTUALGROUP_INVALID_INSERT_B){
+
+								if(iconBtn_binding_A != NULL){
+
+								   lv_obj_del(iconBtn_binding_A);
+								   iconBtn_binding_A = NULL;
+								}
+							}
+							else
+							{
+								if(iconBtn_binding_A == NULL){
+
+									iconBtn_binding_A = lv_imgbtn_create(imageBK, NULL);
+									mutualCtrlTrigIf_A = true;
+									lv_imgbtn_set_src(iconBtn_binding_A, LV_BTN_STATE_REL, &iconPage_binding);
+									lv_imgbtn_set_src(iconBtn_binding_A, LV_BTN_STATE_PR, &iconPage_unbinding);
+									lv_btn_set_action(iconBtn_binding_A, LV_BTN_ACTION_CLICK, funCb_btnActionClick_bindingBtnA);
+									lv_obj_set_protect(iconBtn_binding_A, LV_PROTECT_POS);
+									lv_obj_align(iconBtn_binding_A, slider_bk_devDimmer, LV_ALIGN_OUT_TOP_RIGHT, 0, -5);
 								}
 							}
 						}
@@ -2440,10 +2527,31 @@ void pageHome_buttonMain_imageRefresh(bool freshNoRecord){ //界面切换时调�
 					lv_label_set_text(labelTempInstTarget_devThermostat, tempDisp);
 					lv_lmeter_set_value(lmeterTempInstTarget_devThermostat, (uint8_t)devDataPoint.devType_thermostat.devThermostat_tempratureTarget);
 
-					(devDataPoint.devType_thermostat.devThermostat_running_en)?
-						lv_sw_on(sw_devRunningEnable_devThermostat):
-						lv_sw_off(sw_devRunningEnable_devThermostat);
 					usrApp_devThermostat_ctrlObj_reserveSet(devDataPoint.devType_thermostat.devThermostat_running_en);
+					if(devDataPoint.devType_thermostat.devThermostat_running_en){
+					
+						lv_sw_on(sw_devRunningEnable_devThermostat);
+
+						if(cb_devEcoEnable_devThermostat == NULL){
+
+							local_guiHomeBussiness_thermostat_EcoCb_creat(lv_obj_get_parent(sw_devRunningEnable_devThermostat), 
+																		  devDataPoint.devType_thermostat.devThermostat_nightMode_en);
+						}
+						else
+						{
+							lv_cb_set_checked(cb_devEcoEnable_devThermostat, 
+											  devDataPoint.devType_thermostat.devThermostat_nightMode_en);
+						}
+					}
+					else
+					{
+						if(cb_devEcoEnable_devThermostat){
+					
+							lv_obj_del(cb_devEcoEnable_devThermostat);
+							cb_devEcoEnable_devThermostat = NULL;
+						}
+						lv_sw_off(sw_devRunningEnable_devThermostat);
+					}
 
 				}break;
 	
@@ -2756,6 +2864,17 @@ static void local_guiHomeBussiness_fans(lv_obj_t * obj_Parent){
 	lv_obj_set_pos(btnm_bk_devFans, 20, 245);
 }
 
+static void local_guiHomeBussiness_thermostat_EcoCb_creat(lv_obj_t * obj_Parent, bool cbVal){
+
+	cb_devEcoEnable_devThermostat = lv_cb_create(obj_Parent, NULL);
+	lv_cb_set_action(cb_devEcoEnable_devThermostat, funCb_cbChecked_devThermostat_EcoEnable);
+	lv_obj_set_protect(cb_devEcoEnable_devThermostat, LV_PROTECT_POS);
+	lv_obj_align(cb_devEcoEnable_devThermostat, labelTempInstCurrent_devThermostat, LV_ALIGN_OUT_LEFT_BOTTOM, 30, -5);
+	lv_cb_set_style(cb_devEcoEnable_devThermostat, LV_CB_STYLE_BG, &styleCb_devThermostat_EcoEn);
+	lv_cb_set_text(cb_devEcoEnable_devThermostat, "ECO");
+	lv_cb_set_checked(cb_devEcoEnable_devThermostat, cbVal);
+}
+
 static void local_guiHomeBussiness_thermostat(lv_obj_t * obj_Parent){
 
 	stt_thermostat_actAttr devParam_thermostat = {0};
@@ -2831,9 +2950,20 @@ static void local_guiHomeBussiness_thermostat(lv_obj_t * obj_Parent){
 	lv_obj_set_size(sw_devRunningEnable_devThermostat, 55, 25);
 	lv_obj_set_protect(sw_devRunningEnable_devThermostat, LV_PROTECT_POS);
 	lv_obj_align(sw_devRunningEnable_devThermostat, lmeterTempInstTarget_devThermostat, LV_ALIGN_OUT_BOTTOM_MID, 0, -25);
-	(devParam_thermostat.deviceRunning_EN)?
-		lv_sw_on(sw_devRunningEnable_devThermostat):
+	if(devParam_thermostat.deviceRunning_EN){
+
+		lv_sw_on(sw_devRunningEnable_devThermostat);
+		local_guiHomeBussiness_thermostat_EcoCb_creat(obj_Parent, devParam_thermostat.workModeInNight_IF);
+	}
+	else
+	{
+		if(cb_devEcoEnable_devThermostat){
+
+			lv_obj_del(cb_devEcoEnable_devThermostat);
+			cb_devEcoEnable_devThermostat = NULL;
+		}
 		lv_sw_off(sw_devRunningEnable_devThermostat);
+	}
 	usrApp_devThermostat_ctrlObj_reserveSet(devParam_thermostat.deviceRunning_EN);
 	lv_sw_set_action(sw_devRunningEnable_devThermostat, funCb_swAction_devThermostat_runningEnable);
 
@@ -2942,7 +3072,7 @@ static void local_guiHomeBussiness_curtain(lv_obj_t * obj_Parent){
 	slider_bk_devCurtain = lv_slider_create(obj_Parent, NULL);
 	lv_obj_set_size(slider_bk_devCurtain, 190, 30);
 	lv_obj_set_protect(slider_bk_devCurtain, LV_PROTECT_POS);
-	lv_obj_set_pos(slider_bk_devCurtain, 25, 220);
+	lv_obj_set_pos(slider_bk_devCurtain, 25, 235);
 	lv_obj_set_top(slider_bk_devCurtain, true);
 	lv_slider_set_action(slider_bk_devCurtain, funCb_slidAction_devCurtain_mainSlider);
 	lv_bar_set_value(slider_bk_devCurtain, DEVICE_CURTAIN_ORBITAL_POSITION_MAX_VAL);
@@ -2955,7 +3085,7 @@ static void local_guiHomeBussiness_curtain(lv_obj_t * obj_Parent){
 	btn_bk_devCurtain_open = lv_imgbtn_create(obj_Parent, NULL);
 	lv_imgbtn_set_src(btn_bk_devCurtain_open, LV_BTN_STATE_REL, &iconPage_curtainOpen_rel);
 	lv_imgbtn_set_src(btn_bk_devCurtain_open, LV_BTN_STATE_PR, &iconPage_curtainOpen_rel);
-	lv_obj_set_pos(btn_bk_devCurtain_open, 160, 280);
+	lv_obj_set_pos(btn_bk_devCurtain_open, 165, 280);
 	lv_obj_set_top(btn_bk_devCurtain_open, true);
 	lv_obj_animate(btn_bk_devCurtain_open, LV_ANIM_FLOAT_RIGHT, 200, 0, NULL);
 	lv_imgbtn_set_style(btn_bk_devCurtain_open, LV_BTN_STATE_REL, &styleBtn_devCurtain_statusRel);
@@ -2964,7 +3094,7 @@ static void local_guiHomeBussiness_curtain(lv_obj_t * obj_Parent){
 	btn_bk_devCurtain_stop = lv_imgbtn_create(obj_Parent, NULL);
 	lv_imgbtn_set_src(btn_bk_devCurtain_stop, LV_BTN_STATE_REL, &iconPage_curtainPluse_rel);
 	lv_imgbtn_set_src(btn_bk_devCurtain_stop, LV_BTN_STATE_PR, &iconPage_curtainPluse_rel);
-	lv_obj_set_pos(btn_bk_devCurtain_stop, 100, 280);
+	lv_obj_set_pos(btn_bk_devCurtain_stop, 105, 280);
 	lv_obj_set_top(btn_bk_devCurtain_stop, true);
 	lv_obj_animate(btn_bk_devCurtain_stop, LV_ANIM_FLOAT_RIGHT, 200, 0, NULL);
 	lv_imgbtn_set_style(btn_bk_devCurtain_stop, LV_BTN_STATE_REL, &styleBtn_devCurtain_statusRel);
@@ -2973,7 +3103,7 @@ static void local_guiHomeBussiness_curtain(lv_obj_t * obj_Parent){
 	btn_bk_devCurtain_close = lv_imgbtn_create(obj_Parent, NULL);
 	lv_imgbtn_set_src(btn_bk_devCurtain_close, LV_BTN_STATE_REL, &iconPage_curtainClose_rel);
 	lv_imgbtn_set_src(btn_bk_devCurtain_close, LV_BTN_STATE_PR, &iconPage_curtainClose_rel);
-	lv_obj_set_pos(btn_bk_devCurtain_close, 20, 280);
+	lv_obj_set_pos(btn_bk_devCurtain_close, 25, 280);
 	lv_obj_set_top(btn_bk_devCurtain_close, true);
 	lv_obj_animate(btn_bk_devCurtain_close, LV_ANIM_FLOAT_RIGHT, 200, 0, NULL);
 	lv_imgbtn_set_style(btn_bk_devCurtain_close, LV_BTN_STATE_REL, &styleBtn_devCurtain_statusRel);
@@ -3709,6 +3839,13 @@ static void lvGuiHome_styleApplicationInit(void){
 	styleSliderBk_devThermostat_knob.body.radius = LV_RADIUS_CIRCLE;
 	styleSliderBk_devThermostat_knob.body.opa = LV_OPA_70;
 	styleSliderBk_devThermostat_knob.body.padding.ver = 10;
+
+	lv_style_copy(&styleCb_devThermostat_EcoEn, &lv_style_plain);
+	styleCb_devThermostat_EcoEn.body.border.part = LV_BORDER_NONE;
+	styleCb_devThermostat_EcoEn.body.empty = 1;
+	styleCb_devThermostat_EcoEn.text.color = LV_COLOR_MAKE(128, 255, 255);
+	styleCb_devThermostat_EcoEn.text.font = &lv_font_consola_19;
+	styleCb_devThermostat_EcoEn.text.opa = LV_OPA_100;
 
 	//控件风格设定：风扇开关档位按钮矩阵选定框背景、选中风格设置
 //    lv_style_copy(&styleBtnm_devFans_btnBg, &lv_style_plain);

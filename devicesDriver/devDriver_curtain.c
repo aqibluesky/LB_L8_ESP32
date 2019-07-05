@@ -267,7 +267,7 @@ bool IRAM_ATTR devDriverBussiness_curtainSwitch_devRunningDetect(void){ //开关
 	return devCurtainOrbitalTimeSave_IF;
 }
 
-void devDriverBussiness_curtainSwitch_periphStatusRealesByBtn(stt_devDataPonitTypedef *param){
+static void devDriverBussiness_curtainSwitch_periphStatusRealesByBtn(stt_devDataPonitTypedef *param){
 
 	devTypeDef_enum swCurrentDevType = currentDev_typeGet();
 
@@ -291,7 +291,7 @@ void devDriverBussiness_curtainSwitch_periphStatusRealesByBtn(stt_devDataPonitTy
 	}
 }
 
-void devDriverBussiness_curtainSwitch_periphStatusRealesBySlide(stt_devDataPonitTypedef *param){
+static void devDriverBussiness_curtainSwitch_periphStatusRealesBySlide(stt_devDataPonitTypedef *param){
 
 	devTypeDef_enum swCurrentDevType = currentDev_typeGet();
 
@@ -306,5 +306,11 @@ void devDriverBussiness_curtainSwitch_periphStatusRealesBySlide(stt_devDataPonit
 	}
 }
 
+void devDriverBussiness_curtainSwitch_periphStatusReales(stt_devDataPonitTypedef *param){
+
+	(param->devType_curtain.devCurtain_actMethod)?
+		(devDriverBussiness_curtainSwitch_periphStatusRealesBySlide(param)):
+		(devDriverBussiness_curtainSwitch_periphStatusRealesByBtn(param));
+}
 
 

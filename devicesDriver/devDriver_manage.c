@@ -62,6 +62,12 @@ void currentDev_dataPointSet(stt_devDataPonitTypedef *param, bool nvsRecord_IF, 
 
 		case devTypeDef_thermostat:{
 
+			uint8_t dataTemp = 0;
+
+			memcpy(&dataTemp, param, sizeof(uint8_t));
+
+			printf("thermostat datapoint set:%02X.\n", dataTemp);
+
 			devDriverBussiness_thermostatSwitch_periphStatusReales(param);
 
 		}break;
@@ -74,7 +80,7 @@ void currentDev_dataPointSet(stt_devDataPonitTypedef *param, bool nvsRecord_IF, 
 
 		case devTypeDef_curtain:{
 
-			devDriverBussiness_curtainSwitch_periphStatusRealesBySlide(param);
+			devDriverBussiness_curtainSwitch_periphStatusReales(param);
 
 		}break;
 		
@@ -144,6 +150,52 @@ void currentDev_dataPointGet(stt_devDataPonitTypedef *param){
 	memcpy(param, &lanbon_l8device_currentDataPoint, sizeof(stt_devDataPonitTypedef));
 }
 
+static void funcation_usrAppMutualCtrl_dataReq(uint8_t *dstDevMacList, uint8_t dstDevNum, uint8_t *dats, uint8_t dataLen){
+
+	mwifi_data_type_t data_type = {
+		
+		.compression = true,
+		.communicate = MWIFI_COMMUNICATE_MULTICAST,
+	};
+	const mlink_httpd_type_t type_L8mesh_cst = {
+
+		.format = MLINK_HTTPD_FORMAT_HEX,
+	};
+
+	mdf_err_t ret = MDF_OK;
+
+	memcpy(&data_type.custom, &type_L8mesh_cst, sizeof(uint32_t));
+
+	if(esp_mesh_get_layer() == MESH_ROOT){
+	
+		data_type.communicate = MWIFI_COMMUNICATE_MULTICAST;
+	
+		ret = mwifi_root_write(dstDevMacList, 
+							   dstDevNum, 
+							   &data_type, 
+							   dats, 
+							   dataLen, 
+							   true);
+		MDF_ERROR_CHECK(ret != MDF_OK, ret, "<%s> mutualCtrl mwifi_translate", mdf_err_to_name(ret));
+	}
+	else
+	{
+		uint8_t loop = 0;
+	
+		data_type.communicate = MWIFI_COMMUNICATE_UNICAST;
+	
+		for(loop = 0; loop < dstDevNum; loop ++){
+	
+			ret = mwifi_write(&dstDevMacList[loop * MWIFI_ADDR_LEN], 
+							  &data_type, 
+							  dats, 
+							  dataLen, 
+							  true);
+			MDF_ERROR_CHECK(ret != MDF_OK, ret, "<%s> mutualCtrl loop:%d mwifi_translate", mdf_err_to_name(ret), loop); 				
+		}
+	}
+}
+
 void funcation_usrAppMutualCtrlActionTrig(void){
 
 	stt_devMutualGroupParam devMutualCtrlGroup_dataTemp[DEVICE_MUTUAL_CTRL_GROUP_NUM] = {0};
@@ -188,10 +240,25 @@ void funcation_usrAppMutualCtrlActionTrig(void){
 			}
 			
 		}break;
+
+		case devTypeDef_curtain:{
+
+			if((devMutualCtrlGroup_dataTemp[0].mutualCtrlGroup_insert != DEVICE_MUTUALGROUP_INVALID_INSERT_A) &&
+			   (devMutualCtrlGroup_dataTemp[0].mutualCtrlGroup_insert != DEVICE_MUTUALGROUP_INVALID_INSERT_B)){
+			
+				mutualCtrlGroup_insert[0] = devMutualCtrlGroup_dataTemp[0].mutualCtrlGroup_insert;
+				(memcmp(&lanbon_l8device_currentDataPoint, &deviceDataPointRecord_lastTime, sizeof(stt_devDataPonitTypedef)))?
+					(mutualCtrlParam_data[0] = 1):
+					(mutualCtrlParam_data[0] = 0);
+			
+				mutualCtrlAction_trigIf = true;
+			}
+
+		}break;
+
 		case devTypeDef_dimmer:{}break;
 		case devTypeDef_fans:{}break;
 		case devTypeDef_scenario:{}break;
-		case devTypeDef_curtain:{}break;
 		case devTypeDef_heater:{}break;
 
 		default:break;
@@ -204,63 +271,61 @@ void funcation_usrAppMutualCtrlActionTrig(void){
 #define DEVICE_MUTUAL_CTRL_REQ_DATALEN	3
 
 			uint8_t dataMutualCtrlReq_temp[DEVICE_MUTUAL_CTRL_REQ_DATALEN] = {0};
-			mdf_err_t ret = MDF_OK;
-			mwifi_data_type_t data_type = {
-				
-				.compression = true,
-				.communicate = MWIFI_COMMUNICATE_MULTICAST,
-			};
-			mlink_httpd_type_t type_L8mesh_cst = {
-			
-				.format = MLINK_HTTPD_FORMAT_HEX,
-			};
 			uint8_t sta_mac[MWIFI_ADDR_LEN] = {0};
 
 			esp_wifi_get_mac(ESP_IF_WIFI_STA, sta_mac);
-			
-			memcpy(&data_type.custom, &type_L8mesh_cst, sizeof(uint32_t));
 
-			for(uint8_t loopMutual = 0; loopMutual < DEVICE_MUTUAL_CTRL_GROUP_NUM; loopMutual ++){
+			switch(lanbon_l8device_currentDevType){
 
-				if(!mutualCtrlGroup_insert[loopMutual])continue; //对应键位触发判断
+				case devTypeDef_mulitSwOneBit:
+				case devTypeDef_mulitSwTwoBit:
+				case devTypeDef_mulitSwThreeBit:{
 
-				dataMutualCtrlReq_temp[0] = L8DEV_MESH_CMD_MUTUAL_CTRL;
-				dataMutualCtrlReq_temp[1] = mutualCtrlGroup_insert[loopMutual];
-				dataMutualCtrlReq_temp[2] = mutualCtrlParam_data[loopMutual];	
-
-				usrAppMethod_mwifiMacAddrRemoveFromList(devMutualCtrlGroup_dataTemp[loopMutual].mutualCtrlDevMacList, 
-														devMutualCtrlGroup_dataTemp[loopMutual].mutualCtrlDevNum, 
-														sta_mac);
-				devMutualCtrlGroup_dataTemp[loopMutual].mutualCtrlDevNum --;
-
-				if(esp_mesh_get_layer() == MESH_ROOT){
-
-					data_type.communicate = MWIFI_COMMUNICATE_MULTICAST;
-
-					ret = mwifi_root_write(devMutualCtrlGroup_dataTemp[loopMutual].mutualCtrlDevMacList, 
-										   devMutualCtrlGroup_dataTemp[loopMutual].mutualCtrlDevNum, 
-										   &data_type, 
-										   dataMutualCtrlReq_temp, 
-										   sizeof(uint8_t) * DEVICE_MUTUAL_CTRL_REQ_DATALEN, 
-										   true);
-					MDF_ERROR_CHECK(ret != MDF_OK, ret, "<%s> mutualCtrl mwifi_translate", mdf_err_to_name(ret));
-				}
-				else
-				{
-					uint8_t loop = 0;
-				
-					data_type.communicate = MWIFI_COMMUNICATE_UNICAST;
-				
-					for(loop = 0; loop < devMutualCtrlGroup_dataTemp[loopMutual].mutualCtrlDevNum; loop ++){
-
-						ret = mwifi_write(&(devMutualCtrlGroup_dataTemp[loopMutual].mutualCtrlDevMacList[loop * MWIFI_ADDR_LEN]), 
-										  &data_type, 
-										  dataMutualCtrlReq_temp, 
-										  sizeof(uint8_t) * DEVICE_MUTUAL_CTRL_REQ_DATALEN, 
-										  true);
-						MDF_ERROR_CHECK(ret != MDF_OK, ret, "<%s> mutualCtrl loop:%d mwifi_translate", mdf_err_to_name(ret), loop);					
+					for(uint8_t loopMutual = 0; loopMutual < DEVICE_MUTUAL_CTRL_GROUP_NUM; loopMutual ++){
+					
+						if(!mutualCtrlGroup_insert[loopMutual])continue; //对应键位触发判断
+					
+						dataMutualCtrlReq_temp[0] = L8DEV_MESH_CMD_MUTUAL_CTRL;
+						dataMutualCtrlReq_temp[1] = mutualCtrlGroup_insert[loopMutual];
+						dataMutualCtrlReq_temp[2] = mutualCtrlParam_data[loopMutual];	
+					
+						usrAppMethod_mwifiMacAddrRemoveFromList(devMutualCtrlGroup_dataTemp[loopMutual].mutualCtrlDevMacList, 
+																devMutualCtrlGroup_dataTemp[loopMutual].mutualCtrlDevNum, 
+																sta_mac);
+						devMutualCtrlGroup_dataTemp[loopMutual].mutualCtrlDevNum --; //数目减掉自身
+					
+						funcation_usrAppMutualCtrl_dataReq(devMutualCtrlGroup_dataTemp[loopMutual].mutualCtrlDevMacList,
+														   devMutualCtrlGroup_dataTemp[loopMutual].mutualCtrlDevNum,
+														   dataMutualCtrlReq_temp,
+														   DEVICE_MUTUAL_CTRL_REQ_DATALEN);
 					}
-				}
+
+				}break;
+
+				case devTypeDef_curtain:{
+
+					dataMutualCtrlReq_temp[0] = L8DEV_MESH_CMD_MUTUAL_CTRL;
+					dataMutualCtrlReq_temp[1] = mutualCtrlGroup_insert[0];
+					memcpy(&dataMutualCtrlReq_temp[2], &lanbon_l8device_currentDataPoint, sizeof(uint8_t));
+
+					usrAppMethod_mwifiMacAddrRemoveFromList(devMutualCtrlGroup_dataTemp[0].mutualCtrlDevMacList, 
+															devMutualCtrlGroup_dataTemp[0].mutualCtrlDevNum, 
+															sta_mac);
+					devMutualCtrlGroup_dataTemp[0].mutualCtrlDevNum --; //数目减掉自身
+
+					funcation_usrAppMutualCtrl_dataReq(devMutualCtrlGroup_dataTemp[0].mutualCtrlDevMacList,
+													   devMutualCtrlGroup_dataTemp[0].mutualCtrlDevNum,
+													   dataMutualCtrlReq_temp,
+													   DEVICE_MUTUAL_CTRL_REQ_DATALEN);
+				}break;
+
+				case devTypeDef_dimmer:{}break;
+				case devTypeDef_fans:{}break;
+				case devTypeDef_scenario:{}break;
+				case devTypeDef_thermostat:{}break;
+				case devTypeDef_heater:{}break;
+
+				default:break;
 			}
 		}
 	}

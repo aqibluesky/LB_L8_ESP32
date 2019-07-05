@@ -97,8 +97,7 @@ uint8_t devCurtain_currentPositionPercentGet(void);
 stt_devCurtain_runningStatus devCurtain_currentRunningStatusGet(void);
 void devCurtain_runningParamGet(stt_devCurtain_runningParam *param);
 void devCurtain_ocrbitalTimeSaveInitiative(void);
-void devDriverBussiness_curtainSwitch_periphStatusRealesByBtn(stt_devDataPonitTypedef *param);
-void devDriverBussiness_curtainSwitch_periphStatusRealesBySlide(stt_devDataPonitTypedef *param);
+void devDriverBussiness_curtainSwitch_periphStatusReales(stt_devDataPonitTypedef *param);
 
 #ifdef __cplusplus
 } /* extern "C" */

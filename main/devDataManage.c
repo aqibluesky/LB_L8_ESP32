@@ -1012,9 +1012,9 @@ stt_scenarioSwitchData_nvsOpreat *nvsDataOpreation_devScenarioParam_get(uint8_t 
 
 	switch(scenarioIst){
 
-		case 0:nvsOpreat_key = DATA_DEVSCENARIO_DATA_PARAM_0;break;
-		case 1:nvsOpreat_key = DATA_DEVSCENARIO_DATA_PARAM_1;break;
-		case 2:
+		case 1:nvsOpreat_key = DATA_DEVSCENARIO_DATA_PARAM_0;break;
+		case 2:nvsOpreat_key = DATA_DEVSCENARIO_DATA_PARAM_1;break;
+		case 3:
 		default:nvsOpreat_key = DATA_DEVSCENARIO_DATA_PARAM_2;break;
 	}
 

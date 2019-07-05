@@ -457,10 +457,16 @@ void dataHandler_devNodeMeshData(const uint8_t *src_addr, const mlink_httpd_type
 						currentDev_dataPointSet((stt_devDataPonitTypedef *)&devDataPoint_hex, true, false, true);
 						
 					}break;
+
+					case devTypeDef_curtain:{
+
+						currentDev_dataPointSet((stt_devDataPonitTypedef *)&mutualCtrlGroupParam_data, true, false, true);
+
+					}break;
+					
 					case devTypeDef_dimmer:{}break;
 					case devTypeDef_fans:{}break;
 					case devTypeDef_scenario:{}break;
-					case devTypeDef_curtain:{}break;
 					case devTypeDef_heater:{}break;
 				
 					default:break;

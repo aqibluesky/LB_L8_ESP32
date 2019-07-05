@@ -134,7 +134,8 @@ extern "C" {
  
 	 struct{
  
-		 uint8_t devCurtain_actEnumVal;
+		 uint8_t devCurtain_actEnumVal:7;
+		 uint8_t devCurtain_actMethod:1; // 1:滑条， 0:按钮
 	 }devType_curtain;
 
 	 struct{

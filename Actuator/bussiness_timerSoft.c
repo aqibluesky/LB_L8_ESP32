@@ -287,6 +287,7 @@ static void bussiness_usrApp_actTrigTimer(void){
 														  dataValReaction_coef;
 
 								memcpy(&devStatusValSet_temp, &timerUp_trigVal, sizeof(uint8_t));
+								devStatusValSet_temp.devType_curtain.devCurtain_actMethod = 1; //位置定时，用滑条方式
 
 							}break;
 
