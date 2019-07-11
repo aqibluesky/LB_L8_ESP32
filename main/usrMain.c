@@ -1150,8 +1150,8 @@ static void trigger_handle_task(void *arg)
 
 //			ESP_LOGI(TAG, "decElecsum info report trig.");
 
-//			mqtt_rootDevRemoteDatatransLoop_elecSumReport();
-//			vTaskDelay(20 / portTICK_RATE_MS);
+			mqtt_rootDevRemoteDatatransLoop_elecSumReport();
+			vTaskDelay(20 / portTICK_RATE_MS);
 		}
 
 		vTaskDelay(2 / portTICK_RATE_MS);

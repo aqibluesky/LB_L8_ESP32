@@ -293,7 +293,7 @@ static uint8_t homepageThemeType_typeFlg = homepageThemeType_ouZhou;
 static char textStr_time[10] = {0};
 static char textStr_nodeNum[5] = {0}; 
 static char textStr_elecSum[20] = {0};
-static char textStr_temperature[10] = {0}; 
+static char textStr_temperature[13] = {0}; 
 
 static char str_sliderBkVal_devDimmer[5] = {0};
 static char str_devRunningRemind_devHeater[15] = {0};
@@ -301,9 +301,6 @@ static char str_devParamPositionCur_devCurtain[5] = {0};
 static char str_devParamPositionAdj_devCurtain[5] = {0};
 
 static uint8_t btnBindingStatus_record[DEVICE_MUTUAL_CTRL_GROUP_NUM] = {0}; //按钮绑定图标本地比较记录缓存
-static bool mutualCtrlTrigIf_A = false; 
-static bool mutualCtrlTrigIf_B = false;
-static bool mutualCtrlTrigIf_C = false;
 
 const char *btnm_str_devHeater[DEVICE_HEATER_OPREAT_ACTION_NUM + 1] = {"X", "A", "B", "C", "D", ""};
 const char *btnm_str_devFans[DEVICE_FANS_OPREAT_ACTION_NUM + 1] = {"C", "1", "2", "3", ""};
@@ -1153,7 +1150,7 @@ static lv_res_t funCb_slidAction_devDimmer_mainSlider(lv_obj_t *slider){
 
 	sprintf(str_sliderBkVal_devDimmer, "%d%%", lv_slider_get_value(slider));
 	lv_label_set_text(label_bk_devDimmer, str_sliderBkVal_devDimmer);
-	currentDev_dataPointSet(&devDataPoint, true, true, true);
+	currentDev_dataPointSet(&devDataPoint, true, mutualCtrlTrigIf_A, true);
 
 	return LV_RES_OK;
 }
@@ -1551,7 +1548,8 @@ static void pageActivity_infoRefreshLoop(void){
 
 							}break;
 							
-							case devTypeDef_mulitSwThreeBit:{
+							case devTypeDef_mulitSwThreeBit:
+							case devTypeDef_scenario:{
 								
 								if(rptr_msgQ_dmHandle.msgData_dmHandle.dataAb_hpCtrlObjTextChg.objChg_bitHold & (1 << 0))
 									lv_label_set_text(textBtn_meeting, (const char*)dataTextObjDisp_temp.dataBtnTextDisp[0]);
@@ -2174,7 +2172,7 @@ static void pageActivity_infoRefreshLoop(void){
 
 			if(!networkGetConnectFlg_record) //针对首次配网情况下
 				if(flgGet_gotRouterOrMeshConnect())
-					lvGui_wifiConfig_bussiness_configComplete_tipsTrig();
+//					lvGui_wifiConfig_bussiness_configComplete_tipsTrig();
 
 			lvGui_wifiConfig_bussiness_configComplete_tipsDetect(); //常规探测
 

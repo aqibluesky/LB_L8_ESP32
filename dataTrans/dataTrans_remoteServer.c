@@ -1200,7 +1200,7 @@ void mqtt_remoteDataTrans(uint8_t dtCmd, uint8_t *data, uint16_t dataLen){
 
 				dtCmd_identify = true;
 				sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_A"MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
-																			 				   (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdStatusGet]);
+																			 				   	 (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdStatusGet]);
 
 			}break;
 		
@@ -1208,28 +1208,28 @@ void mqtt_remoteDataTrans(uint8_t dtCmd, uint8_t *data, uint16_t dataLen){
 		
 				dtCmd_identify = true;
 				sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_A"MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
-																			 				   (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_normal]);
+																			 				   	 (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_normal]);
 			}break;
 			
 			case cmdQuery_delayTrig:{
 		
 				dtCmd_identify = true;
 				sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_A"MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
-																			 				   (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_delay]);
+																			 				   	 (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_delay]);
 			}break;
 		
 			case cmdQuery_greenMode:{
 		
 				dtCmd_identify = true;
 				sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_A"MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
-																			 				   (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_greenMode]);
+																			 				   	 (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_greenMode]);
 			}break;
 		
 			case cmdQuery_nightMode:{
 		
 				dtCmd_identify = true;
 				sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_A"MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
-																			 				   (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_nightMode]);
+																			 				   	 (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_nightMode]);
 			}break;
 		
 			default:break;

@@ -431,9 +431,6 @@ void dataHandler_devNodeMeshData(const uint8_t *src_addr, const mlink_httpd_type
 			if(mutualCtrlGroupCheck_res){
 
 				devTypeDef_enum currentDevType = currentDev_typeGet();
-				stt_devDataPonitTypedef devDataPoint = {0};
-				
-				currentDev_dataPointGet(&devDataPoint);
 
 				switch(currentDevType){
 				
@@ -441,30 +438,64 @@ void dataHandler_devNodeMeshData(const uint8_t *src_addr, const mlink_httpd_type
 					case devTypeDef_mulitSwTwoBit:
 					case devTypeDef_mulitSwThreeBit:{
 
-						uint8_t devDataPoint_hex = 0;
+						bool mutualCtrl_reserveIf = false;
 
-						memcpy(&devDataPoint_hex, &devDataPoint, sizeof(uint8_t));
-				
-						if(mutualCtrlGroupParam_data){
+						switch(mutualCtrlGroupNum){
 
-							devDataPoint_hex |= (1 << mutualCtrlGroupNum);
+							case 0:
+
+								if(mutualCtrlTrigIf_A)
+									mutualCtrl_reserveIf = true;
+
+							break;
+							
+							case 1:
+
+								if(mutualCtrlTrigIf_B)
+									mutualCtrl_reserveIf = true;
+
+							break;
+							
+							case 2:
+
+								if(mutualCtrlTrigIf_C)
+									mutualCtrl_reserveIf = true;
+
+							break;
+
+							default:break;
 						}
-						else
-						{
-							devDataPoint_hex &= ~(1 << mutualCtrlGroupNum);
-						}
 
-						currentDev_dataPointSet((stt_devDataPonitTypedef *)&devDataPoint_hex, true, false, true);
+						if(mutualCtrl_reserveIf){
+
+							uint8_t devDataPoint_hex = 0;
+							stt_devDataPonitTypedef devDataPoint = {0};
+
+							currentDev_dataPointGet(&devDataPoint);
+							memcpy(&devDataPoint_hex, &devDataPoint, sizeof(uint8_t));
+							
+							if(mutualCtrlGroupParam_data){
+							
+								devDataPoint_hex |= (1 << mutualCtrlGroupNum);
+							}
+							else
+							{
+								devDataPoint_hex &= ~(1 << mutualCtrlGroupNum);
+							}
+
+							currentDev_dataPointSet((stt_devDataPonitTypedef *)&devDataPoint_hex, true, false, true);
+						}
 						
 					}break;
 
-					case devTypeDef_curtain:{
+					case devTypeDef_curtain:
+					case devTypeDef_dimmer:{
 
-						currentDev_dataPointSet((stt_devDataPonitTypedef *)&mutualCtrlGroupParam_data, true, false, true);
+						if(mutualCtrlTrigIf_A)
+							currentDev_dataPointSet((stt_devDataPonitTypedef *)&mutualCtrlGroupParam_data, true, false, true);
 
 					}break;
 					
-					case devTypeDef_dimmer:{}break;
 					case devTypeDef_fans:{}break;
 					case devTypeDef_scenario:{}break;
 					case devTypeDef_heater:{}break;

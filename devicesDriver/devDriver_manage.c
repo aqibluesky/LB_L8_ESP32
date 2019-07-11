@@ -62,11 +62,10 @@ void currentDev_dataPointSet(stt_devDataPonitTypedef *param, bool nvsRecord_IF, 
 
 		case devTypeDef_thermostat:{
 
-			uint8_t dataTemp = 0;
+//			uint8_t dataTemp = 0;
 
-			memcpy(&dataTemp, param, sizeof(uint8_t));
-
-			printf("thermostat datapoint set:%02X.\n", dataTemp);
+//			memcpy(&dataTemp, param, sizeof(uint8_t));
+//			printf("thermostat datapoint set:%02X.\n", dataTemp);
 
 			devDriverBussiness_thermostatSwitch_periphStatusReales(param);
 
@@ -241,22 +240,19 @@ void funcation_usrAppMutualCtrlActionTrig(void){
 			
 		}break;
 
-		case devTypeDef_curtain:{
+		case devTypeDef_curtain:
+		case devTypeDef_dimmer:{
 
 			if((devMutualCtrlGroup_dataTemp[0].mutualCtrlGroup_insert != DEVICE_MUTUALGROUP_INVALID_INSERT_A) &&
 			   (devMutualCtrlGroup_dataTemp[0].mutualCtrlGroup_insert != DEVICE_MUTUALGROUP_INVALID_INSERT_B)){
 			
 				mutualCtrlGroup_insert[0] = devMutualCtrlGroup_dataTemp[0].mutualCtrlGroup_insert;
-				(memcmp(&lanbon_l8device_currentDataPoint, &deviceDataPointRecord_lastTime, sizeof(stt_devDataPonitTypedef)))?
-					(mutualCtrlParam_data[0] = 1):
-					(mutualCtrlParam_data[0] = 0);
 			
 				mutualCtrlAction_trigIf = true;
 			}
 
 		}break;
 
-		case devTypeDef_dimmer:{}break;
 		case devTypeDef_fans:{}break;
 		case devTypeDef_scenario:{}break;
 		case devTypeDef_heater:{}break;
@@ -302,7 +298,8 @@ void funcation_usrAppMutualCtrlActionTrig(void){
 
 				}break;
 
-				case devTypeDef_curtain:{
+				case devTypeDef_curtain:
+				case devTypeDef_dimmer:{
 
 					dataMutualCtrlReq_temp[0] = L8DEV_MESH_CMD_MUTUAL_CTRL;
 					dataMutualCtrlReq_temp[1] = mutualCtrlGroup_insert[0];
@@ -319,7 +316,6 @@ void funcation_usrAppMutualCtrlActionTrig(void){
 													   DEVICE_MUTUAL_CTRL_REQ_DATALEN);
 				}break;
 
-				case devTypeDef_dimmer:{}break;
 				case devTypeDef_fans:{}break;
 				case devTypeDef_scenario:{}break;
 				case devTypeDef_thermostat:{}break;

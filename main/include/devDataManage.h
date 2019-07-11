@@ -331,7 +331,7 @@ typedef struct{
 }stt_scenarioSwitchData_nvsOpreatRef; 
 /*单个场景数据最大存储长度：sizeof(stt_scenarioSwitchData_nvsOpreatRef) + 128 + 128*/ //数据说明头 + 数据上半部 + 数据下半部
 
-#define DEVSCENARIO_NVSDATA_HALFOPREAT_NUM	1 //场景数据半部存储数量
+#define DEVSCENARIO_NVSDATA_HALFOPREAT_NUM	128 //场景数据半部存储数量
 typedef struct{
 
 	stt_scenarioSwitchData_nvsOpreatRef dataRef;
@@ -414,6 +414,10 @@ typedef struct struct_nodeDev_hbDataManage{
  * GLOBAL PROTOTYPES
  **********************/
 extern xQueueHandle msgQh_dataManagementHandle;
+
+extern bool mutualCtrlTrigIf_A; 
+extern bool mutualCtrlTrigIf_B;
+extern bool mutualCtrlTrigIf_C;
 
 //extern uint8_t *dataPtr_btnTextImg_sw_A;
 //extern uint8_t *dataPtr_btnTextImg_sw_B;

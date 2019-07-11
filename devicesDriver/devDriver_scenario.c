@@ -69,9 +69,17 @@ void devDriverBussiness_scnarioSwitch_dataParam_save(stt_scenarioSwitchData_nvsO
 			default:objScenario_saveIst = saveObj_devScenario_paramDats_2;break;
 		}
 
-//		printf("devSum:%d, macList get halfA[0]:"MACSTR",swVal:%02X.\n", param->dataRef.scenarioDevice_sum,
-//																		 MAC2STR(param->dataHalf_A[0].unitDevMac),
-//																		 param->dataHalf_A[0].unitDevOpreat_val);
+		printf("devSum:%d, macList set halfA[0]:"MACSTR",swVal:%02X.\n", param->dataRef.scenarioDevice_sum,
+																		 MAC2STR(param->dataHalf_A[0].unitDevMac),
+																		 param->dataHalf_A[0].unitDevOpreat_val);
+
+		printf("devSum:%d, macList set halfA[1]:"MACSTR",swVal:%02X.\n", param->dataRef.scenarioDevice_sum,
+																		 MAC2STR(param->dataHalf_A[1].unitDevMac),
+																		 param->dataHalf_A[1].unitDevOpreat_val);
+
+		printf("devSum:%d, macList set halfA[2]:"MACSTR",swVal:%02X.\n", param->dataRef.scenarioDevice_sum,
+																		 MAC2STR(param->dataHalf_A[2].unitDevMac),
+																		 param->dataHalf_A[2].unitDevOpreat_val);
 
 		devSystemInfoLocalRecord_save(objScenario_saveIst, param);
 	}
@@ -133,9 +141,9 @@ void devDriverBussiness_scnarioSwitch_scenarioStatusReales(stt_devDataPonitTyped
 
 			scenarioParamData = nvsDataOpreation_devScenarioParam_get(scenarioDataParam_ist);
 
-//			printf("devSum:%d, macList get halfA[0]:"MACSTR",swVal:%02X.\n", scenarioParamData->dataRef.scenarioDevice_sum,
-//																			 MAC2STR(scenarioParamData->dataHalf_A[0].unitDevMac),
-//										   				  	   				 scenarioParamData->dataHalf_A[0].unitDevOpreat_val);
+			printf("devSum:%d, macList get halfA[0]:"MACSTR",swVal:%02X.\n", scenarioParamData->dataRef.scenarioDevice_sum,
+																			 MAC2STR(scenarioParamData->dataHalf_A[0].unitDevMac),
+										   				  	   				 scenarioParamData->dataHalf_A[0].unitDevOpreat_val);
 
 			if(scenarioParamData->dataRef.scenarioDevice_sum <= DEVSCENARIO_NVSDATA_HALFOPREAT_NUM){
 			

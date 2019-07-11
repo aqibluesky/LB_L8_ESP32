@@ -38,6 +38,10 @@ uint8_t devRestartDelay_counter = COUNTER_DISENABLE_MASK_SPECIALVAL_U8; //设备
 
 xQueueHandle msgQh_dataManagementHandle = NULL; //用于通知数据已被修改成功
 
+bool mutualCtrlTrigIf_A = false; 
+bool mutualCtrlTrigIf_B = false;
+bool mutualCtrlTrigIf_C = false;
+
 //uint8_t *dataPtr_btnTextImg_sw_A = NULL;
 //uint8_t *dataPtr_btnTextImg_sw_B = NULL;
 //uint8_t *dataPtr_btnTextImg_sw_C = NULL;
@@ -751,8 +755,10 @@ uint8_t *L8devElecsumInfoGet(stt_nodeDev_hbDataManage *pHead){
 
 	}else{
 
+		const uint8_t dataPackHead_length = sizeof(uint8_t) * 1 + sizeof(stt_timeZone) * 1; //设备数量描述占1 Byte，时区占2bytes，本身设备状态信息占对应结构体 size Byte
 		uint8_t devList_num = (uint8_t)esp_mesh_get_total_node_num();
 		uint8_t loopCount = 0;
+		stt_timeZone devTimeZone_paramTemp = {0};
 		stt_nodeDev_hbDataManage *pAbove = pHead;
 		stt_devUnitElecsumReport elecsumInfo_dataUnitTemp = {0};
 		uint8_t devSelfMac[MWIFI_ADDR_LEN] = {0};
@@ -760,7 +766,7 @@ uint8_t *L8devElecsumInfoGet(stt_nodeDev_hbDataManage *pHead){
 		while(listNodeDevOpreating_Flg)vTaskDelay(1 / portTICK_PERIOD_MS);		
 		listNodeDevOpreating_Flg = true;
 
-		devElecsumInfo = (uint8_t *)os_zalloc((sizeof(uint8_t) * 1) + (sizeof(stt_devUnitElecsumReport) * (devList_num + 1))); //设备数量描述占1 Byte，本身设备状态信息占对应结构体 size Byte
+		devElecsumInfo = (uint8_t *)os_zalloc((sizeof(uint8_t) * dataPackHead_length) + (sizeof(stt_devUnitElecsumReport) * (devList_num + 1))); //数据包头 + 所有数量节点的属性数据
 
 		esp_wifi_get_mac(ESP_IF_WIFI_STA, devSelfMac);
 
@@ -770,7 +776,7 @@ uint8_t *L8devElecsumInfoGet(stt_nodeDev_hbDataManage *pHead){
 			   sizeof(uint8_t) * MWIFI_ADDR_LEN);
 		devDriverBussiness_elecMeasure_valElecsumGetByHex(&(elecsumInfo_dataUnitTemp.nodeDev_dataElecsum));
 		
-		memcpy(&devElecsumInfo[sizeof(stt_devStatusInfoResp) * loopCount + 1], //下标0为设备数量，所以从下标为 loopCount+1
+		memcpy(&devElecsumInfo[sizeof(stt_devStatusInfoResp) * loopCount + dataPackHead_length], //数据对应下标偏移量，即数据包头长度dataPackHead_length
 			   &elecsumInfo_dataUnitTemp, 
 			   sizeof(stt_devUnitElecsumReport));
 
@@ -791,7 +797,7 @@ uint8_t *L8devElecsumInfoGet(stt_nodeDev_hbDataManage *pHead){
 				   sizeof(stt_devUnitElecsumReport));
 			
 			//单位缓存填装进总数据队列缓存
-			memcpy(&devElecsumInfo[sizeof(stt_devStatusInfoResp) * loopCount + 1], //下标0为设备数量，所以从下标为 loopCount+1
+			memcpy(&devElecsumInfo[sizeof(stt_devStatusInfoResp) * loopCount + dataPackHead_length], //数据对应下标偏移量，即数据包头长度dataPackHead_length
 				   &elecsumInfo_dataUnitTemp, 
 				   sizeof(stt_devUnitElecsumReport));
 
@@ -799,7 +805,10 @@ uint8_t *L8devElecsumInfoGet(stt_nodeDev_hbDataManage *pHead){
 			loopCount ++;
 		}
 
-		devElecsumInfo[0] = loopCount;
+		deviceParamGet_timeZone(&devTimeZone_paramTemp);
+
+		devElecsumInfo[0] = loopCount; //设备数量
+		memcpy(&devElecsumInfo[1], &devTimeZone_paramTemp, sizeof(stt_timeZone));//设备时区
 
 		listNodeDevOpreating_Flg = false;
 
@@ -1021,6 +1030,8 @@ stt_scenarioSwitchData_nvsOpreat *nvsDataOpreation_devScenarioParam_get(uint8_t 
 	ESP_ERROR_CHECK( nvs_flash_init_partition(NVS_DATA_L8_PARTITION_NAME));
     ESP_ERROR_CHECK( nvs_open_from_partition(NVS_DATA_L8_PARTITION_NAME, NVS_DATA_SYSINFO_RECORD, NVS_READWRITE, &handle) );
 
+//	printf("nvsOpreat_key:%s.\n", nvsOpreat_key);
+	
 	dataLength = sizeof(stt_scenarioSwitchData_nvsOpreat);
 	err = nvs_get_blob(handle, nvsOpreat_key, dataParam, &dataLength);
 	if(err == ESP_OK){

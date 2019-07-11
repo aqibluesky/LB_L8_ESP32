@@ -16,21 +16,37 @@
 
 #include "devDriver_manage.h"
 
-#define LEDC_DEV_RESERVE_NUM   					(6)
+#if(L8_DEVICE_DEVELOPE_VERSION_DEF == L8_DEVICE_DEVELOPE_VERSION_A)
+
+ #define LEDC_DEV_RESERVE_NUM   				(6)
+ #define DEVLEDC_PIN_ATMOSPHERE_LIGHT_LRen		(26)
+ #define DEVLEDC_PIN_ATMOSPHERE_LIGHT_UDen		(33)
+ #define DEVLEDC_PIN_ATMOSPHERE_LIGHT_R			(16)
+ #define DEVLEDC_PIN_ATMOSPHERE_LIGHT_B			(17)
+
+ #define DEVLEDC_ATMOSPHERELED_BRIGHTNESSSET(lr,ud)	 ledc_set_duty(devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_LRen].speed_mode, devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_LRen].channel, DEVLEDC_DUTY_DEFAULT - (lr * DEVLEDC_COLOR_DUTY_DIV));\
+													 ledc_update_duty(devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_LRen].speed_mode, devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_LRen].channel);\
+													 ledc_set_duty(devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_UDen].speed_mode, devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_UDen].channel, DEVLEDC_DUTY_DEFAULT - (ud * DEVLEDC_COLOR_DUTY_DIV));\
+													 ledc_update_duty(devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_UDen].speed_mode, devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_UDen].channel)
+													 
+#elif(L8_DEVICE_DEVELOPE_VERSION_DEF == L8_DEVICE_DEVELOPE_VERSION_B)
+
+ #define LEDC_DEV_RESERVE_NUM				    (4)
+ #define DEVLEDC_PIN_ATMOSPHERE_LIGHT_R		    (26)
+ #define DEVLEDC_PIN_ATMOSPHERE_LIGHT_B		    (33)
+
+#endif
+
+#define DEVLEDC_PIN_ATMOSPHERE_LIGHT_G			(32)
+#define DEVLEDC_PIN_SCREEN_BK_LIGHT				(5)
 #define DEVLEDC_TIMER							LEDC_TIMER_0
 #define DEVLEDC_MODE           					LEDC_HIGH_SPEED_MODE
-#define DEVLEDC_PIN_ATMOSPHERE_LIGHT_R			(16)
-#define DEVLEDC_PIN_ATMOSPHERE_LIGHT_G			(32)
-#define DEVLEDC_PIN_ATMOSPHERE_LIGHT_B			(17)
-#define DEVLEDC_PIN_ATMOSPHERE_LIGHT_LRen		(26)
-#define DEVLEDC_PIN_ATMOSPHERE_LIGHT_UDen		(33)
-#define DEVLEDC_PIN_SCREEN_BK_LIGHT				(5)
 #define DEVLEDC_CHANNEL_ATMOSPHERE_LIGHT_R		LEDC_CHANNEL_0
 #define DEVLEDC_CHANNEL_ATMOSPHERE_LIGHT_G		LEDC_CHANNEL_1
 #define DEVLEDC_CHANNEL_ATMOSPHERE_LIGHT_B		LEDC_CHANNEL_2
-#define DEVLEDC_CHANNEL_ATMOSPHERE_LIGHT_LRen	LEDC_CHANNEL_3
-#define DEVLEDC_CHANNEL_ATMOSPHERE_LIGHT_UDen	LEDC_CHANNEL_4
-#define DEVLEDC_CHANNEL_SCREEN_BK_LIGHT			LEDC_CHANNEL_5
+#define DEVLEDC_CHANNEL_SCREEN_BK_LIGHT			LEDC_CHANNEL_3
+#define DEVLEDC_CHANNEL_ATMOSPHERE_LIGHT_LRen	LEDC_CHANNEL_4
+#define DEVLEDC_CHANNEL_ATMOSPHERE_LIGHT_UDen	LEDC_CHANNEL_5
 #define DEVLEDC_DUTY_DEFAULT      				(8000) 	//基础占空比
 #define DEVLEDC_SCREEN_BRIGHTNESS_DUTY_BASIC	(DEVLEDC_DUTY_DEFAULT / 10 * 1) //最低亮度分度
 #define DEVLEDC_SCREEN_BRIGHTNESS_DUTY_LIMITADJ	(DEVLEDC_DUTY_DEFAULT - DEVLEDC_SCREEN_BRIGHTNESS_DUTY_BASIC) //亮度占空比调节范围
@@ -43,9 +59,9 @@
 #define DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_R		0
 #define DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_G		1
 #define DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_B		2
-#define DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_LRen	3
-#define DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_UDen	4
-#define DEVLEDC_PARAMNUM_SCREEN_BK_LIGHT		5
+#define DEVLEDC_PARAMNUM_SCREEN_BK_LIGHT		3
+#define DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_LRen	4
+#define DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_UDen	5
 
 #define DEVLEDC_DRIVER_REFRESH_TIME_PERIOD_COEFFI	(1000 / DEVDRIVER_DEVSELFLIGHT_REFRESH_PERIOD)
 
@@ -64,11 +80,6 @@
             										ledc_fade_start(devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_G].speed_mode, devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_G].channel, LEDC_FADE_NO_WAIT);\
 													ledc_set_fade_with_time(devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_B].speed_mode, devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_B].channel, b * DEVLEDC_COLOR_DUTY_DIV, DEVDRIVER_DEVSELFLIGHT_REFRESH_PERIOD - 50);\
             										ledc_fade_start(devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_B].speed_mode, devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_B].channel, LEDC_FADE_NO_WAIT)
-
-#define DEVLEDC_ATMOSPHERELED_BRIGHTNESSSET(lr,ud)	ledc_set_duty(devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_LRen].speed_mode, devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_LRen].channel, DEVLEDC_DUTY_DEFAULT - (lr * DEVLEDC_COLOR_DUTY_DIV));\
-            										ledc_update_duty(devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_LRen].speed_mode, devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_LRen].channel);\
-													ledc_set_duty(devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_UDen].speed_mode, devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_UDen].channel, DEVLEDC_DUTY_DEFAULT - (ud * DEVLEDC_COLOR_DUTY_DIV));\
-            										ledc_update_duty(devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_UDen].speed_mode, devLight_lecCfgParam[DEVLEDC_PARAMNUM_ATMOSPHERE_LIGHT_UDen].channel)
 
 extern EventGroupHandle_t xEventGp_infraActDetect;
 
@@ -134,6 +145,15 @@ static ledc_channel_config_t devLight_lecCfgParam[LEDC_DEV_RESERVE_NUM] = {
 		.timer_sel	= DEVLEDC_TIMER
 	},
 	{
+		.channel	= DEVLEDC_CHANNEL_SCREEN_BK_LIGHT,
+		.duty		= 0,
+		.gpio_num	= DEVLEDC_PIN_SCREEN_BK_LIGHT,
+		.speed_mode = DEVLEDC_MODE,
+		.hpoint 	= 0,
+		.timer_sel	= DEVLEDC_TIMER
+	},
+#if(L8_DEVICE_DEVELOPE_VERSION_DEF == L8_DEVICE_DEVELOPE_VERSION_A)
+	{
 		.channel	= DEVLEDC_CHANNEL_ATMOSPHERE_LIGHT_LRen,
 		.duty		= 0,
 		.gpio_num	= DEVLEDC_PIN_ATMOSPHERE_LIGHT_LRen,
@@ -149,14 +169,7 @@ static ledc_channel_config_t devLight_lecCfgParam[LEDC_DEV_RESERVE_NUM] = {
 		.hpoint 	= 0,
 		.timer_sel	= DEVLEDC_TIMER
 	},
-	{
-		.channel	= DEVLEDC_CHANNEL_SCREEN_BK_LIGHT,
-		.duty		= 0,
-		.gpio_num	= DEVLEDC_PIN_SCREEN_BK_LIGHT,
-		.speed_mode = DEVLEDC_MODE,
-		.hpoint 	= 0,
-		.timer_sel	= DEVLEDC_TIMER
-	},
+#endif
 };
 
 static void devScreenBkLight_brightnessSet(enum_screenBkLight_status val){
@@ -236,7 +249,7 @@ void deviceHardwareLight_Init(void){
 	screenBkLight_initializedFLG = true; //初始化完成标志置位
 	devScreenBkLight_brightnessSet(screenBkLight_statusFull);
 
-	DEVLEDC_ATMOSPHERELED_BRIGHTNESSSET(240, 200);	
+//	DEVLEDC_ATMOSPHERELED_BRIGHTNESSSET(240, 200);	
 }
 
 enum_screenBkLight_status devScreenBkLight_brightnessGet(void){

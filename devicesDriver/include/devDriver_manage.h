@@ -33,6 +33,12 @@ extern "C" {
 /*********************
  *      DEFINES
  *********************/
+#define L8_DEVICE_DEVELOPE_VERSION_A	0x0A
+#define L8_DEVICE_DEVELOPE_VERSION_B	0x0B
+#define L8_DEVICE_DEVELOPE_VERSION_C	0x0C
+
+#define L8_DEVICE_DEVELOPE_VERSION_DEF	L8_DEVICE_DEVELOPE_VERSION_B
+
 #define DEVICE_TYPE_LIST_NUM			9
 #define HOMEPAGE_THEMETYPE_NUM			3
 
