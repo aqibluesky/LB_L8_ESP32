@@ -446,8 +446,8 @@ static void lvGuiSettingSet_objStyle_Init(void){
 
 void lvGui_businessMenu_settingSet(lv_obj_t * obj_Parent){
 
-	const uint16_t obj_animate_time = 200;
-	const uint16_t obj_animate_delay = 150;
+	const uint16_t obj_animate_time = 150;
+	const uint16_t obj_animate_delay = 100;
 	uint16_t obj_animate_delayBasic = 0;
 
 	uint8_t loop = 0;
@@ -467,6 +467,7 @@ void lvGui_businessMenu_settingSet(lv_obj_t * obj_Parent){
 	lv_obj_set_pos(menuBtnChoIcon_fun_back, 8, 45);
 	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
 	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
+	lv_obj_set_click(menuBtnChoIcon_fun_back, false);
 
 	page_funSetOption = lv_page_create(lv_scr_act(), NULL);
 	lv_obj_set_size(page_funSetOption, 240, 320);
@@ -690,8 +691,15 @@ void lvGui_businessMenu_settingSet(lv_obj_t * obj_Parent){
 	lv_obj_animate(btnTimeAdd_screenLightTime, LV_ANIM_FLOAT_LEFT, obj_animate_time, obj_animate_delayBasic, NULL);
 	lv_obj_animate(btnTimeCut_screenLightTime, LV_ANIM_FLOAT_LEFT, obj_animate_time, obj_animate_delayBasic, NULL);
 
-	vTaskDelay(500 / portTICK_RATE_MS);
-	lv_page_focus(page_funSetOption, btnTimeCut_screenLightTime, 1200);
+	vTaskDelay(50 / portTICK_RATE_MS);	
+	lv_obj_refresh_style(page_funSetOption);
+
+	vTaskDelay((obj_animate_delay * 3) / portTICK_RATE_MS);
+	lv_page_focus(page_funSetOption, btnTimeCut_screenLightTime, obj_animate_time * 5);
+	vTaskDelay((obj_animate_time * 10) / portTICK_RATE_MS);
+	lv_page_focus(page_funSetOption, textSettingA_deviceType, obj_animate_time * 3);
+
+	lv_obj_set_click(menuBtnChoIcon_fun_back, true);
 }
 
 

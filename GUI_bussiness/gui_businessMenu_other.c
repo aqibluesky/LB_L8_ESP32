@@ -112,13 +112,13 @@ void lvGuiOther_devInfoRefresh(void){
 	esp_wifi_get_config(ESP_IF_WIFI_STA, &wifi_config);
 
 	memset(textDisp_temp, 0, sizeof(char) * textTempSize);
-	sprintf(textDisp_temp, "System time: \n  #0080FF %04d/%02d/%02d -%s %02d:%02d:%02d#\n", devParamTemp_infoData.time_Year,
-																	     			 		devParamTemp_infoData.time_Month,
-																	     		 			devParamTemp_infoData.time_Day,
-																	     		 			strInfoWeek_tab[devParamTemp_infoData.time_Week - 1],
-																	     		 			devParamTemp_infoData.time_Hour,
-																	     		 			devParamTemp_infoData.time_Minute,
-																	     		 			devParamTemp_infoData.time_Second);
+	sprintf(textDisp_temp, "System time: \n  #0080FF %04d/%02d/%02d -%s#\n#0090FF   %02d:%02d:%02d#\n", devParamTemp_infoData.time_Year,
+																	     			 		   			devParamTemp_infoData.time_Month,
+																	     		 			   			devParamTemp_infoData.time_Day,
+																	     		 			   			strInfoWeek_tab[devParamTemp_infoData.time_Week - 1],
+																	     		 			   			devParamTemp_infoData.time_Hour,
+																	     		 			   			devParamTemp_infoData.time_Minute,
+																	     		 			   			devParamTemp_infoData.time_Second);
 	lv_label_set_text(labelSysInfo_devTime, textDisp_temp);
 	
 	memset(textDisp_temp, 0, sizeof(char) * textTempSize);
@@ -212,7 +212,7 @@ void lvGui_businessMenu_other(lv_obj_t * obj_Parent){
 	lv_obj_set_size(labelSysInfo_devTime, 240, 40);
 	lv_label_set_recolor(labelSysInfo_devTime, true);
 	lv_obj_set_protect(labelSysInfo_devTime, LV_PROTECT_POS);
-	lv_obj_align(labelSysInfo_devTime, 			page_sysInfo, LV_ALIGN_IN_TOP_LEFT, textHorizontalDistance, textVerticalDistance * 1);
+	lv_obj_align(labelSysInfo_devTime, 			page_sysInfo, LV_ALIGN_IN_TOP_LEFT, textHorizontalDistance, textVerticalDistance * 0 + 20);
 	labelSysInfo_devSoftVersion = lv_label_create(page_sysInfo, labelSysInfo_devTime);
 	lv_obj_align(labelSysInfo_devSoftVersion, 	page_sysInfo, LV_ALIGN_IN_TOP_LEFT, textHorizontalDistance, textVerticalDistance * 2);
 	labelSysInfo_devReserveHeap = lv_label_create(page_sysInfo, labelSysInfo_devTime);
@@ -241,5 +241,8 @@ void lvGui_businessMenu_other(lv_obj_t * obj_Parent){
 	lv_obj_align(labelSysInfo_routerPSD, 		page_sysInfo, LV_ALIGN_IN_TOP_LEFT, textHorizontalDistance, textVerticalDistance * 14);
 
 	lvGuiOther_devInfoRefresh();
+
+	vTaskDelay(50 / portTICK_PERIOD_MS);
+	lv_obj_refresh_style(page_sysInfo);
 }
 

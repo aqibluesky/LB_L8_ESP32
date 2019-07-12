@@ -373,6 +373,7 @@ static void show_system_info_timercb(void *timer)
     mesh_assoc_t mesh_assoc         = {0x0};
     wifi_sta_list_t wifi_sta_list   = {0x0};
 	uint8_t mutualGroupInsert_temp[DEVICE_MUTUAL_CTRL_GROUP_NUM] = {0};
+//	lv_mem_monitor_t lv_mon			= {0};
 
     esp_wifi_get_mac(ESP_IF_WIFI_STA, sta_mac);
     esp_wifi_ap_get_sta_list(&wifi_sta_list);
@@ -380,12 +381,19 @@ static void show_system_info_timercb(void *timer)
     esp_wifi_vnd_mesh_get(&mesh_assoc);
     esp_mesh_get_parent_bssid(&parent_bssid);
 	devMutualCtrlGroupInfo_groupInsertGet(mutualGroupInsert_temp);
+//	lv_mem_monitor(&lv_mon);
 
     MDF_LOGI("System information, channel: %d, layer: %d, self mac: " MACSTR ", parent bssid: " MACSTR
-             ", parent rssi: %d, node num: %d, free heap: %u, mutualGroupInsert:[%d]-[%d]-[%d]", primary,
+             ", parent rssi: %d, node num: %d, free heap: %u, mutualGroupInsert:[%d]-[%d]-[%d].\n", 
+             primary,
              esp_mesh_get_layer(), MAC2STR(sta_mac), MAC2STR(parent_bssid.addr),
              mesh_assoc.rssi, esp_mesh_get_total_node_num(), esp_get_free_heap_size(),
              mutualGroupInsert_temp[0], mutualGroupInsert_temp[1], mutualGroupInsert_temp[2]);
+
+//	MDF_LOGI("lv mem used:%6d(%3d%%), lv mem biggest free:%6d.\n",
+//			 (int)lv_mon.total_size - (int)lv_mon.free_size,
+//			 lv_mon.used_pct,
+//			 (int)lv_mon.free_biggest_size);
 
     for (int i = 0; i < wifi_sta_list.num; i++) {
         MDF_LOGI("Child mac: " MACSTR, MAC2STR(wifi_sta_list.sta[i].mac));
@@ -1150,7 +1158,15 @@ static void trigger_handle_task(void *arg)
 
 //			ESP_LOGI(TAG, "decElecsum info report trig.");
 
-			mqtt_rootDevRemoteDatatransLoop_elecSumReport();
+//			mqtt_rootDevRemoteDatatransLoop_elecSumReport();
+			vTaskDelay(20 / portTICK_RATE_MS);
+		}
+
+		if(uxBits & DEVAPPLICATION_FLG_BITHOLD_DEVDRV_SCENARIO){
+
+			ESP_LOGI(TAG, "scenario driver action trig.");
+
+			devDriverBussiness_scnarioSwitch_actionTrig();
 			vTaskDelay(20 / portTICK_RATE_MS);
 		}
 
@@ -1242,15 +1258,15 @@ void app_main()
 	usrApp_bussinessHardTimer_Init();
 	usrApp_bussinessSoftTimer_Init();
 
-    TimerHandle_t timer = xTimerCreate("show_system_info", 10000 / portTICK_RATE_MS,
-                                       true, NULL, show_system_info_timercb);
-
-    xTimerStart(timer, 0);
-
 	/* Initialize LittlevGL GUI */
 	lvgl_init();
 
 	littlevgl_usrTest();
+
+    TimerHandle_t timer = xTimerCreate("show_system_info", 10000 / portTICK_RATE_MS,
+                                       true, NULL, show_system_info_timercb);
+
+    xTimerStart(timer, 0);
 
     /**
      * @brief Set the log level for serial port printing.

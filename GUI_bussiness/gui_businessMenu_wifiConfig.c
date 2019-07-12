@@ -170,9 +170,13 @@ void lvGui_businessMenu_wifiConfig(lv_obj_t * obj_Parent){
 void lvGui_wifiConfig_bussiness_configComplete_tipsTrig(void){
 
 	uint8_t msgQh_sptrDataWifiConfig = 'A';
+	BaseType_t res = pdFALSE;
 
-	xQueueSend(msgQh_wifiConfigCompleteTips, &msgQh_sptrDataWifiConfig, 1 / portTICK_PERIOD_MS);
+	xQueueReset(msgQh_wifiConfigCompleteTips);
+	res = xQueueSendToFront(msgQh_wifiConfigCompleteTips, &msgQh_sptrDataWifiConfig, 1 / portTICK_PERIOD_MS);
 	wifiConfigComplete_tipsStartCounter = 3;
+
+	printf("wifi config cmp tiptrig msg tx res:%d.\n", res);
 }
 
 void lvGui_wifiConfig_bussiness_configComplete_tipsOver(void){
@@ -202,6 +206,8 @@ void lvGui_wifiConfig_bussiness_configComplete_tipsDetect(void){
 	}
 
 	if(xQueueReceive(msgQh_wifiConfigCompleteTips, &msgQh_rptrDataWifiConfig, 1 / portTICK_RATE_MS) == pdTRUE){
+
+		printf("wifi config cmp tiptrig msg rcv.\n");
 
 	 	if(msgQh_rptrDataWifiConfig == 'A'){
 

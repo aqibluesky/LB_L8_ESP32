@@ -601,7 +601,7 @@ void usrApp_bussinessSoftTimer_Init(void){
 	xTimerStart(timerHld_bussinessSoftTimer, 0);
 
 	xEventGp_tipsLoopTimer = xEventGroupCreate();
-	xEventGp_devApplication =  xEventGroupCreate();
+	xEventGp_devApplication = xEventGroupCreate();
 	msgQh_systemRestartDelayCounterTips = xQueueCreate(2, sizeof(uint8_t)); //消息数据为当前倒计时时间
 }
 

@@ -613,6 +613,9 @@ void lvGui_businessMenu_delayerSet(lv_obj_t * obj_Parent){
 	(greenMode_timeCount)?
 		(lv_sw_on(objSw_greenModeSet_swRunnigSet)):
 		(lv_sw_off(objSw_greenModeSet_swRunnigSet));
+
+	vTaskDelay(50 / portTICK_RATE_MS);
+	lv_obj_refresh_style(objTabv_gmdyOpMenu);
 }
 
 

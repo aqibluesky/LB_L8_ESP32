@@ -83,6 +83,7 @@ enum{
 static const char cmdTopic_s2m_list[DEVMQTT_TOPIC_NUM_S2M][DEVMQTT_TOPIC_CASE_LENGTH] = {
 
 	"/s2m/cmdStatusGet",
+	"/s2m/cmdStatusGet/specified",
 	"/s2m/cmdTimerGet/normal", 
 	"/s2m/cmdTimerGet/delay",
 	"/s2m/cmdTimerGet/greenMode",
@@ -92,6 +93,7 @@ static const char cmdTopic_s2m_list[DEVMQTT_TOPIC_NUM_S2M][DEVMQTT_TOPIC_CASE_LE
 enum{
 
 	cmdTopicS2MInsert_cmdStatusGet = 0,
+	cmdTopicS2MInsert_cmdStatusGet_specified,
 	cmdTopicS2MInsert_cmdTimerGet_normal,
 	cmdTopicS2MInsert_cmdTimerGet_delay,
 	cmdTopicS2MInsert_cmdTimerGet_greenMode,
@@ -869,6 +871,7 @@ static void mqtt_remoteDataHandler(esp_mqtt_event_handle_t event, uint8_t cmdTop
 			enum{
 
 				cmdQuery_deviceStatus = 0x11,
+				cmdQuery_deviceStatus_specified = 0x12,
 				cmdQuery_timerNormal = 0xA0,
 				cmdQuery_delayTrig,
 				cmdQuery_greenMode,
@@ -883,6 +886,7 @@ static void mqtt_remoteDataHandler(esp_mqtt_event_handle_t event, uint8_t cmdTop
 			(!memcmp(devSelfMac, &(event->data[MACADDR_INSRT_START_CMDQUERY]), DEVICE_MAC_ADDR_APPLICATION_LEN))?(data_sendToRoot_IF = true):(data_sendToRoot_IF = false);
 			if((uint8_t)event->data[0] == cmdQuery_mutualCtrl)data_sendToRoot_IF = true; //特殊查询，不进行mac地址核对
 			if((uint8_t)event->data[0] == cmdQuery_deviceStatus)data_sendToRoot_IF = true; //特殊查询，不进行mac地址核对
+			if((uint8_t)event->data[0] == cmdQuery_deviceStatus_specified)data_sendToRoot_IF = true; //特殊查询，不进行mac地址核对
 			if(data_sendToRoot_IF){
 
 				uint16_t mqttData_pbLen = 0;
@@ -946,10 +950,97 @@ static void mqtt_remoteDataHandler(esp_mqtt_event_handle_t event, uint8_t cmdTop
 
 					}break;
 
+					case cmdQuery_deviceStatus_specified:{
+
+						const uint8_t dataIst_devsSpecifiedMAC = 1;
+						struct stt_deviceStatusParam{
+							
+							uint8_t nodeDev_Type;
+							uint8_t nodeDev_Status;
+							uint16_t nodeDev_DevRunningFlg;
+							stt_devTempParam2Hex nodeDev_dataTemprature;
+							stt_devPowerParam2Hex nodeDev_dataPower;	
+							uint8_t nodeDev_extFunParam[DEVPARAMEXT_DT_LEN];
+							uint8_t nodeDev_Mac[MWIFI_ADDR_LEN];
+						}deviceStatusParam_temp = {0};
+
+						sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_A"MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
+																					 				     (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdStatusGet_specified]);
+
+						if(!memcmp(devSelfMac, &(event->data[dataIst_devsSpecifiedMAC]), sizeof(uint8_t) * MWIFI_ADDR_LEN)){ //指定对象是否是自己
+
+							//本机状态信息填装
+							deviceStatusParam_temp.nodeDev_Type = (uint8_t)currentDev_typeGet();
+							currentDev_dataPointGet((stt_devDataPonitTypedef *)&(deviceStatusParam_temp.nodeDev_Status));
+							deviceStatusParam_temp.nodeDev_DevRunningFlg = currentDevRunningFlg_paramGet();
+							devDriverBussiness_temperatureMeasure_getByHex(&(deviceStatusParam_temp.nodeDev_dataTemprature));
+							devDriverBussiness_elecMeasure_valPowerGetByHex(&(deviceStatusParam_temp.nodeDev_dataPower));
+							switch(currentDev_typeGet()){ //扩展数据填装
+							
+								case devTypeDef_curtain:{
+							
+									deviceStatusParam_temp.nodeDev_extFunParam[0] = devCurtain_currentPositionPercentGet();
+							
+								}break;
+								
+								case devTypeDef_heater:{
+							
+									uint16_t heater_gearCur_period = devDriverBussiness_heaterSwitch_closePeriodCurrent_Get();
+									uint16_t heater_timeRem_counter = devDriverBussiness_heaterSwitch_devParam_closeCounter_Get();
+							
+//									memcpy(&(deviceStatusParam_temp.nodeDev_extFunParam[0]), &heater_gearCur_period, sizeof(uint16_t));
+//									memcpy(&(deviceStatusParam_temp.nodeDev_extFunParam[2]), &heater_timeRem_counter, sizeof(uint16_t));
+
+									deviceStatusParam_temp.nodeDev_extFunParam[0] = (uint8_t)((heater_gearCur_period >> 8) & 0x00ff);
+									deviceStatusParam_temp.nodeDev_extFunParam[1] = (uint8_t)((heater_gearCur_period >> 0) & 0x00ff);
+									deviceStatusParam_temp.nodeDev_extFunParam[2] = (uint8_t)((heater_timeRem_counter >> 8) & 0x00ff);
+									deviceStatusParam_temp.nodeDev_extFunParam[3] = (uint8_t)((heater_timeRem_counter >> 0) & 0x00ff);
+									
+								}break;
+							
+								case devTypeDef_mulitSwOneBit:
+								case devTypeDef_mulitSwTwoBit:
+								case devTypeDef_mulitSwThreeBit:
+								case devTypeDef_dimmer:
+								case devTypeDef_fans:
+								case devTypeDef_scenario:
+								case devTypeDef_thermostat:
+								default:{}break;
+							}
+							memcpy(deviceStatusParam_temp.nodeDev_Mac, 
+								   devSelfMac,
+								   sizeof(uint8_t) * MWIFI_ADDR_LEN);
+						}
+						else
+						{
+							stt_nodeDev_hbDataManage *nodeDevHbData_Param = L8devHbDataManageList_nodeGet(listHead_nodeDevDataManage, 
+																		    (uint8_t *)&(event->data[dataIst_devsSpecifiedMAC]),
+																		    false);
+
+							if(nodeDevHbData_Param != NULL){
+
+								deviceStatusParam_temp.nodeDev_Type = 			nodeDevHbData_Param->dataManage.nodeDev_Type;
+								deviceStatusParam_temp.nodeDev_Status = 		nodeDevHbData_Param->dataManage.nodeDev_Status;
+								deviceStatusParam_temp.nodeDev_DevRunningFlg = 	nodeDevHbData_Param->dataManage.nodeDev_runningFlg;
+								memcpy(&(deviceStatusParam_temp.nodeDev_dataTemprature), &(nodeDevHbData_Param->dataManage.nodeDev_dataTemprature), sizeof(stt_devTempParam2Hex));
+								memcpy(&(deviceStatusParam_temp.nodeDev_dataPower), 	 &(nodeDevHbData_Param->dataManage.nodeDev_dataPower),		sizeof(stt_devPowerParam2Hex));
+								memcpy(deviceStatusParam_temp.nodeDev_extFunParam, 	 	 nodeDevHbData_Param->dataManage.nodeDev_extFunParam,		sizeof(uint8_t) * DEVPARAMEXT_DT_LEN);
+								memcpy(deviceStatusParam_temp.nodeDev_Mac, 	 	 		 nodeDevHbData_Param->dataManage.nodeDev_Mac,				sizeof(uint8_t) * MWIFI_ADDR_LEN);
+
+								os_free(nodeDevHbData_Param);
+							}
+						}
+
+						memcpy(dataRespond_temp, &deviceStatusParam_temp, sizeof(struct stt_deviceStatusParam));
+						mqttData_pbLen = sizeof(struct stt_deviceStatusParam);
+						printf("mqtt cmdQuery_statusGet_specifiedl respond res:0x%04X.\n", esp_mqtt_client_publish(event->client, devMqtt_topicTemp, (const char*)dataRespond_temp, mqttData_pbLen, 1, 0));
+
+					}break;
+
 					case cmdQuery_timerNormal:{
 
 						sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_A"MAC:%02X%02X%02X%02X%02X%02X%s", MAC2STR(devRouterBssid),
-																					 				   (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_normal]);
+																					 				     (char *)cmdTopic_s2m_list[cmdTopicS2MInsert_cmdTimerGet_normal]);
 
 						usrAppActTrigTimer_paramGet((usrApp_trigTimer *)&dataRespond_temp);
 						memcpy(&dataRespond_temp[MACADDR_INSRT_START_CMDTIMERSET], devSelfMac, DEVICE_MAC_ADDR_APPLICATION_LEN);

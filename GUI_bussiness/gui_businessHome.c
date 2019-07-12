@@ -286,6 +286,7 @@ static lv_style_t stylebtnBk_transFull;
 static lv_style_t stylePage_sysRestartTips;
 static lv_style_t styleLabelCounter_sysRestartTips;
 static lv_style_t styleLabelRef_sysRestartTips;
+static lv_style_t styleIconBinding_reserveIf;
 
 //其他本地变量
 static uint8_t homepageThemeType_typeFlg = homepageThemeType_ouZhou;
@@ -1725,6 +1726,9 @@ static void pageActivity_infoRefreshLoop(void){
 									lv_obj_set_protect(iconBtn_binding_A, LV_PROTECT_POS);
 									lv_obj_align(iconBtn_binding_A, NULL, LV_ALIGN_OUT_RIGHT_MID, -35, -24);
 								}
+
+								lv_obj_set_click(iconBtn_binding_A, false);
+								lv_imgbtn_set_style(iconBtn_binding_A, LV_BTN_STATE_REL, &styleIconBinding_reserveIf);
 							}
 						}
 
@@ -1755,6 +1759,9 @@ static void pageActivity_infoRefreshLoop(void){
 									lv_obj_set_protect(iconBtn_binding_A, LV_PROTECT_POS);
 									lv_obj_align(iconBtn_binding_A, NULL, LV_ALIGN_OUT_RIGHT_MID, -35, -24);
 								}
+
+								lv_obj_set_click(iconBtn_binding_A, false);
+								lv_imgbtn_set_style(iconBtn_binding_A, LV_BTN_STATE_REL, &styleIconBinding_reserveIf);
 							}
 						}
 						
@@ -1781,9 +1788,12 @@ static void pageActivity_infoRefreshLoop(void){
 									lv_obj_set_protect(iconBtn_binding_B, LV_PROTECT_POS);
 									lv_obj_align(iconBtn_binding_B, NULL, LV_ALIGN_OUT_RIGHT_MID, -35, -24);
 								}
+								
+								lv_obj_set_click(iconBtn_binding_B, false);
+								lv_imgbtn_set_style(iconBtn_binding_B, LV_BTN_STATE_REL, &styleIconBinding_reserveIf);
 							}
 						}
-
+						
 					}break;
 
 					case devTypeDef_mulitSwThreeBit:{
@@ -1811,6 +1821,9 @@ static void pageActivity_infoRefreshLoop(void){
 									lv_obj_set_protect(iconBtn_binding_A, LV_PROTECT_POS);
 									lv_obj_align(iconBtn_binding_A, NULL, LV_ALIGN_OUT_RIGHT_MID, -35, -24);
 								}
+
+								lv_obj_set_click(iconBtn_binding_A, false);
+								lv_imgbtn_set_style(iconBtn_binding_A, LV_BTN_STATE_REL, &styleIconBinding_reserveIf);
 							}
 						}
 						
@@ -1837,6 +1850,9 @@ static void pageActivity_infoRefreshLoop(void){
 									lv_obj_set_protect(iconBtn_binding_B, LV_PROTECT_POS);
 									lv_obj_align(iconBtn_binding_B, NULL, LV_ALIGN_OUT_RIGHT_MID, -35, -24);
 								}
+
+								lv_obj_set_click(iconBtn_binding_B, false);
+								lv_imgbtn_set_style(iconBtn_binding_B, LV_BTN_STATE_REL, &styleIconBinding_reserveIf);
 							}
 						}
 
@@ -1863,9 +1879,12 @@ static void pageActivity_infoRefreshLoop(void){
 									lv_obj_set_protect(iconBtn_binding_C, LV_PROTECT_POS);
 									lv_obj_align(iconBtn_binding_C, NULL, LV_ALIGN_OUT_RIGHT_MID, -35, -24);
 								}
+
+								lv_obj_set_click(iconBtn_binding_C, false);
+								lv_imgbtn_set_style(iconBtn_binding_C, LV_BTN_STATE_REL, &styleIconBinding_reserveIf);
 							}
 						}
-
+						
 					}break;
 
 					case devTypeDef_curtain:{
@@ -1923,6 +1942,9 @@ static void pageActivity_infoRefreshLoop(void){
 									lv_obj_set_protect(iconBtn_binding_A, LV_PROTECT_POS);
 									lv_obj_align(iconBtn_binding_A, slider_bk_devDimmer, LV_ALIGN_OUT_TOP_RIGHT, 0, -5);
 								}
+
+								lv_obj_set_click(iconBtn_binding_A, false);
+								lv_imgbtn_set_style(iconBtn_binding_A, LV_BTN_STATE_REL, &styleIconBinding_reserveIf);
 							}
 						}
 
@@ -2076,6 +2098,8 @@ static void pageActivity_infoRefreshLoop(void){
 
 							}break;
 
+							lv_obj_refresh_style(lv_obj_t * obj);
+
 							default:break;
 						}
 					}
@@ -2170,12 +2194,14 @@ static void pageActivity_infoRefreshLoop(void){
 
 			bool networkGetConnectFlg_record = meshNetwork_connectReserve_IF_get();
 
-			if(!networkGetConnectFlg_record) //针对首次配网情况下
-				if(flgGet_gotRouterOrMeshConnect())
-//					lvGui_wifiConfig_bussiness_configComplete_tipsTrig();
-
 			lvGui_wifiConfig_bussiness_configComplete_tipsDetect(); //常规探测
 
+//			if(!networkGetConnectFlg_record) //针对首次配网情况下
+//				if(flgGet_gotRouterOrMeshConnect()){
+
+//					lvGui_wifiConfig_bussiness_configComplete_tipsTrig();
+//				}
+					
 		}break;
 
 		case bussinessType_menuPageOther:{
@@ -3321,6 +3347,10 @@ static lv_style_t *lvUsr_objBkReales2SecMenu(void){ //获取菜单标题头风�
 
 	lv_obj_set_style(imageBK, &styleBk_secMenu);
 
+	vTaskDelay(50 / portTICK_PERIOD_MS);
+	lv_obj_refresh_style(imageBK);
+	vTaskDelay(50 / portTICK_PERIOD_MS);
+
 	return &styleBk_secMenu;
 }
 
@@ -3332,6 +3362,8 @@ static void task_guiSwitch_Detecting(void *pvParameter){
 	EventBits_t loopTimerTips_etBits = 0;
 
 	uint8_t msgQrptr_devRestartdelayCounter = 0;
+
+	uint8_t guiInfoRefresh_calmDn_counter = 0;
 	
 //	lv_point_t indevPoint = {0};
 
@@ -3443,7 +3475,7 @@ static void task_guiSwitch_Detecting(void *pvParameter){
 
 			guiPage_record = guiPage_current;
 
-			vTaskDelay(100 / portTICK_PERIOD_MS);
+			guiInfoRefresh_calmDn_counter = 4;
 			
 			switch(guiPage_record){
 
@@ -3452,6 +3484,9 @@ static void task_guiSwitch_Detecting(void *pvParameter){
 					lv_img_set_src(imageBK, usrAppHomepageBkPic_dataGet());
 					lvGui_businessHome(imageBK);
 					pageHome_buttonMain_imageRefresh(true);
+					vTaskDelay(50 / portTICK_PERIOD_MS);
+					lv_obj_refresh_style(imageBK);
+					vTaskDelay(50 / portTICK_PERIOD_MS);
 
 					//home界面互控图标比较值重置，以及相关互控图标对象重置（lv系统删除对象指针后 不会 进行NULL赋值）
 					memset(btnBindingStatus_record, 0, sizeof(uint8_t) * DEVICE_MUTUAL_CTRL_GROUP_NUM);
@@ -3464,8 +3499,12 @@ static void task_guiSwitch_Detecting(void *pvParameter){
 				case bussinessType_Menu:{
 
 					lv_img_set_src(imageBK, usrAppHomepageBkPic_dataGet());
+					vTaskDelay(50 / portTICK_PERIOD_MS);
+					lv_obj_refresh_style(imageBK);
+					vTaskDelay(50 / portTICK_PERIOD_MS);
+
 					lvGui_businessMenu(imageBK);
-					
+
 				}break;
 
 				case bussinessType_menuPageOther:{
@@ -3474,11 +3513,11 @@ static void task_guiSwitch_Detecting(void *pvParameter){
 					lv_style_copy(&styleBk_secMenu, &lv_style_plain);
 					styleBk_secMenu.body.main_color = LV_COLOR_BLACK;
 					styleBk_secMenu.body.grad_color = LV_COLOR_WHITE;
-					vTaskDelay(100 / portTICK_PERIOD_MS);
 					lvUsr_objBkReales2SecMenu();
+
+					lv_obj_set_size(imageBK, 240, 75);
 					
 					lvGui_businessMenu_other(imageBK);
-					lv_obj_set_size(imageBK, 240, 75);
 					
 				}break;
 				
@@ -3488,11 +3527,11 @@ static void task_guiSwitch_Detecting(void *pvParameter){
 					lv_style_copy(&styleBk_secMenu, &lv_style_plain);
 					styleBk_secMenu.body.main_color = LV_COLOR_BLACK;
 					styleBk_secMenu.body.grad_color = LV_COLOR_WHITE;
-					vTaskDelay(100 / portTICK_PERIOD_MS);
 					lvUsr_objBkReales2SecMenu();
+
+					lv_obj_set_size(imageBK, 240, 75);
 					
 					lvGui_businessMenu_delayer(imageBK);
-					lv_obj_set_size(imageBK, 240, 75);
 
 				}break;
 				
@@ -3502,11 +3541,11 @@ static void task_guiSwitch_Detecting(void *pvParameter){
 					lv_style_copy(&styleBk_secMenu, &lv_style_plain);
 					styleBk_secMenu.body.main_color = LV_COLOR_BLACK;
 					styleBk_secMenu.body.grad_color = LV_COLOR_WHITE;
-					vTaskDelay(100 / portTICK_PERIOD_MS);
 					lvUsr_objBkReales2SecMenu();
+
+					lv_obj_set_size(imageBK, 240, 75);
 					
 					lvGui_businessMenu_timer(imageBK);
-					lv_obj_set_size(imageBK, 240, 75);
 	
 				}break;
 				
@@ -3516,11 +3555,11 @@ static void task_guiSwitch_Detecting(void *pvParameter){
 					lv_style_copy(&styleBk_secMenu, &lv_style_plain);
 					styleBk_secMenu.body.main_color = LV_COLOR_BLACK;
 					styleBk_secMenu.body.grad_color = LV_COLOR_GRAY;
-					vTaskDelay(100 / portTICK_PERIOD_MS);
 					lvUsr_objBkReales2SecMenu();
 
-					lvGui_businessMenu_linkageConfig(imageBK);
 					lv_obj_set_size(imageBK, 240, 75);
+
+					lvGui_businessMenu_linkageConfig(imageBK);
 
 				}break;
 				
@@ -3540,11 +3579,11 @@ static void task_guiSwitch_Detecting(void *pvParameter){
 					lv_style_copy(&styleBk_secMenu, &lv_style_plain);
 					styleBk_secMenu.body.main_color = LV_COLOR_BLACK;
 					styleBk_secMenu.body.grad_color = LV_COLOR_GRAY;
-					vTaskDelay(100 / portTICK_PERIOD_MS);
 					lvUsr_objBkReales2SecMenu();
+
+					lv_obj_set_size(imageBK, 240, 75);
 					
 					lvGui_businessMenu_settingSet(imageBK);
-					lv_obj_set_size(imageBK, 240, 75);
 					
 				}break;
 
@@ -3554,7 +3593,6 @@ static void task_guiSwitch_Detecting(void *pvParameter){
 					lv_style_copy(&styleBk_secMenu, &lv_style_plain);
 					styleBk_secMenu.body.main_color = LV_COLOR_BLACK;
 					styleBk_secMenu.body.grad_color = LV_COLOR_WHITE;
-					vTaskDelay(100 / portTICK_PERIOD_MS);
 					lvUsr_objBkReales2SecMenu();
 					
 					lvGui_businessMenu_wifiConfig(imageBK);
@@ -3563,54 +3601,62 @@ static void task_guiSwitch_Detecting(void *pvParameter){
 
 				default:break;
 			}
+
+			vTaskDelay(20 / portTICK_PERIOD_MS);
+			continue;
 		}
 
-		//页眉信息更新
-		pageHeader_infoRefreshLoop();
+		if(guiInfoRefresh_calmDn_counter)guiInfoRefresh_calmDn_counter --;
+		else{
 
-		//当前活动界面信息动态刷新
-		pageActivity_infoRefreshLoop();
-		
-		//tips事件检测 ---定时事件
-		if(xEventGp_tipsLoopTimer){ //先进行一下非空检测，防止初始化延后导致读取空内存
-
-			loopTimerTips_etBits = xEventGroupWaitBits(xEventGp_tipsLoopTimer, 
-													   LOOPTIMEREVENT_FLG_BITHOLD_RESERVE,
-													   pdTRUE,
-													   pdFALSE,
-													   5);
-		}
-
-		if(loopTimerTips_etBits){
-
-			for(loop = 0; loop < USRAPP_VALDEFINE_TRIGTIMER_NUM; loop ++){
+			//页眉信息更新
+			pageHeader_infoRefreshLoop();
+	
+			//当前活动界面信息动态刷新
+			pageActivity_infoRefreshLoop();
 			
-				if(loopTimerTips_etBits & (1 << loop)){
+			//tips事件检测 ---定时事件
+			if(xEventGp_tipsLoopTimer){ //先进行一下非空检测，防止初始化延后导致读取空内存
+	
+				loopTimerTips_etBits = xEventGroupWaitBits(xEventGp_tipsLoopTimer, 
+														   LOOPTIMEREVENT_FLG_BITHOLD_RESERVE,
+														   pdTRUE,
+														   pdFALSE,
+														   5);
+			}
+	
+			if(loopTimerTips_etBits){
+	
+				for(loop = 0; loop < USRAPP_VALDEFINE_TRIGTIMER_NUM; loop ++){
+				
+					if(loopTimerTips_etBits & (1 << loop)){
+	
+						char strTips[15] = {0};
+	
+						sprintf(strTips, "timer_%d up!", loop + 1);
+						guiBussiness_tipsLoopTimerCreat(strTips);
 
-					char strTips[15] = {0};
-
-					sprintf(strTips, "timer_%d up!", loop + 1);
-					guiBussiness_tipsLoopTimerCreat(strTips);
-
-//					printf("timer:%d guiTips trig rx!\n", loop);
+//						printf("timer:%d guiTips trig rx!\n", loop);
+					}
 				}
 			}
+	
+			if(trigFlg_loopTimerTips){
+	
+				guiBussiness_tipsLoopTimerDelete();
+			}
+	
+			//消息通知接收 ---设备重启延时执行倒计时 时间提示
+			if(xQueueReceive(msgQh_systemRestartDelayCounterTips, &msgQrptr_devRestartdelayCounter, 1 / portTICK_RATE_MS) == pdTRUE){
+	
+				char counterDisp_text[5] = {0};
+	
+				sprintf(counterDisp_text, "%d", msgQrptr_devRestartdelayCounter);
+				guiBussiness_tipsSystemRestartCreat(counterDisp_text);
+			}
+
 		}
-
-		if(trigFlg_loopTimerTips){
-
-			guiBussiness_tipsLoopTimerDelete();
-		}
-
-		//消息通知接收 ---设备重启延时执行倒计时 时间提示
-		if(xQueueReceive(msgQh_systemRestartDelayCounterTips, &msgQrptr_devRestartdelayCounter, 1 / portTICK_RATE_MS) == pdTRUE){
-
-			char counterDisp_text[5] = {0};
-
-			sprintf(counterDisp_text, "%d", msgQrptr_devRestartdelayCounter);
-			guiBussiness_tipsSystemRestartCreat(counterDisp_text);
-		}
-
+		
 		vTaskDelay(50 / portTICK_PERIOD_MS);
 	}
 }
@@ -4015,6 +4061,10 @@ static void lvGuiHome_styleApplicationInit(void){
 	lv_style_copy(&styleLabelRef_sysRestartTips, &lv_style_plain);
 	styleLabelRef_sysRestartTips.text.font = &lv_font_consola_17;
 	styleLabelRef_sysRestartTips.text.color = LV_COLOR_BLACK;
+
+	lv_style_copy(&styleIconBinding_reserveIf, &lv_style_plain);
+	styleIconBinding_reserveIf.image.color = LV_COLOR_YELLOW;
+	styleIconBinding_reserveIf.image.intense = LV_OPA_50;
 }
 
 void lvGui_businessInit(void){

@@ -296,6 +296,7 @@ typedef struct{
 	stt_devPowerParam2Hex devFuncInfo_elecPower;
 }stt_blufiConfigDevInfo_resp;
 
+#define DEVPARAMEXT_DT_LEN	4
 typedef struct{
 
 	uint8_t nodeDev_Mac[MWIFI_ADDR_LEN];
@@ -303,7 +304,8 @@ typedef struct{
 	uint8_t nodeDev_Status;
 	uint16_t nodeDev_DevRunningFlg;
 	stt_devTempParam2Hex nodeDev_dataTemprature;
-	stt_devPowerParam2Hex nodeDev_dataPower;
+	stt_devPowerParam2Hex nodeDev_dataPower;	
+	uint8_t nodeDev_extFunParam[DEVPARAMEXT_DT_LEN];
 }stt_devStatusInfoResp; //与stt_hbDataUpload不同，只获取需要的属性进行回复
 
 typedef struct{
@@ -398,6 +400,7 @@ typedef struct struct_hbDataUpload{
 	stt_devTempParam2Hex nodeDev_dataTemprature;
 	stt_devPowerParam2Hex nodeDev_dataPower;
 	stt_devElecsumParam2Hex nodeDev_dataElecsum;
+	uint8_t nodeDev_extFunParam[DEVPARAMEXT_DT_LEN];
 
 }stt_hbDataUpload;
 
@@ -483,6 +486,8 @@ uint8_t L8devHbDataManageList_nodeCreat(stt_nodeDev_hbDataManage *pHead, stt_nod
 stt_nodeDev_hbDataManage *L8devHbDataManageList_nodeGet(stt_nodeDev_hbDataManage *pHead, uint8_t nodeDev_Mac[MWIFI_ADDR_LEN], bool method);
 bool L8devHbDataManageList_nodeRemove(stt_nodeDev_hbDataManage *pHead, uint8_t nodeDev_Mac[MWIFI_ADDR_LEN]);
 void L8devHbDataManageList_bussinessKeepAliveManagePeriod1s(stt_nodeDev_hbDataManage *pHead);
+
+void L8devHeartbeatFunctionParamLoad(stt_hbDataUpload *nodeDev_dataTemp);
 
 bool usrAppMethod_mwifiMacAddrRemoveFromList(uint8_t *macAddrList, uint8_t macAddrList_num, uint8_t macAddrRemove[MWIFI_ADDR_LEN]);
 

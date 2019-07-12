@@ -243,6 +243,11 @@ uint32_t devDriverBussiness_heaterSwitch_devParam_closeCounter_Get(void){
 	return devParam_heater.timeCountParam.timeUp_counter / DEVHEATER_COEFFICIENT_TIME_SECOND;
 }
 
+uint32_t devDriverBussiness_heaterSwitch_closePeriodCurrent_Get(void){
+
+	return devParam_heater.timeCountParam.timeUp_period / DEVHEATER_COEFFICIENT_TIME_SECOND;
+}
+
 uint32_t devDriverBussiness_heaterSwitch_closePeriodCustom_Get(void){
 
 	return devParam_heater.timeCountParam.timeUp_period_customSet / DEVHEATER_COEFFICIENT_TIME_SECOND;

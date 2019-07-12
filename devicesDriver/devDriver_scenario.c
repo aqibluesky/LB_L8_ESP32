@@ -16,6 +16,10 @@
 
 #include "dataTrans_localHandler.h"
 
+#include "bussiness_timerSoft.h"
+
+extern EventGroupHandle_t xEventGp_devApplication;
+
 static const char *TAG = "lanbon_L8 - devDriverScenario";
 
 static uint16_t scnarioSwitchDriver_clamDown_counter = 0;
@@ -26,8 +30,8 @@ uint8_t devDriverBussiness_scnarioSwitch_swVal2Insert(uint8_t swVal){
 
 		case 1:return 1;
 		case 2:return 2;
-		case 4:return 3;
-		default:return 1;
+		case 4:
+		default:return 3;
 	}
 }
 
@@ -61,7 +65,7 @@ void devDriverBussiness_scnarioSwitch_dataParam_save(stt_scenarioSwitchData_nvsO
 
 		enum_dataSaveObj objScenario_saveIst = saveObj_devScenario_paramDats_2;
 
-		switch(devDriverBussiness_scnarioSwitch_swVal2Insert(param->dataRef.scenarioInsert_num)){
+		switch(param->dataRef.scenarioInsert_num){
 
 			case 1:objScenario_saveIst = saveObj_devScenario_paramDats_0;break;
 			case 2:objScenario_saveIst = saveObj_devScenario_paramDats_1;break;
@@ -69,17 +73,17 @@ void devDriverBussiness_scnarioSwitch_dataParam_save(stt_scenarioSwitchData_nvsO
 			default:objScenario_saveIst = saveObj_devScenario_paramDats_2;break;
 		}
 
-		printf("devSum:%d, macList set halfA[0]:"MACSTR",swVal:%02X.\n", param->dataRef.scenarioDevice_sum,
-																		 MAC2STR(param->dataHalf_A[0].unitDevMac),
-																		 param->dataHalf_A[0].unitDevOpreat_val);
+//		printf("devSum:%d, macList set halfA[0]:"MACSTR",swVal:%02X.\n", param->dataRef.scenarioDevice_sum,
+//																		 MAC2STR(param->dataHalf_A[0].unitDevMac),
+//																		 param->dataHalf_A[0].unitDevOpreat_val);
 
-		printf("devSum:%d, macList set halfA[1]:"MACSTR",swVal:%02X.\n", param->dataRef.scenarioDevice_sum,
-																		 MAC2STR(param->dataHalf_A[1].unitDevMac),
-																		 param->dataHalf_A[1].unitDevOpreat_val);
+//		printf("devSum:%d, macList set halfA[1]:"MACSTR",swVal:%02X.\n", param->dataRef.scenarioDevice_sum,
+//																		 MAC2STR(param->dataHalf_A[1].unitDevMac),
+//																		 param->dataHalf_A[1].unitDevOpreat_val);
 
-		printf("devSum:%d, macList set halfA[2]:"MACSTR",swVal:%02X.\n", param->dataRef.scenarioDevice_sum,
-																		 MAC2STR(param->dataHalf_A[2].unitDevMac),
-																		 param->dataHalf_A[2].unitDevOpreat_val);
+//		printf("devSum:%d, macList set halfA[2]:"MACSTR",swVal:%02X.\n", param->dataRef.scenarioDevice_sum,
+//																		 MAC2STR(param->dataHalf_A[2].unitDevMac),
+//																		 param->dataHalf_A[2].unitDevOpreat_val);
 
 		devSystemInfoLocalRecord_save(objScenario_saveIst, param);
 	}
@@ -120,13 +124,23 @@ static void devDriverBussiness_scnarioSwitch_bussinessDataReq(uint8_t dstMac[6],
 
 void devDriverBussiness_scnarioSwitch_scenarioStatusReales(stt_devDataPonitTypedef *param){
 
+	if(systemDevice_startUpTime_get() < 2)return; //场景开关不需要状态记录恢复业务逻辑，根据开机时间跳过既定业务
+
+//	printf("watch point!!!.\n");
+
+	xEventGroupSetBits(xEventGp_devApplication, DEVAPPLICATION_FLG_BITHOLD_DEVDRV_SCENARIO);
+}
+
+void devDriverBussiness_scnarioSwitch_actionTrig(void){
+
 	devTypeDef_enum swCurrentDevType = currentDev_typeGet();
+	stt_devDataPonitTypedef devParam = {0};
 	
 	uint8_t dataReq_loop = 0;
 
-	if(swCurrentDevType == devTypeDef_scenario){
+	currentDev_dataPointGet(&devParam);
 
-		if(systemDevice_startUpTime_get() < 2)return; //场景开关不需要状态记录恢复业务逻辑，根据开机时间跳过既定业务
+	if(swCurrentDevType == devTypeDef_scenario){
 
 		scnarioSwitchDriver_clamDown_counter = DEVSCENARIO_DRIVER_CALMDOWN_PERIOD;
 
@@ -135,7 +149,7 @@ void devDriverBussiness_scnarioSwitch_scenarioStatusReales(stt_devDataPonitTyped
 			uint8_t scenarioDataParam_ist = 0;
 			stt_scenarioSwitchData_nvsOpreat *scenarioParamData = NULL;
 
-			scenarioDataParam_ist = devDriverBussiness_scnarioSwitch_swVal2Insert(param->devType_scenario.devScenario_opNum);
+			scenarioDataParam_ist = devDriverBussiness_scnarioSwitch_swVal2Insert(devParam.devType_scenario.devScenario_opNum);
 
 			if(!scenarioDataParam_ist)return; //参数无效，不予驱动
 
@@ -172,6 +186,5 @@ void devDriverBussiness_scnarioSwitch_scenarioStatusReales(stt_devDataPonitTyped
 			
 			os_free(scenarioParamData);
 		}
-	}
+	}	
 }
-

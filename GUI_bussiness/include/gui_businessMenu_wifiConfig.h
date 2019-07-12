@@ -18,6 +18,7 @@ extern "C" {
 /*********************
  *      DEFINES
  *********************/
+#define TIPS_TIME_WIFICFG_COMPLETE		4 
 
 /**********************
  *      TYPEDEFS

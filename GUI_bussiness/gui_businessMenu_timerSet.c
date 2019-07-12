@@ -562,20 +562,6 @@ static void lvGui_businessMenu_timerSetPageA(lv_obj_t * obj_Parent){
 		lv_obj_set_pos(lineUnit_timerSetPageA[loop], 3, 65 * loop);
 	}
 
-	//一级菜单定时器开关
-	for(uint8_t loop = 0; loop < USRAPP_VALDEFINE_TRIGTIMER_NUM; loop ++){
-
-		swUnit_timerSetPageA[loop] = lv_sw_create(page_timerSetPageA, NULL);
-		lv_obj_set_free_num(swUnit_timerSetPageA[loop], LV_OBJ_FREENUM_BASE_SW_TIMESETPAGEA + loop);
-		lv_sw_set_action(swUnit_timerSetPageA[loop], funCb_swAction_timerSetPageA);
-		lv_obj_set_size(swUnit_timerSetPageA[loop] , 50, 20);
-		lv_obj_set_protect(swUnit_timerSetPageA[loop], LV_PROTECT_POS);
-		lv_obj_align(swUnit_timerSetPageA[loop], lineUnit_timerSetPageA[loop], LV_ALIGN_OUT_BOTTOM_RIGHT, -17, 20);
-		(usrAppTimerParamInfo[loop].tmUp_runningEn)?
-			(lv_sw_on(swUnit_timerSetPageA[loop])):
-			(lv_sw_off(swUnit_timerSetPageA[loop]));
-	}
-
 	//区域按键
 	for(uint8_t loop = 0; loop < USRAPP_VALDEFINE_TRIGTIMER_NUM; loop ++){
 
@@ -590,6 +576,20 @@ static void lvGui_businessMenu_timerSetPageA(lv_obj_t * obj_Parent){
 		lv_btn_set_style(btnUnit_timerSetPageA[loop], LV_BTN_STYLE_TGL_PR, &styleBtn_timerSetPageA);
 		lv_obj_set_protect(btnUnit_timerSetPageA[loop], LV_PROTECT_POS);
 		lv_obj_align(btnUnit_timerSetPageA[loop], lineUnit_timerSetPageA[loop], LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
+	}
+
+	//一级菜单定时器开关
+	for(uint8_t loop = 0; loop < USRAPP_VALDEFINE_TRIGTIMER_NUM; loop ++){
+
+		swUnit_timerSetPageA[loop] = lv_sw_create(page_timerSetPageA, NULL);
+		lv_obj_set_free_num(swUnit_timerSetPageA[loop], LV_OBJ_FREENUM_BASE_SW_TIMESETPAGEA + loop);
+		lv_sw_set_action(swUnit_timerSetPageA[loop], funCb_swAction_timerSetPageA);
+		lv_obj_set_size(swUnit_timerSetPageA[loop] , 50, 20);
+		lv_obj_set_protect(swUnit_timerSetPageA[loop], LV_PROTECT_POS);
+		lv_obj_align(swUnit_timerSetPageA[loop], lineUnit_timerSetPageA[loop], LV_ALIGN_OUT_BOTTOM_RIGHT, -17, 20);
+		(usrAppTimerParamInfo[loop].tmUp_runningEn)?
+			(lv_sw_on(swUnit_timerSetPageA[loop])):
+			(lv_sw_off(swUnit_timerSetPageA[loop]));
 	}
 
 	//按键文本说明
@@ -629,6 +629,9 @@ static void lvGui_businessMenu_timerSetPageA(lv_obj_t * obj_Parent){
 		lv_obj_set_protect(labelInfoUnit_timerSetPageA[loop], LV_PROTECT_POS);
 		lv_obj_align(labelInfoUnit_timerSetPageA[loop], labelTimeUnit_timerSetPageA[loop], LV_ALIGN_OUT_BOTTOM_LEFT, 0, 5);
 	}
+
+	vTaskDelay(50 / portTICK_PERIOD_MS);
+	lv_obj_refresh_style(page_timerSetPageA);
 }
 
 static void lvGui_businessMenu_timerSetUnitOpreat(lv_obj_t * obj_Parent, uint8_t timerUnit_num){
@@ -704,7 +707,9 @@ static void lvGui_businessMenu_timerSetUnitOpreat(lv_obj_t * obj_Parent, uint8_t
 	lv_obj_set_protect(labelTitle_setInfo_save, LV_PROTECT_POS);
 	lv_obj_align(labelTitle_setInfo_save, btnTitle_setInfo_save, LV_ALIGN_IN_BOTTOM_RIGHT, -5, 0);
 	lv_label_set_style(labelTitle_setInfo_save, &styleLabel_SetInfoTitle_opreation);
-	lv_label_set_text(labelTitle_setInfo_save, "save");
+	lv_label_set_recolor(labelTitle_setInfo_save, true);
+	lv_label_set_text(labelTitle_setInfo_save, "#4444FF save#");
+	lv_obj_set_top(labelTitle_setInfo_save, true);
 	btnTitle_setInfo_cancel = lv_btn_create(obj_Parent, NULL);
 	lv_btn_set_action(btnTitle_setInfo_cancel, LV_BTN_ACTION_CLICK, funCb_btnActionClick_timerSetUnit_opreatCancel);
 	lv_obj_set_size(btnTitle_setInfo_cancel, 60, 30);
@@ -719,7 +724,9 @@ static void lvGui_businessMenu_timerSetUnitOpreat(lv_obj_t * obj_Parent, uint8_t
 	lv_obj_set_protect(labelTitle_setInfo_cancel, LV_PROTECT_POS);
 	lv_obj_align(labelTitle_setInfo_cancel, btnTitle_setInfo_cancel, LV_ALIGN_IN_BOTTOM_LEFT, 5, 0);
 	lv_label_set_style(labelTitle_setInfo_cancel, &styleLabel_SetInfoTitle_opreation);
-	lv_label_set_text(labelTitle_setInfo_cancel, "cancel");
+	lv_label_set_recolor(labelTitle_setInfo_cancel, true);
+	lv_label_set_text(labelTitle_setInfo_cancel, "#4444FF cancel#");
+	lv_obj_set_top(labelTitle_setInfo_cancel, true);
 	
 	bGround_obj = lv_page_create(lv_scr_act(), NULL);
 	lv_obj_set_size(bGround_obj, 240, 245);

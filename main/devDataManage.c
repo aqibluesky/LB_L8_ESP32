@@ -480,6 +480,24 @@ void currentDevRunningFlg_paramSet(uint16_t valFlg, bool nvsRecord_IF){
 	if(nvsRecord_IF)devSystemInfoLocalRecord_save(saveObj_devRunning_flg, &devCurrentRunningFlg);
 }
 
+stt_blufiConfigDevInfo_resp *devBlufiConfig_respInfoGet(void){
+
+	stt_blufiConfigDevInfo_resp *devInfo = os_zalloc(sizeof(stt_blufiConfigDevInfo_resp));
+	stt_devDataPonitTypedef devDataPoint = {0};
+
+	currentDev_dataPointGet(&devDataPoint);
+
+	devInfo->devTypedef = currentDev_typeGet();
+	memcpy(&(devInfo->devStatus_valCurrent), &devDataPoint, sizeof(stt_devDataPonitTypedef)); //开关状态
+	devInfo->devVersion = L8_DEVICE_VERSION; //版本
+	devDriverBussiness_temperatureMeasure_getByHex(&(devInfo->devFuncInfo_temprature)); //温度
+	devDriverBussiness_elecMeasure_valPowerGetByHex(&(devInfo->devFuncInfo_elecPower)); //功率
+
+	printf("blufi config dataResp length:%d.\n", sizeof(stt_blufiConfigDevInfo_resp));
+
+	return devInfo;
+}
+
 bool usrAppMethod_mwifiMacAddrRemoveFromList(uint8_t *macAddrList, uint8_t macAddrList_num, uint8_t macAddrRemove[MWIFI_ADDR_LEN]){
 
 	uint8_t loop = 0;
@@ -504,103 +522,6 @@ bool usrAppMethod_mwifiMacAddrRemoveFromList(uint8_t *macAddrList, uint8_t macAd
 	if(res_macAddrSearch)memset(&macAddrList[(macAddrList_num - 1) * MWIFI_ADDR_LEN], 0, MWIFI_ADDR_LEN);
 
 	return res_macAddrSearch;
-}
-
-stt_blufiConfigDevInfo_resp *devBlufiConfig_respInfoGet(void){
-
-	stt_blufiConfigDevInfo_resp *devInfo = os_zalloc(sizeof(stt_blufiConfigDevInfo_resp));
-	stt_devDataPonitTypedef devDataPoint = {0};
-
-	currentDev_dataPointGet(&devDataPoint);
-
-	devInfo->devTypedef = currentDev_typeGet();
-	memcpy(&(devInfo->devStatus_valCurrent), &devDataPoint, sizeof(stt_devDataPonitTypedef)); //开关状态
-	devInfo->devVersion = L8_DEVICE_VERSION; //版本
-	devDriverBussiness_temperatureMeasure_getByHex(&(devInfo->devFuncInfo_temprature)); //温度
-	devDriverBussiness_elecMeasure_valPowerGetByHex(&(devInfo->devFuncInfo_elecPower)); //功率
-
-	printf("blufi config dataResp length:%d.\n", sizeof(stt_blufiConfigDevInfo_resp));
-
-	return devInfo;
-}
-
-void L8devHbDataManageList_delSame(stt_nodeDev_hbDataManage *pHead){
-
-    stt_nodeDev_hbDataManage *p,*q,*r;
-    p = pHead->next; 
-
-	listNodeDevOpreating_Flg = true;
-	
-    while(p != NULL)    
-    {
-        q = p;
-        while(q->next != NULL) 
-        {
-            if(!memcmp(q->next->dataManage.nodeDev_Mac, p->dataManage.nodeDev_Mac, MWIFI_ADDR_LEN)) 
-            {
-                r = q->next; 
-                q->next = r->next;   
-
-				memcpy(&(q->dataManage), &(r->dataManage), sizeof(stt_hbDataUpload)); //后到优先更新
-				q->nodeDevKeepAlive_counter = r->nodeDevKeepAlive_counter;
-				
-				free(r);
-            }
-            else
-            {
-            	q = q->next;
-			}
-        }
-
-        p = p->next;
-    }
-
-	listNodeDevOpreating_Flg = false;
-}
-
-uint8_t L8devHbDataManageList_nodeNumDetect(stt_nodeDev_hbDataManage *pHead){
-
-	stt_nodeDev_hbDataManage *pAbove = pHead;
-	stt_nodeDev_hbDataManage *pFollow;
-	uint8_t loop = 0;
-
-	listNodeDevOpreating_Flg = true;
-
-	while(pAbove->next != NULL){
-		
-		pFollow = pAbove;
-		pAbove	= pFollow->next;
-
-		loop ++;
-	}
-
-	listNodeDevOpreating_Flg = false;
-
-	return loop;
-}
-
-uint8_t *L8devHbDataManageList_listGet(stt_nodeDev_hbDataManage *pHead){
-
-	uint8_t listLen = L8devHbDataManageList_nodeNumDetect(pHead) + 1;
-	uint8_t *listInfo = (uint8_t *)os_zalloc(sizeof(stt_hbDataUpload) * listLen);
-	stt_nodeDev_hbDataManage *pAbove = pHead;
-	uint8_t loop = 1;
-
-	listNodeDevOpreating_Flg = true;
-
-	listInfo[0] = listLen;
-	memset(listInfo, 0, sizeof(stt_hbDataUpload) * listLen);
-
-	while(pAbove->next != NULL){
-
-		memcpy(&listInfo[sizeof(stt_hbDataUpload) * loop + 1], &(pAbove->next->dataManage), sizeof(stt_hbDataUpload));
-		pAbove = pAbove->next;
-		loop ++;
-	}
-
-	listNodeDevOpreating_Flg = false;
-
-	return listInfo;
 }
 
 stt_mutualCtrlInfoResp *L8devMutualCtrlInfo_Get(stt_nodeDev_hbDataManage *pHead, uint8_t mutualCtrlGroupIst){
@@ -697,6 +618,33 @@ uint8_t *L8devStatusInfoGet(stt_nodeDev_hbDataManage *pHead){ //仅获取链表�
 		statusInfo_dataUnitTemp.nodeDev_DevRunningFlg = currentDevRunningFlg_paramGet();
 		devDriverBussiness_temperatureMeasure_getByHex(&(statusInfo_dataUnitTemp.nodeDev_dataTemprature));
 		devDriverBussiness_elecMeasure_valPowerGetByHex(&(statusInfo_dataUnitTemp.nodeDev_dataPower));
+		switch(currentDev_typeGet()){ //扩展数据填装
+		
+			case devTypeDef_curtain:{
+		
+				statusInfo_dataUnitTemp.nodeDev_extFunParam[0] = devCurtain_currentPositionPercentGet();
+		
+			}break;
+			
+			case devTypeDef_heater:{
+		
+				uint16_t heater_gearCst_period = devDriverBussiness_heaterSwitch_closePeriodCustom_Get();
+				uint16_t heater_timeRem_counter = devDriverBussiness_heaterSwitch_devParam_closeCounter_Get();
+		
+				memcpy(&(statusInfo_dataUnitTemp.nodeDev_extFunParam[0]), &heater_gearCst_period, sizeof(uint16_t));
+				memcpy(&(statusInfo_dataUnitTemp.nodeDev_extFunParam[2]), &heater_timeRem_counter, sizeof(uint16_t));
+		
+			}break;
+		
+			case devTypeDef_mulitSwOneBit:
+			case devTypeDef_mulitSwTwoBit:
+			case devTypeDef_mulitSwThreeBit:
+			case devTypeDef_dimmer:
+			case devTypeDef_fans:
+			case devTypeDef_scenario:
+			case devTypeDef_thermostat:
+			default:{}break;
+		}
 		
 		memcpy(&devStatusInfo[sizeof(stt_devStatusInfoResp) * loopCount + 1], //下标0为设备数量，所以从下标为 loopCount+1
 			   &statusInfo_dataUnitTemp, 
@@ -724,6 +672,9 @@ uint8_t *L8devStatusInfoGet(stt_nodeDev_hbDataManage *pHead){ //仅获取链表�
 			memcpy(&(statusInfo_dataUnitTemp.nodeDev_dataPower), 
 				   &(pAbove->next->dataManage.nodeDev_dataPower),
 				   sizeof(stt_devPowerParam2Hex));
+			memcpy(statusInfo_dataUnitTemp.nodeDev_extFunParam, 
+				   pAbove->next->dataManage.nodeDev_extFunParam,
+				   sizeof(uint8_t) * DEVPARAMEXT_DT_LEN);
 			
 			//单位缓存填装进总数据队列缓存
 			memcpy(&devStatusInfo[sizeof(stt_devStatusInfoResp) * loopCount + 1], //下标0为设备数量，所以从下标为 loopCount+1
@@ -814,6 +765,133 @@ uint8_t *L8devElecsumInfoGet(stt_nodeDev_hbDataManage *pHead){
 
 		return devElecsumInfo;
 	}
+}
+
+void L8devHeartbeatFunctionParamLoad(stt_hbDataUpload *nodeDev_dataTemp){
+
+	stt_hbDataUpload nodeDev_hbDataTemp = {0};
+	stt_devDataPonitTypedef devDataPoint_temp = {0};
+
+	esp_wifi_get_mac(ESP_IF_WIFI_STA, nodeDev_dataTemp->nodeDev_Mac); //mac地址填装
+	nodeDev_dataTemp->nodeDev_Type = currentDev_typeGet(); //设备类型填装
+	currentDev_dataPointGet(&devDataPoint_temp); //设备状态获取
+	memcpy(&(nodeDev_dataTemp->nodeDev_Status), &devDataPoint_temp, sizeof(stt_devDataPonitTypedef)); //设备状态填装
+	devMutualCtrlGroupInfo_groupInsertGet(nodeDev_dataTemp->nodeDev_mautualInfo); //互控信息填装
+	nodeDev_dataTemp->nodeDev_runningFlg =  currentDevRunningFlg_paramGet(); //设备运行状态填装
+	devDriverBussiness_temperatureMeasure_getByHex(&(nodeDev_dataTemp->nodeDev_dataTemprature)); //设备温度数据填装
+	devDriverBussiness_elecMeasure_valPowerGetByHex(&(nodeDev_dataTemp->nodeDev_dataPower)); //设备功率数据填装
+	devDriverBussiness_elecMeasure_valElecsumGetByHex(&(nodeDev_dataTemp->nodeDev_dataElecsum)); //设备电量数据填装
+	switch(currentDev_typeGet()){ //扩展数据填装
+
+		case devTypeDef_curtain:{
+
+			nodeDev_dataTemp->nodeDev_extFunParam[0] = devCurtain_currentPositionPercentGet();
+
+		}break;
+		
+		case devTypeDef_heater:{
+
+			uint16_t heater_gearCur_period = devDriverBussiness_heaterSwitch_closePeriodCurrent_Get();
+			uint16_t heater_timeRem_counter = devDriverBussiness_heaterSwitch_devParam_closeCounter_Get();
+
+//			memcpy(&(nodeDev_dataTemp->nodeDev_extFunParam[0]), &heater_gearCur_period, sizeof(uint16_t));
+//			memcpy(&(nodeDev_dataTemp->nodeDev_extFunParam[2]), &heater_timeRem_counter, sizeof(uint16_t));
+
+			nodeDev_dataTemp->nodeDev_extFunParam[0] = (uint8_t)((heater_gearCur_period >> 8) & 0x00ff);
+			nodeDev_dataTemp->nodeDev_extFunParam[1] = (uint8_t)((heater_gearCur_period >> 0) & 0x00ff);
+			nodeDev_dataTemp->nodeDev_extFunParam[2] = (uint8_t)((heater_timeRem_counter >> 8) & 0x00ff);
+			nodeDev_dataTemp->nodeDev_extFunParam[3] = (uint8_t)((heater_timeRem_counter >> 0) & 0x00ff);
+
+		}break;
+
+		case devTypeDef_mulitSwOneBit:
+		case devTypeDef_mulitSwTwoBit:
+		case devTypeDef_mulitSwThreeBit:
+		case devTypeDef_dimmer:
+		case devTypeDef_fans:
+		case devTypeDef_scenario:
+		case devTypeDef_thermostat:
+		default:{}break;
+	}
+}
+
+void L8devHbDataManageList_delSame(stt_nodeDev_hbDataManage *pHead){
+
+    stt_nodeDev_hbDataManage *p,*q,*r;
+    p = pHead->next; 
+
+	listNodeDevOpreating_Flg = true;
+	
+    while(p != NULL)    
+    {
+        q = p;
+        while(q->next != NULL) 
+        {
+            if(!memcmp(q->next->dataManage.nodeDev_Mac, p->dataManage.nodeDev_Mac, MWIFI_ADDR_LEN)) 
+            {
+                r = q->next; 
+                q->next = r->next;   
+
+				memcpy(&(q->dataManage), &(r->dataManage), sizeof(stt_hbDataUpload)); //后到优先更新
+				q->nodeDevKeepAlive_counter = r->nodeDevKeepAlive_counter;
+				
+				free(r);
+            }
+            else
+            {
+            	q = q->next;
+			}
+        }
+
+        p = p->next;
+    }
+
+	listNodeDevOpreating_Flg = false;
+}
+
+uint8_t L8devHbDataManageList_nodeNumDetect(stt_nodeDev_hbDataManage *pHead){
+
+	stt_nodeDev_hbDataManage *pAbove = pHead;
+	stt_nodeDev_hbDataManage *pFollow;
+	uint8_t loop = 0;
+
+	listNodeDevOpreating_Flg = true;
+
+	while(pAbove->next != NULL){
+		
+		pFollow = pAbove;
+		pAbove	= pFollow->next;
+
+		loop ++;
+	}
+
+	listNodeDevOpreating_Flg = false;
+
+	return loop;
+}
+
+uint8_t *L8devHbDataManageList_listGet(stt_nodeDev_hbDataManage *pHead){
+
+	uint8_t listLen = L8devHbDataManageList_nodeNumDetect(pHead) + 1;
+	uint8_t *listInfo = (uint8_t *)os_zalloc(sizeof(stt_hbDataUpload) * listLen);
+	stt_nodeDev_hbDataManage *pAbove = pHead;
+	uint8_t loop = 1;
+
+	listNodeDevOpreating_Flg = true;
+
+	listInfo[0] = listLen;
+	memset(listInfo, 0, sizeof(stt_hbDataUpload) * listLen);
+
+	while(pAbove->next != NULL){
+
+		memcpy(&listInfo[sizeof(stt_hbDataUpload) * loop + 1], &(pAbove->next->dataManage), sizeof(stt_hbDataUpload));
+		pAbove = pAbove->next;
+		loop ++;
+	}
+
+	listNodeDevOpreating_Flg = false;
+
+	return listInfo;
 }
 
 void L8devHbDataManageList_listDestory(stt_nodeDev_hbDataManage *pHead){

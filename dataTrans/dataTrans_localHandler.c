@@ -564,19 +564,10 @@ void devHeartbeat_dataTrans_bussinessTrig(void){
 	if(mwifi_is_connected() && esp_mesh_get_layer() != MESH_ROOT){ //是子节点则发心跳
 
 		stt_hbDataUpload nodeDev_hbDataTemp = {0};
-		stt_devDataPonitTypedef devDataPoint_temp = {0};
 		const uint8_t meshRootAddr[MWIFI_ADDR_LEN] = MWIFI_ADDR_ROOT;
 
-		esp_wifi_get_mac(ESP_IF_WIFI_STA, nodeDev_hbDataTemp.nodeDev_Mac); //mac地址填装
-		nodeDev_hbDataTemp.nodeDev_Type = currentDev_typeGet(); //设备类型填装
-		currentDev_dataPointGet(&devDataPoint_temp); //设备状态获取
-		memcpy(&(nodeDev_hbDataTemp.nodeDev_Status), &devDataPoint_temp, sizeof(stt_devDataPonitTypedef)); //设备状态填装
-		devMutualCtrlGroupInfo_groupInsertGet(nodeDev_hbDataTemp.nodeDev_mautualInfo); //互控信息填装
-		nodeDev_hbDataTemp.nodeDev_runningFlg =  currentDevRunningFlg_paramGet(); //设备运行状态填装
-		devDriverBussiness_temperatureMeasure_getByHex(&(nodeDev_hbDataTemp.nodeDev_dataTemprature)); //设备温度数据填装
-		devDriverBussiness_elecMeasure_valPowerGetByHex(&(nodeDev_hbDataTemp.nodeDev_dataPower)); //设备功率数据填装
-		devDriverBussiness_elecMeasure_valElecsumGetByHex(&(nodeDev_hbDataTemp.nodeDev_dataElecsum)); //设备电量数据填装
-
+		L8devHeartbeatFunctionParamLoad(&nodeDev_hbDataTemp);
+		
 		dataRequest_temp[0] = L8DEV_MESH_HEARTBEAT_REQ;
 		memcpy(&dataRequest_temp[L8_meshDataCmdLen], &nodeDev_hbDataTemp, sizeof(stt_hbDataUpload));
 

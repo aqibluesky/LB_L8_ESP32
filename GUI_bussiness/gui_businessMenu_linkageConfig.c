@@ -684,6 +684,9 @@ void lvGui_businessMenu_linkageConfig(lv_obj_t * obj_Parent){
 	lv_obj_animate(swReserveSet_proximityDetection,  LV_ANIM_FLOAT_RIGHT, 200,	100,	NULL);
 	lv_obj_animate(textSettingA_tempratureDetection, LV_ANIM_FLOAT_RIGHT, 200,	200,	NULL);
 	lv_obj_animate(swReserveSet_tempratureDetection, LV_ANIM_FLOAT_RIGHT, 200,	300,	NULL);
+
+	vTaskDelay(50 / portTICK_PERIOD_MS);
+	lv_obj_refresh_style(page_funSetOption);
 }
 
 
