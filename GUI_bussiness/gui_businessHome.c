@@ -73,11 +73,14 @@ LV_IMG_DECLARE(iconHeader_wifi_A);
 LV_IMG_DECLARE(iconHeader_wifi_B);
 LV_IMG_DECLARE(iconHeader_wifi_C);
 LV_IMG_DECLARE(iconHeader_wifi_D);
+LV_IMG_DECLARE(iconHeader_wifi_offline);
 LV_IMG_DECLARE(iconHeader_alarm);
 LV_IMG_DECLARE(iconHeader_greenMode);
 LV_IMG_DECLARE(iconHeader_node);
 LV_IMG_DECLARE(iconHeader_elec);
 LV_IMG_DECLARE(iconAlarm_tips);
+LV_IMG_DECLARE(iconHeader_nightMoon);
+LV_IMG_DECLARE(iconHeader_lock);
 LV_IMG_DECLARE(button_aera);
 LV_IMG_DECLARE(button_area);
 LV_IMG_DECLARE(homepage_buttonPicRel_fenSe);
@@ -96,6 +99,7 @@ LV_IMG_DECLARE(iconPage_curtainClose_rel);
 LV_IMG_DECLARE(iconPage_curtainPluse_rel);
 LV_IMG_DECLARE(iconPage_curtainOpen_rel);
 LV_IMG_DECLARE(iconPage_binding);
+LV_IMG_DECLARE(iconPage_binding_x);
 LV_IMG_DECLARE(iconPage_unbinding);
 LV_IMG_DECLARE(imageCurtain_gan);
 LV_IMG_DECLARE(imageCurtain_body);
@@ -135,7 +139,8 @@ static struct
 	.data = NULL,
 };
 
-static lv_obj_t *imageBK = NULL;
+static lv_obj_t *imageBK = NULL; //真身
+static lv_obj_t *imageBK_corpse = NULL; //傀儡（替死鬼）[因为littlevgl 对象对应的回调函数中创建新的对象前不能立刻删除自己本身或自己的父对象，所以需要一个傀儡做过渡]
 
 static lv_obj_t *imageTips_timer = NULL;
 
@@ -146,6 +151,8 @@ static usrGuiBussiness_type guiPage_record = bussinessType_Home;
 static lv_obj_t *iconHeaderObj_wifi = NULL;
 static lv_obj_t *iconHeaderObj_alarm = NULL;
 static lv_obj_t *iconHeaderObj_greenMode = NULL;
+static lv_obj_t *iconHeaderObj_nightMode = NULL;
+static lv_obj_t *iconHeaderObj_devLock = NULL;
 
 static lv_obj_t *textHeaderObj_time = NULL;
 static lv_obj_t *textHeaderObj_elec = NULL;
@@ -261,10 +268,14 @@ static lv_style_t styleBtnm_devFans_btnTglRel;
 static lv_style_t styleBtnm_devFans_btnTglPre;
 static lv_style_t styleBtnm_devFans_btnIna;
 static lv_style_t styleImage_devHeater_icon;
-static lv_style_t styleText_devHeater_timeInst;
+static lv_style_t styleText_devHeater_timeInstTar;
+static lv_style_t styleText_devHeater_timeInstCur;
 static lv_style_t styleBtnm_devHeater_btnBg;
 static lv_style_t styleBtnm_devHeater_btnRel;
 static lv_style_t styleBtnm_devHeater_btnPre;
+static lv_style_t styleBtnm_devHeater_btnTglRel;
+static lv_style_t styleBtnm_devHeater_btnTglPre;
+static lv_style_t styleBtnm_devHeater_btnIna;
 static lv_style_t stylePage_devHeater_timeSet;
 static lv_style_t styleTextBtn_devHeater_timeSetPage;
 static lv_style_t styleTextRoller_devHeater_timeSetPage_bg;
@@ -290,6 +301,9 @@ static lv_style_t styleIconBinding_reserveIf;
 
 //其他本地变量
 static uint8_t homepageThemeType_typeFlg = homepageThemeType_ouZhou;
+
+static uint8_t lvGuiRefreshCounter_bussinessBk = 0;
+static uint8_t guiInfoRefresh_calmDn_counter = 0;
 
 static char textStr_time[10] = {0};
 static char textStr_nodeNum[5] = {0}; 
@@ -374,7 +388,7 @@ void usrAppHomepageThemeType_Set(const uint8_t themeType_flg, bool nvsRecord_IF)
 			styleIconvText_devMulitSw_statusOn.image.color = LV_COLOR_WHITE;
 			styleIconvText_devMulitSw_statusOn.image.intense = LV_OPA_COVER;
 			styleIconvText_devMulitSw_statusOn.text.color = LV_COLOR_WHITE;
-			styleIconvText_devMulitSw_statusOff.image.color = LV_COLOR_BLACK;
+			styleIconvText_devMulitSw_statusOff.image.color = LV_COLOR_GRAY;
 			styleIconvText_devMulitSw_statusOff.image.intense = LV_OPA_COVER;
 			styleIconvText_devMulitSw_statusOff.text.color = LV_COLOR_BLACK;
 
@@ -410,6 +424,29 @@ static lv_img_dsc_t *usrAppHomepageBkPic_dataGet(void){
 		case homepageThemeType_keAi:{res = &homepage_bkPic_keAi;}break;
 		case homepageThemeType_ouZhou:{res = &homepage_bkPic_jiJian;}break;
 		default:{res = &homepage_bkPic_jianJie;}break;
+	}
+
+	return res;
+}
+
+static lv_img_dsc_t *usrAppHomepageBindingIcon_dataGet(void){
+
+	const lv_img_dsc_t *res = NULL;
+
+	switch(currentDev_typeGet()){
+
+		case devTypeDef_dimmer:
+		case devTypeDef_curtain:{
+
+			res = &iconPage_binding;
+			
+		}break;
+
+		default:{
+
+			res = &iconPage_binding_x;
+			
+		}break;
 	}
 
 	return res;
@@ -728,7 +765,7 @@ static lv_res_t funCb_btnActionClick_bindingBtnA(lv_obj_t *btn){
 
 			mutualCtrlTrigIf_A = !mutualCtrlTrigIf_A;
 			(mutualCtrlTrigIf_A)?
-				(lv_imgbtn_set_src(iconBtn_binding_A, LV_BTN_STATE_REL, &iconPage_binding)):
+				(lv_imgbtn_set_src(iconBtn_binding_A, LV_BTN_STATE_REL, usrAppHomepageBindingIcon_dataGet())):
 				(lv_imgbtn_set_src(iconBtn_binding_A, LV_BTN_STATE_REL, &iconPage_unbinding));
 
 		}break;
@@ -752,7 +789,7 @@ static lv_res_t funCb_btnActionClick_bindingBtnB(lv_obj_t *btn){
 
 			mutualCtrlTrigIf_B = !mutualCtrlTrigIf_B;
 			(mutualCtrlTrigIf_B)?
-				(lv_imgbtn_set_src(iconBtn_binding_B, LV_BTN_STATE_REL, &iconPage_binding)):
+				(lv_imgbtn_set_src(iconBtn_binding_B, LV_BTN_STATE_REL, usrAppHomepageBindingIcon_dataGet())):
 				(lv_imgbtn_set_src(iconBtn_binding_B, LV_BTN_STATE_REL, &iconPage_unbinding));
 
 		}break;
@@ -771,7 +808,7 @@ static lv_res_t funCb_btnActionClick_bindingBtnC(lv_obj_t *btn){
 		
 			mutualCtrlTrigIf_C = !mutualCtrlTrigIf_C;
 			(mutualCtrlTrigIf_C)?
-				(lv_imgbtn_set_src(iconBtn_binding_C, LV_BTN_STATE_REL, &iconPage_binding)):
+				(lv_imgbtn_set_src(iconBtn_binding_C, LV_BTN_STATE_REL, usrAppHomepageBindingIcon_dataGet())):
 				(lv_imgbtn_set_src(iconBtn_binding_C, LV_BTN_STATE_REL, &iconPage_unbinding));
 		
 		}break;
@@ -1066,7 +1103,7 @@ static lv_res_t funCb_btnmActionClick_devHeater_gearBtnm(lv_obj_t *btnm, const c
 			if(imgBtn_devHeater_timeSet == NULL)
 				imgBtn_devHeater_timeSet = lv_imgbtn_create(lv_obj_get_parent(btnm), NULL);
 			lv_obj_set_protect(imgBtn_devHeater_timeSet, LV_PROTECT_POS);
-			lv_obj_set_pos(imgBtn_devHeater_timeSet, 185, 205);
+			lv_obj_set_pos(imgBtn_devHeater_timeSet, 182, 195);
 			lv_imgbtn_set_src(imgBtn_devHeater_timeSet, LV_BTN_STATE_REL, &iconSet_HomePageDeviceHeater);
 			lv_imgbtn_set_src(imgBtn_devHeater_timeSet, LV_BTN_STATE_PR, &iconSet_HomePageDeviceHeater);
 			lv_imgbtn_set_action(imgBtn_devHeater_timeSet, LV_BTN_ACTION_CLICK, funCb_btnActionClick_devHeater_timeSet);
@@ -1210,6 +1247,9 @@ static void usrApp_devThermostat_ctrlObj_reserveSet(bool reserve_IF){
 		styleLmeter_devThermostat_tempCurrent.body.grad_color = LV_COLOR_MAKE(0, 255, 0);
 		styleLabel_devThermostat_tempTarget.text.color = LV_COLOR_MAKE(255, 255, 0);
 		styleLabel_devThermostat_tempCurrent.text.color = LV_COLOR_MAKE(0, 255, 0);
+		styleSliderBk_devThermostat_indic.body.grad_color = LV_COLOR_GREEN;
+		styleSliderBk_devThermostat_indic.body.main_color = LV_COLOR_LIME;
+		styleSliderBk_devThermostat_indic.body.shadow.color = LV_COLOR_LIME;
 	}
 	else
 	{
@@ -1225,12 +1265,16 @@ static void usrApp_devThermostat_ctrlObj_reserveSet(bool reserve_IF){
 		styleLmeter_devThermostat_tempCurrent.body.grad_color = LV_COLOR_GRAY;
 		styleLabel_devThermostat_tempTarget.text.color = LV_COLOR_GRAY;
 		styleLabel_devThermostat_tempCurrent.text.color = LV_COLOR_GRAY;
+		styleSliderBk_devThermostat_indic.body.grad_color = LV_COLOR_GRAY;
+		styleSliderBk_devThermostat_indic.body.main_color = LV_COLOR_GRAY;
+		styleSliderBk_devThermostat_indic.body.shadow.color = LV_COLOR_GRAY;
 	}
 
 	lv_obj_refresh_style(lmeterTempInstTarget_devThermostat);
 	lv_obj_refresh_style(lmeterTempInstCurrent_devThermostat);
 	lv_obj_refresh_style(labelTempInstTarget_devThermostat);
 	lv_obj_refresh_style(labelTempInstCurrent_devThermostat);
+	lv_obj_refresh_style(slider_tempAdj_devThermostat);
 }
 
 static lv_res_t funCb_swAction_devThermostat_runningEnable(lv_obj_t *sw){
@@ -1287,6 +1331,23 @@ static lv_res_t funCb_btnActionClick_homeMenu_click(lv_obj_t *btn){
 
 static void pageHeader_infoRefreshLoop(void){
 
+	const uint8_t localCounter_period = 3;
+	static uint8_t localCounter = localCounter_period;
+
+	if(localCounter)localCounter --;
+	else{
+
+		localCounter = localCounter_period;
+
+		if(lvGuiRefreshCounter_bussinessBk){
+
+			lvGuiRefreshCounter_bussinessBk --;
+
+			lv_obj_refresh_style(lv_layer_top());
+			lv_obj_refresh_style(imageBK);			
+		}
+	}
+
 	if(devRunningTimeFromPowerUp_couter < 2)return;
 
 	{//页眉时间信息更新
@@ -1302,19 +1363,25 @@ static void pageHeader_infoRefreshLoop(void){
 			
 			sprintf(textStr_time, "%02d:%02d", devSystime_temp.time_Hour, 
 											   devSystime_temp.time_Minute);
-			lv_label_set_text(textHeaderObj_time, textStr_time);
-			lv_obj_refresh_style(textHeaderObj_time);
-			vTaskDelay(20 / portTICK_PERIOD_MS);
+			lv_label_set_static_text(textHeaderObj_time, (const char*)textStr_time);
+//			lv_obj_refresh_style(textHeaderObj_time);
+//			vTaskDelay(20 / portTICK_PERIOD_MS);
 		}
 	}
 
 	{//页眉定时类图标提示更新
 
 			   uint16_t devRunningFlg_temp 		  	  = currentDevRunningFlg_paramGet();
+			   
 			   bool 	tipsAlarm_remindIf 		  	  = false;
-			   bool 	tipsgreenMode_remindIf	  	  = false;
+			   bool 	tipsGreenMode_remindIf	  	  = false;
+			   bool 	tipsNightMode_remindIf	  	  = false;
+			   bool 	tipsDeviceLock_remindIf	  	  = false;
+			   
 		static bool 	tipsAlarm_remindIf_record 	  = false;
-		static bool 	tipsgreenMode_remindIf_record = false;
+		static bool 	tipsGreenMode_remindIf_record = false;
+		static bool 	tipsNightMode_remindIf_record = false;
+		static bool 	tipsDeviceLock_remindIf_record= false;
 
 		if((devRunningFlg_temp & DEV_RUNNING_FLG_BIT_TIMER)||
 		   (devRunningFlg_temp & DEV_RUNNING_FLG_BIT_DELAY)){
@@ -1341,14 +1408,14 @@ static void pageHeader_infoRefreshLoop(void){
 
 		if(devRunningFlg_temp & DEV_RUNNING_FLG_BIT_GREENMODE){
 
-			tipsgreenMode_remindIf = true;
+			tipsGreenMode_remindIf = true;
 		}
 
-		if(tipsgreenMode_remindIf_record != tipsgreenMode_remindIf){
+		if(tipsGreenMode_remindIf_record != tipsGreenMode_remindIf){
 
-			tipsgreenMode_remindIf_record = tipsgreenMode_remindIf;
+			tipsGreenMode_remindIf_record = tipsGreenMode_remindIf;
 
-			if(tipsgreenMode_remindIf_record){
+			if(tipsGreenMode_remindIf_record){
 
 				if(iconHeaderObj_greenMode == NULL)iconHeaderObj_greenMode = lv_img_create(lv_layer_top(), NULL);
 				lv_obj_set_pos(iconHeaderObj_greenMode,	133, 1);
@@ -1360,6 +1427,50 @@ static void pageHeader_infoRefreshLoop(void){
 				iconHeaderObj_greenMode = NULL;
 			}
 		}
+
+		if(devRunningFlg_temp & DEV_RUNNING_FLG_BIT_NIGHTMODE){
+
+			tipsNightMode_remindIf = true;
+		}
+
+		if(tipsNightMode_remindIf_record != tipsNightMode_remindIf){
+
+			tipsNightMode_remindIf_record = tipsNightMode_remindIf;
+
+			if(tipsNightMode_remindIf_record){
+
+				if(iconHeaderObj_nightMode == NULL)iconHeaderObj_nightMode = lv_img_create(lv_layer_top(), NULL);
+				lv_obj_set_pos(iconHeaderObj_nightMode,	25, 23);
+				lv_img_set_src(iconHeaderObj_nightMode, &iconHeader_nightMoon);
+			}
+			else
+			{
+				lv_obj_del(iconHeaderObj_nightMode);
+				iconHeaderObj_nightMode = NULL;
+			}
+		}
+
+		if(devRunningFlg_temp & DEV_RUNNING_FLG_BIT_DEVLOCK){
+
+			tipsDeviceLock_remindIf = true;
+		}
+
+		if(tipsDeviceLock_remindIf_record != tipsDeviceLock_remindIf){
+
+			tipsDeviceLock_remindIf_record = tipsDeviceLock_remindIf;
+
+			if(tipsDeviceLock_remindIf_record){
+
+				if(iconHeaderObj_devLock == NULL)iconHeaderObj_devLock = lv_img_create(lv_layer_top(), NULL);
+				lv_obj_set_pos(iconHeaderObj_devLock, 49, 23);
+				lv_img_set_src(iconHeaderObj_devLock, &iconHeader_lock);
+			}
+			else
+			{
+				lv_obj_del(iconHeaderObj_devLock);
+				iconHeaderObj_devLock = NULL;
+			}
+		}
 	}
 
 	{//页眉信号强度提示更新
@@ -1368,31 +1479,69 @@ static void pageHeader_infoRefreshLoop(void){
 		static int8_t signalStrength_record = 0;
 		const int8_t signalStrength_levelTab[3] = {-70, -90, -120};
 
-		if(signalStrength_record != signalStrength_temp){
+		if(meshNetwork_connectReserve_IF_get()){
 
-			signalStrength_record = signalStrength_temp;
+			if(flgGet_gotRouterOrMeshConnect()){
 
-			if(signalStrength_record > signalStrength_levelTab[0]){
-
-				lv_img_set_src(iconHeaderObj_wifi, &iconHeader_wifi_A);
+				if(signalStrength_record != signalStrength_temp){
+				
+					signalStrength_record = signalStrength_temp;
+				
+					if(signalStrength_record > signalStrength_levelTab[0]){
+				
+						lv_img_set_src(iconHeaderObj_wifi, &iconHeader_wifi_A);
+					}
+					else
+					if((signalStrength_record > signalStrength_levelTab[1]) &&
+					   (signalStrength_record < signalStrength_levelTab[0])){
+				
+						lv_img_set_src(iconHeaderObj_wifi, &iconHeader_wifi_B);
+					}
+					else
+					if((signalStrength_record > signalStrength_levelTab[2]) &&
+					   (signalStrength_record < signalStrength_levelTab[1])){
+					
+						lv_img_set_src(iconHeaderObj_wifi, &iconHeader_wifi_C);
+					}
+					else
+					if(signalStrength_record < signalStrength_levelTab[2]){
+				
+						lv_img_set_src(iconHeaderObj_wifi, &iconHeader_wifi_D);
+					}	
+				}
 			}
 			else
-			if((signalStrength_record > signalStrength_levelTab[1]) &&
-			   (signalStrength_record < signalStrength_levelTab[0])){
+			{
+				const lv_img_dsc_t *iconPtr_tab[4] = {
 
-				lv_img_set_src(iconHeaderObj_wifi, &iconHeader_wifi_B);
-			}
-			else
-			if((signalStrength_record > signalStrength_levelTab[2]) &&
-			   (signalStrength_record < signalStrength_levelTab[1])){
-			
-				lv_img_set_src(iconHeaderObj_wifi, &iconHeader_wifi_C);
-			}
-			else
-			if(signalStrength_record < signalStrength_levelTab[2]){
+					&iconHeader_wifi_D,
+					&iconHeader_wifi_C,
+					&iconHeader_wifi_B,
+					&iconHeader_wifi_A,
+				};
 
-				lv_img_set_src(iconHeaderObj_wifi, &iconHeader_wifi_D);
-			}	
+				const uint8_t iconReferPeriod = 6;
+				static uint8_t iconReferCounter = 0;
+				static uint8_t iconIst = 0;
+
+				if(iconReferCounter < iconReferPeriod)iconReferCounter ++;
+				else{
+
+					iconReferCounter = 0;
+
+					if(iconIst == 4)iconIst  = 0;
+					else{
+
+						lv_img_set_src(iconHeaderObj_wifi, iconPtr_tab[iconIst]);
+
+						iconIst ++;
+					}
+				}
+			}
+		}
+		else
+		{
+			lv_img_set_src(iconHeaderObj_wifi, &iconHeader_wifi_offline);
 		}
 	}
 
@@ -1415,7 +1564,7 @@ static void pageHeader_infoRefreshLoop(void){
 			nodeNum_record = nodeNum_temp;
 
 			sprintf(textStr_nodeNum, "%02d", nodeNum_record);
-			lv_label_set_text(textHeaderObj_meshNodeNum, textStr_nodeNum);			
+			lv_label_set_static_text(textHeaderObj_meshNodeNum, (const char*)textStr_nodeNum);			
 		}
 
 		if(mwifi_is_connected()){
@@ -1480,9 +1629,9 @@ static void pageHeader_infoRefreshLoop(void){
 				sprintf(textStr_elecSum, "%.01fkWh", elecSum_record);
 			}
 
-			lv_label_set_text(textHeaderObj_elec, textStr_elecSum);	
-			lv_obj_refresh_style(textHeaderObj_elec);
-			vTaskDelay(20 / portTICK_PERIOD_MS);
+			lv_label_set_static_text(textHeaderObj_elec, (const char*)textStr_elecSum);	
+//			lv_obj_refresh_style(textHeaderObj_elec);
+//			vTaskDelay(20 / portTICK_PERIOD_MS);
 		}
 	}
 
@@ -1495,10 +1644,10 @@ static void pageHeader_infoRefreshLoop(void){
 
 			temperature_record = temperature_temp;
 
-			sprintf(textStr_temperature, "%3.02f\"C", temperature_record);
-			lv_label_set_text(textHeaderObj_temperature, textStr_temperature);	
-			lv_obj_refresh_style(textHeaderObj_temperature);
-			vTaskDelay(20 / portTICK_PERIOD_MS);
+			sprintf(textStr_temperature, "%3.01f\"C", temperature_record);
+			lv_label_set_static_text(textHeaderObj_temperature, textStr_temperature);	
+//			lv_obj_refresh_style(textHeaderObj_temperature);
+//			vTaskDelay(20 / portTICK_PERIOD_MS);
 		}
 	}
 }
@@ -1598,7 +1747,8 @@ static void pageActivity_infoRefreshLoop(void){
 								lv_obj_refresh_style(iconBtn_sleeping);
 							}break;
 							
-							case devTypeDef_mulitSwThreeBit:{
+							case devTypeDef_mulitSwThreeBit:
+							case devTypeDef_scenario:{
 								
 								if(rptr_msgQ_dmHandle.msgData_dmHandle.dataAb_hpCtrlObjIconChg.objChg_bitHold & (1 << 0))
 									lv_img_set_src(iconBtn_meeting, usrAppHomepageBtnIconDisp_dataGet(dataIconObjDisp_temp[0]));
@@ -1633,6 +1783,8 @@ static void pageActivity_infoRefreshLoop(void){
 									(devDataPoint.devType_mulitSwitch_threeBit.swVal_bit1)?(lv_img_set_style(iconBtn_meeting, &styleIconvText_devMulitSw_statusOn)):(lv_img_set_style(iconBtn_meeting, &styleIconvText_devMulitSw_statusOff));
 									(devDataPoint.devType_mulitSwitch_threeBit.swVal_bit1)?(lv_label_set_style(textBtn_meeting, &styleIconvText_devMulitSw_statusOn)):(lv_img_set_style(textBtn_meeting, &styleIconvText_devMulitSw_statusOff));
 
+									lv_imgbtn_set_src(btn_bk_devMulitSw_A, LV_BTN_STATE_PR, usrAppHomepageBtnBkPic_dataGet(false));
+
 									lv_obj_refresh_style(btn_bk_devMulitSw_A);
 									lv_obj_refresh_style(iconBtn_meeting);
 									lv_obj_refresh_style(textBtn_meeting);
@@ -1647,6 +1799,9 @@ static void pageActivity_infoRefreshLoop(void){
 									(devDataPoint.devType_mulitSwitch_threeBit.swVal_bit2)?(lv_imgbtn_set_src(btn_bk_devMulitSw_B, LV_BTN_STATE_REL, usrAppHomepageBtnBkPic_dataGet(true))):(lv_imgbtn_set_src(btn_bk_devMulitSw_B, LV_BTN_STATE_REL, usrAppHomepageBtnBkPic_dataGet(false)));
 									(devDataPoint.devType_mulitSwitch_threeBit.swVal_bit2)?(lv_img_set_style(iconBtn_sleeping, &styleIconvText_devMulitSw_statusOn)):(lv_img_set_style(iconBtn_sleeping, &styleIconvText_devMulitSw_statusOff));
 									(devDataPoint.devType_mulitSwitch_threeBit.swVal_bit2)?(lv_label_set_style(textBtn_sleeping, &styleIconvText_devMulitSw_statusOn)):(lv_img_set_style(textBtn_sleeping, &styleIconvText_devMulitSw_statusOff));
+
+									lv_imgbtn_set_src(btn_bk_devMulitSw_A, LV_BTN_STATE_PR, usrAppHomepageBtnBkPic_dataGet(false));
+									lv_imgbtn_set_src(btn_bk_devMulitSw_B, LV_BTN_STATE_PR, usrAppHomepageBtnBkPic_dataGet(false));
 
 									lv_obj_refresh_style(btn_bk_devMulitSw_A);
 									lv_obj_refresh_style(iconBtn_meeting);
@@ -1669,6 +1824,10 @@ static void pageActivity_infoRefreshLoop(void){
 									(devDataPoint.devType_mulitSwitch_threeBit.swVal_bit3)?(lv_img_set_style(iconBtn_toilet, &styleIconvText_devMulitSw_statusOn)):(lv_img_set_style(iconBtn_toilet, &styleIconvText_devMulitSw_statusOff));
 									(devDataPoint.devType_mulitSwitch_threeBit.swVal_bit3)?(lv_label_set_style(textBtn_toilet, &styleIconvText_devMulitSw_statusOn)):(lv_img_set_style(textBtn_toilet, &styleIconvText_devMulitSw_statusOff));
 
+									lv_imgbtn_set_src(btn_bk_devMulitSw_A, LV_BTN_STATE_PR, usrAppHomepageBtnBkPic_dataGet(false));
+									lv_imgbtn_set_src(btn_bk_devMulitSw_B, LV_BTN_STATE_PR, usrAppHomepageBtnBkPic_dataGet(false));
+									lv_imgbtn_set_src(btn_bk_devMulitSw_C, LV_BTN_STATE_PR, usrAppHomepageBtnBkPic_dataGet(false));
+									
 									lv_obj_refresh_style(btn_bk_devMulitSw_A);
 									lv_obj_refresh_style(iconBtn_meeting);
 									lv_obj_refresh_style(textBtn_meeting);
@@ -1687,6 +1846,7 @@ static void pageActivity_infoRefreshLoop(void){
 
 						if(imageBK)
 							lv_img_set_src(imageBK, usrAppHomepageBkPic_dataGet());
+						
 						lv_obj_refresh_style(imageBK);
 						
 					}break;
@@ -1698,6 +1858,9 @@ static void pageActivity_infoRefreshLoop(void){
 			//互控图标业务
 			devMutualCtrlGroupInfo_groupInsertGet(btnBindingStatus_temp);
 			if(memcmp(btnBindingStatus_record, btnBindingStatus_temp, sizeof(uint8_t) * DEVICE_MUTUAL_CTRL_GROUP_NUM)){
+
+				const lv_coord_t mulitPosX_bindingIcon_oft = -45,
+								 mulitPosY_bindingIcon_oft = -14;
 
 				switch(currentDev_typeGet()){
 
@@ -1720,11 +1883,11 @@ static void pageActivity_infoRefreshLoop(void){
 
 									iconBtn_binding_A = lv_imgbtn_create(btn_bk_devMulitSw_A, NULL);
 									mutualCtrlTrigIf_A = true;
-									lv_imgbtn_set_src(iconBtn_binding_A, LV_BTN_STATE_REL, &iconPage_binding);
+									lv_imgbtn_set_src(iconBtn_binding_A, LV_BTN_STATE_REL, usrAppHomepageBindingIcon_dataGet());
 									lv_imgbtn_set_src(iconBtn_binding_A, LV_BTN_STATE_PR, &iconPage_unbinding);
 									lv_btn_set_action(iconBtn_binding_A, LV_BTN_ACTION_CLICK, funCb_btnActionClick_bindingBtnA);
 									lv_obj_set_protect(iconBtn_binding_A, LV_PROTECT_POS);
-									lv_obj_align(iconBtn_binding_A, NULL, LV_ALIGN_OUT_RIGHT_MID, -35, -24);
+									lv_obj_align(iconBtn_binding_A, NULL, LV_ALIGN_OUT_RIGHT_MID, mulitPosX_bindingIcon_oft, mulitPosY_bindingIcon_oft);
 								}
 
 								lv_obj_set_click(iconBtn_binding_A, false);
@@ -1753,11 +1916,11 @@ static void pageActivity_infoRefreshLoop(void){
 						
 									iconBtn_binding_A = lv_imgbtn_create(btn_bk_devMulitSw_A, NULL);
 									mutualCtrlTrigIf_A = true;
-									lv_imgbtn_set_src(iconBtn_binding_A, LV_BTN_STATE_REL, &iconPage_binding);
+									lv_imgbtn_set_src(iconBtn_binding_A, LV_BTN_STATE_REL, usrAppHomepageBindingIcon_dataGet());
 									lv_imgbtn_set_src(iconBtn_binding_A, LV_BTN_STATE_PR, &iconPage_unbinding);
 									lv_btn_set_action(iconBtn_binding_A, LV_BTN_ACTION_CLICK, funCb_btnActionClick_bindingBtnA);
 									lv_obj_set_protect(iconBtn_binding_A, LV_PROTECT_POS);
-									lv_obj_align(iconBtn_binding_A, NULL, LV_ALIGN_OUT_RIGHT_MID, -35, -24);
+									lv_obj_align(iconBtn_binding_A, NULL, LV_ALIGN_OUT_RIGHT_MID, mulitPosX_bindingIcon_oft, mulitPosY_bindingIcon_oft);
 								}
 
 								lv_obj_set_click(iconBtn_binding_A, false);
@@ -1782,11 +1945,11 @@ static void pageActivity_infoRefreshLoop(void){
 
 									iconBtn_binding_B = lv_imgbtn_create(btn_bk_devMulitSw_B, NULL);
 									mutualCtrlTrigIf_B = true;
-									lv_imgbtn_set_src(iconBtn_binding_B, LV_BTN_STATE_REL, &iconPage_binding);
+									lv_imgbtn_set_src(iconBtn_binding_B, LV_BTN_STATE_REL, usrAppHomepageBindingIcon_dataGet());
 									lv_imgbtn_set_src(iconBtn_binding_B, LV_BTN_STATE_PR, &iconPage_unbinding);
 									lv_btn_set_action(iconBtn_binding_B, LV_BTN_ACTION_CLICK, funCb_btnActionClick_bindingBtnB);
 									lv_obj_set_protect(iconBtn_binding_B, LV_PROTECT_POS);
-									lv_obj_align(iconBtn_binding_B, NULL, LV_ALIGN_OUT_RIGHT_MID, -35, -24);
+									lv_obj_align(iconBtn_binding_B, NULL, LV_ALIGN_OUT_RIGHT_MID, mulitPosX_bindingIcon_oft, mulitPosY_bindingIcon_oft);
 								}
 								
 								lv_obj_set_click(iconBtn_binding_B, false);
@@ -1815,11 +1978,11 @@ static void pageActivity_infoRefreshLoop(void){
 						
 									iconBtn_binding_A = lv_imgbtn_create(btn_bk_devMulitSw_A, NULL);
 									mutualCtrlTrigIf_A = true;
-									lv_imgbtn_set_src(iconBtn_binding_A, LV_BTN_STATE_REL, &iconPage_binding);
+									lv_imgbtn_set_src(iconBtn_binding_A, LV_BTN_STATE_REL, usrAppHomepageBindingIcon_dataGet());
 									lv_imgbtn_set_src(iconBtn_binding_A, LV_BTN_STATE_PR, &iconPage_unbinding);
 									lv_btn_set_action(iconBtn_binding_A, LV_BTN_ACTION_CLICK, funCb_btnActionClick_bindingBtnA);
 									lv_obj_set_protect(iconBtn_binding_A, LV_PROTECT_POS);
-									lv_obj_align(iconBtn_binding_A, NULL, LV_ALIGN_OUT_RIGHT_MID, -35, -24);
+									lv_obj_align(iconBtn_binding_A, NULL, LV_ALIGN_OUT_RIGHT_MID, mulitPosX_bindingIcon_oft, mulitPosY_bindingIcon_oft);
 								}
 
 								lv_obj_set_click(iconBtn_binding_A, false);
@@ -1844,11 +2007,11 @@ static void pageActivity_infoRefreshLoop(void){
 						
 									iconBtn_binding_B = lv_imgbtn_create(btn_bk_devMulitSw_B, NULL);
 									mutualCtrlTrigIf_B = true;
-									lv_imgbtn_set_src(iconBtn_binding_B, LV_BTN_STATE_REL, &iconPage_binding);
+									lv_imgbtn_set_src(iconBtn_binding_B, LV_BTN_STATE_REL, usrAppHomepageBindingIcon_dataGet());
 									lv_imgbtn_set_src(iconBtn_binding_B, LV_BTN_STATE_PR, &iconPage_unbinding);
 									lv_btn_set_action(iconBtn_binding_B, LV_BTN_ACTION_CLICK, funCb_btnActionClick_bindingBtnB);
 									lv_obj_set_protect(iconBtn_binding_B, LV_PROTECT_POS);
-									lv_obj_align(iconBtn_binding_B, NULL, LV_ALIGN_OUT_RIGHT_MID, -35, -24);
+									lv_obj_align(iconBtn_binding_B, NULL, LV_ALIGN_OUT_RIGHT_MID, mulitPosX_bindingIcon_oft, mulitPosY_bindingIcon_oft);
 								}
 
 								lv_obj_set_click(iconBtn_binding_B, false);
@@ -1873,11 +2036,11 @@ static void pageActivity_infoRefreshLoop(void){
 						
 									iconBtn_binding_C = lv_imgbtn_create(btn_bk_devMulitSw_C, NULL);
 									mutualCtrlTrigIf_C = true;
-									lv_imgbtn_set_src(iconBtn_binding_C, LV_BTN_STATE_REL, &iconPage_binding);
+									lv_imgbtn_set_src(iconBtn_binding_C, LV_BTN_STATE_REL, usrAppHomepageBindingIcon_dataGet());
 									lv_imgbtn_set_src(iconBtn_binding_C, LV_BTN_STATE_PR, &iconPage_unbinding);
 									lv_btn_set_action(iconBtn_binding_C, LV_BTN_ACTION_CLICK, funCb_btnActionClick_bindingBtnC);
 									lv_obj_set_protect(iconBtn_binding_C, LV_PROTECT_POS);
-									lv_obj_align(iconBtn_binding_C, NULL, LV_ALIGN_OUT_RIGHT_MID, -35, -24);
+									lv_obj_align(iconBtn_binding_C, NULL, LV_ALIGN_OUT_RIGHT_MID, mulitPosX_bindingIcon_oft, mulitPosY_bindingIcon_oft);
 								}
 
 								lv_obj_set_click(iconBtn_binding_C, false);
@@ -1906,7 +2069,7 @@ static void pageActivity_infoRefreshLoop(void){
 
 									iconBtn_binding_A = lv_imgbtn_create(imageBK, NULL);
 									mutualCtrlTrigIf_A = true;
-									lv_imgbtn_set_src(iconBtn_binding_A, LV_BTN_STATE_REL, &iconPage_binding);
+									lv_imgbtn_set_src(iconBtn_binding_A, LV_BTN_STATE_REL, usrAppHomepageBindingIcon_dataGet());
 									lv_imgbtn_set_src(iconBtn_binding_A, LV_BTN_STATE_PR, &iconPage_unbinding);
 									lv_btn_set_action(iconBtn_binding_A, LV_BTN_ACTION_CLICK, funCb_btnActionClick_bindingBtnA);
 									lv_obj_set_protect(iconBtn_binding_A, LV_PROTECT_POS);
@@ -1936,7 +2099,7 @@ static void pageActivity_infoRefreshLoop(void){
 
 									iconBtn_binding_A = lv_imgbtn_create(imageBK, NULL);
 									mutualCtrlTrigIf_A = true;
-									lv_imgbtn_set_src(iconBtn_binding_A, LV_BTN_STATE_REL, &iconPage_binding);
+									lv_imgbtn_set_src(iconBtn_binding_A, LV_BTN_STATE_REL, usrAppHomepageBindingIcon_dataGet());
 									lv_imgbtn_set_src(iconBtn_binding_A, LV_BTN_STATE_PR, &iconPage_unbinding);
 									lv_btn_set_action(iconBtn_binding_A, LV_BTN_ACTION_CLICK, funCb_btnActionClick_bindingBtnA);
 									lv_obj_set_protect(iconBtn_binding_A, LV_PROTECT_POS);
@@ -1987,11 +2150,15 @@ static void pageActivity_infoRefreshLoop(void){
 							lv_obj_set_click(btn_bk_devMulitSw_A, false);
 							lv_obj_set_click(btn_bk_devMulitSw_B, false);
 							lv_obj_set_click(btn_bk_devMulitSw_C, false);
+
+//							printf("watch point_B.\n");
 						
 							if(devDataPoint.devType_scenario.devScenario_opNum){
 
+//								printf("watch point_C.\n");
+
 								preload_driverCalmDown_devScenario = lv_preload_create(preloadParent, NULL);
-								lv_obj_set_size(preload_driverCalmDown_devScenario, 50, 50);
+								lv_obj_set_size(preload_driverCalmDown_devScenario, 65, 65);
 								lv_obj_set_protect(preload_driverCalmDown_devScenario, LV_PROTECT_POS);
 								lv_obj_align(preload_driverCalmDown_devScenario, preloadParent, LV_ALIGN_CENTER, 0, 0);
 								lv_preload_set_spin_time(preload_driverCalmDown_devScenario, 750);
@@ -2001,7 +2168,7 @@ static void pageActivity_infoRefreshLoop(void){
 					}
 					else
 					{
-						static uint8_t calmDownWarnning_counter = 0;
+						static uint8_t calmDownWarnning_counter = 0; //冷却黄色警告
 						static bool calmDownWarnning_flg = false;
 						const uint8_t calmDownWarnning_period = 3;
 
@@ -2011,22 +2178,24 @@ static void pageActivity_infoRefreshLoop(void){
 							calmDownWarnning_counter = 0;
 							calmDownWarnning_flg = !calmDownWarnning_flg;
 
-							(calmDownWarnning_flg)?
-								(lv_imgbtn_set_style(preloadParent, LV_BTN_STATE_REL, &styleBtn_devScenario_driverCalmDown)):
-								(lv_imgbtn_set_style(preloadParent, LV_BTN_STATE_REL, &lv_style_plain));
+//							(calmDownWarnning_flg)?
+//								(lv_imgbtn_set_style(preloadParent, LV_BTN_STATE_REL, &styleBtn_devScenario_driverCalmDown)):
+//								(lv_imgbtn_set_style(preloadParent, LV_BTN_STATE_REL, &lv_style_plain));
 						}
 					
 						if(!scenarioDriverClamDown_counter){
 
-							scenarioDriver_preload_trigFlg = false;;
+							scenarioDriver_preload_trigFlg = false;
 
 							lv_obj_set_click(btn_bk_devMulitSw_A, true);
 							lv_obj_set_click(btn_bk_devMulitSw_B, true);
 							lv_obj_set_click(btn_bk_devMulitSw_C, true);
 						
-							if(preload_driverCalmDown_devScenario)
+							if(preload_driverCalmDown_devScenario){
+
 								lv_obj_del(preload_driverCalmDown_devScenario);
-							preload_driverCalmDown_devScenario = NULL;
+								preload_driverCalmDown_devScenario = NULL;
+							}
 
 							lv_imgbtn_set_style(preloadParent, LV_BTN_STATE_REL, &lv_style_plain);
 							
@@ -2098,7 +2267,7 @@ static void pageActivity_infoRefreshLoop(void){
 
 							}break;
 
-							lv_obj_refresh_style(lv_obj_t * obj);
+							lv_obj_refresh_style(str_devParamPositionCur_devCurtain);
 
 							default:break;
 						}
@@ -2765,6 +2934,16 @@ static void local_guiHomeBussiness_mulitSwThreeBit(lv_obj_t * obj_Parent){
 	lv_obj_align(iconBtn_sleeping, NULL, LV_ALIGN_OUT_LEFT_MID, 65, 15);
 	lv_obj_align(iconBtn_toilet, NULL, LV_ALIGN_OUT_LEFT_MID, 65, 15);
 
+//	lv_btn_set_ink_in_time(btn_bk_devMulitSw_A, 200);
+//	lv_btn_set_ink_wait_time(btn_bk_devMulitSw_A, 50);
+//	lv_btn_set_ink_out_time(btn_bk_devMulitSw_A, 200);
+//	lv_btn_set_ink_in_time(btn_bk_devMulitSw_B, 200);
+//	lv_btn_set_ink_wait_time(btn_bk_devMulitSw_B, 50);
+//	lv_btn_set_ink_out_time(btn_bk_devMulitSw_B, 200);
+//	lv_btn_set_ink_in_time(btn_bk_devMulitSw_C, 200);
+//	lv_btn_set_ink_wait_time(btn_bk_devMulitSw_C, 50);
+//	lv_btn_set_ink_out_time(btn_bk_devMulitSw_C, 200);
+
 //	testImg_data.data = dataPtr_btnTextImg_sw_A;
 //	lv_obj_t *iconTest = lv_img_create(btn_bk_devMulitSw_A, NULL);
 //	lv_img_set_src(iconTest, &testImg_data);
@@ -2863,7 +3042,7 @@ static void local_guiHomeBussiness_fans(lv_obj_t * obj_Parent){
 	lv_img_set_src(icomImage_devFans, &iconFans_HomePageDeviceFans);
 	lv_img_set_style(icomImage_devFans, &styleImage_devFans_icon);
 	lv_obj_set_protect(icomImage_devFans, LV_PROTECT_POS);
-	lv_obj_set_pos(icomImage_devFans, 68, 70);
+	lv_obj_set_pos(icomImage_devFans, 68, 60);
 
 	textInstract_devFans = lv_label_create(obj_Parent, NULL);
 	lv_label_set_text(textInstract_devFans, "\0");
@@ -2872,7 +3051,7 @@ static void local_guiHomeBussiness_fans(lv_obj_t * obj_Parent){
 	lv_obj_align(textInstract_devFans, icomImage_devFans, LV_ALIGN_OUT_RIGHT_BOTTOM, 40, 5);
 
 	btnm_bk_devFans = lv_btnm_create(obj_Parent, NULL);
-	lv_obj_set_size(btnm_bk_devFans, 195, 40);
+	lv_obj_set_size(btnm_bk_devFans, 195, 65);
 
 	lv_btnm_set_style(btnm_bk_devFans, LV_BTNM_STYLE_BG, &styleBtnm_devFans_btnBg);
 	lv_btnm_set_style(btnm_bk_devFans, LV_BTNM_STYLE_BTN_REL, &styleBtnm_devFans_btnRel);
@@ -2885,7 +3064,7 @@ static void local_guiHomeBussiness_fans(lv_obj_t * obj_Parent){
 	lv_btnm_set_map(btnm_bk_devFans, btnm_str_devFans);
 	lv_btnm_set_toggle(btnm_bk_devFans, true, 0);
 	lv_obj_set_protect(btnm_bk_devFans, LV_PROTECT_POS);
-	lv_obj_set_pos(btnm_bk_devFans, 20, 245);
+	lv_obj_set_pos(btnm_bk_devFans, 20, 230);
 }
 
 static void local_guiHomeBussiness_thermostat_EcoCb_creat(lv_obj_t * obj_Parent, bool cbVal){
@@ -3091,7 +3270,7 @@ static void local_guiHomeBussiness_curtain(lv_obj_t * obj_Parent){
 	lv_img_set_src(image_bk_devCurtain_body, &imageCurtain_body);
 	lv_img_set_style(image_bk_devCurtain_body, &styleImageBk_devCurtain_bkImgBody);
 	lv_obj_set_protect(image_bk_devCurtain_body, LV_PROTECT_POS);
-	lv_obj_set_pos(image_bk_devCurtain_body, 34, 40);
+	lv_obj_set_pos(image_bk_devCurtain_body, 34, 47);
 
 	slider_bk_devCurtain = lv_slider_create(obj_Parent, NULL);
 	lv_obj_set_size(slider_bk_devCurtain, 190, 30);
@@ -3140,8 +3319,8 @@ static void local_guiHomeBussiness_curtain(lv_obj_t * obj_Parent){
 	sprintf(str_devParamPositionCur_devCurtain, "%d", devCurtain_orbitalPosPercent);
 	lv_label_set_text(label_bk_devCurtain_positionCur, str_devParamPositionCur_devCurtain);
 	lv_obj_set_protect(label_bk_devCurtain_positionCur, LV_PROTECT_POS);
-//	lv_obj_set_pos(label_bk_devCurtain_positionCur, 20, 140);
-	lv_obj_align(label_bk_devCurtain_positionCur, image_bk_devCurtain_body, LV_ALIGN_CENTER, 0, 50);
+	lv_obj_set_pos(label_bk_devCurtain_positionCur, 100, 164);
+//	lv_obj_align(label_bk_devCurtain_positionCur, image_bk_devCurtain_body, LV_ALIGN_IN_BOTTOM_MID, 0, 0);
 	lv_obj_set_top(label_bk_devCurtain_positionCur, true);
 
 	label_bk_devCurtain_positionAdj = lv_label_create(obj_Parent, NULL);
@@ -3150,7 +3329,6 @@ static void local_guiHomeBussiness_curtain(lv_obj_t * obj_Parent){
 	sprintf(str_devParamPositionAdj_devCurtain, "%d%%", devCurtain_orbitalPosPercent);
 	lv_label_set_text(label_bk_devCurtain_positionAdj, str_devParamPositionAdj_devCurtain);
 	lv_obj_set_protect(label_bk_devCurtain_positionAdj, LV_PROTECT_POS);
-//	lv_obj_set_pos(label_bk_devCurtain_positionAdj, 20, 140);
 	lv_obj_align(label_bk_devCurtain_positionAdj, slider_bk_devCurtain, LV_ALIGN_OUT_TOP_RIGHT, 0, 0);
 	lv_obj_set_top(label_bk_devCurtain_positionAdj, true);
 }
@@ -3165,35 +3343,38 @@ static void local_guiHomeBussiness_heater(lv_obj_t * obj_Parent){
 	lv_img_set_src(icomImageA_devHeater, &iconHeater_HomePageDeviceHeater);
 	lv_img_set_style(icomImageA_devHeater, &styleImage_devHeater_icon);
 	lv_obj_set_protect(icomImageA_devHeater, LV_PROTECT_POS);
-	lv_obj_set_pos(icomImageA_devHeater, 15, 75);
+	lv_obj_set_pos(icomImageA_devHeater, 19, 72);
 
 	textTimeInstract_target_devHeater = lv_label_create(obj_Parent, NULL);
 	lv_label_set_text(textTimeInstract_target_devHeater, "\0");
-	lv_label_set_style(textTimeInstract_target_devHeater, &styleText_devHeater_timeInst);
+	lv_label_set_style(textTimeInstract_target_devHeater, &styleText_devHeater_timeInstTar);
 	lv_obj_set_protect(textTimeInstract_target_devHeater, LV_PROTECT_POS);
 	lv_obj_align(textTimeInstract_target_devHeater, icomImageA_devHeater, LV_ALIGN_CENTER, -60, -20);
 	textTimeInstract_current_devHeater = lv_label_create(obj_Parent, NULL);
 	lv_label_set_text(textTimeInstract_current_devHeater, "CLOSE");
-	lv_label_set_style(textTimeInstract_current_devHeater, &styleText_devHeater_timeInst);
+	lv_label_set_style(textTimeInstract_current_devHeater, &styleText_devHeater_timeInstCur);
 	lv_obj_set_protect(textTimeInstract_current_devHeater, LV_PROTECT_POS);
 	lv_obj_align(textTimeInstract_current_devHeater, icomImageA_devHeater, LV_ALIGN_CENTER, -35, 0);
 
 	btnm_bk_devHeater = lv_btnm_create(obj_Parent, NULL);
-	lv_obj_set_size(btnm_bk_devHeater, 200, 40);
-//	lv_btnm_set_style(btnm_bk_devFans, LV_BTNM_STYLE_BG, &styleBtnm_devHeater_btnBg);
-//	lv_btnm_set_style(btnm_bk_devFans, LV_BTNM_STYLE_BTN_REL, &styleBtnm_devHeater_btnRel);
-//	lv_btnm_set_style(btnm_bk_devFans, LV_BTNM_STYLE_BTN_PR, &styleBtnm_devHeater_btnPre);
+	lv_obj_set_size(btnm_bk_devHeater, 200, 55);
+	lv_btnm_set_style(btnm_bk_devHeater, LV_BTNM_STYLE_BG, &styleBtnm_devHeater_btnBg);
+	lv_btnm_set_style(btnm_bk_devHeater, LV_BTNM_STYLE_BTN_REL, &styleBtnm_devHeater_btnRel);
+	lv_btnm_set_style(btnm_bk_devHeater, LV_BTNM_STYLE_BTN_PR, &styleBtnm_devHeater_btnPre);
+	lv_btnm_set_style(btnm_bk_devHeater, LV_BTNM_STYLE_BTN_TGL_REL, &styleBtnm_devHeater_btnTglRel);
+	lv_btnm_set_style(btnm_bk_devHeater, LV_BTNM_STYLE_BTN_TGL_PR, &styleBtnm_devHeater_btnTglPre);
+	lv_btnm_set_style(btnm_bk_devHeater, LV_BTNM_STYLE_BTN_INA, &styleBtnm_devHeater_btnIna);
 	lv_btnm_set_action(btnm_bk_devHeater, funCb_btnmActionClick_devHeater_gearBtnm);
 	lv_btnm_set_map(btnm_bk_devHeater, btnm_str_devHeater);
 	lv_btnm_set_toggle(btnm_bk_devHeater, true, 0);
 	lv_obj_set_protect(btnm_bk_devHeater, LV_PROTECT_POS);
-	lv_obj_set_pos(btnm_bk_devHeater, 20, 245);
+	lv_obj_set_pos(btnm_bk_devHeater, 20, 230);
 
 	if(devDataPoint.devType_heater.devHeater_swEnumVal == heaterOpreatAct_closeAfterTimeCustom){
 
 		imgBtn_devHeater_timeSet = lv_imgbtn_create(obj_Parent, NULL);
 		lv_obj_set_protect(imgBtn_devHeater_timeSet, LV_PROTECT_POS);
-		lv_obj_set_pos(imgBtn_devHeater_timeSet, 185, 205);
+		lv_obj_set_pos(imgBtn_devHeater_timeSet, 185, 195);
 		lv_imgbtn_set_src(imgBtn_devHeater_timeSet, LV_BTN_STATE_REL, &iconSet_HomePageDeviceHeater);
 		lv_imgbtn_set_src(imgBtn_devHeater_timeSet, LV_BTN_STATE_PR, &iconSet_HomePageDeviceHeater);
 		lv_imgbtn_set_action(imgBtn_devHeater_timeSet, LV_BTN_ACTION_CLICK, funCb_btnActionClick_devHeater_timeSet);
@@ -3337,21 +3518,8 @@ static void lvGui_businessHome(lv_obj_t * obj_Parent){
 			break;
 		}
 	}
-}
-
-static lv_style_t *lvUsr_objBkReales2SecMenu(void){ //获取菜单标题头风格
-
-	lv_obj_del(imageBK);
-	imageBK = lv_obj_create(lv_scr_act(), NULL);
-	lv_obj_set_size(imageBK, 240, 100);
-
-	lv_obj_set_style(imageBK, &styleBk_secMenu);
-
 	vTaskDelay(50 / portTICK_PERIOD_MS);
 	lv_obj_refresh_style(imageBK);
-	vTaskDelay(50 / portTICK_PERIOD_MS);
-
-	return &styleBk_secMenu;
 }
 
 static void task_guiSwitch_Detecting(void *pvParameter){
@@ -3362,8 +3530,6 @@ static void task_guiSwitch_Detecting(void *pvParameter){
 	EventBits_t loopTimerTips_etBits = 0;
 
 	uint8_t msgQrptr_devRestartdelayCounter = 0;
-
-	uint8_t guiInfoRefresh_calmDn_counter = 0;
 	
 //	lv_point_t indevPoint = {0};
 
@@ -3470,142 +3636,6 @@ static void task_guiSwitch_Detecting(void *pvParameter){
 			}			
 		}
 
-		//GUI界面刷新检测
-		if(guiPage_record != guiPage_current){
-
-			guiPage_record = guiPage_current;
-
-			guiInfoRefresh_calmDn_counter = 4;
-			
-			switch(guiPage_record){
-
-				case bussinessType_Home:{
-
-					lv_img_set_src(imageBK, usrAppHomepageBkPic_dataGet());
-					lvGui_businessHome(imageBK);
-					pageHome_buttonMain_imageRefresh(true);
-					vTaskDelay(50 / portTICK_PERIOD_MS);
-					lv_obj_refresh_style(imageBK);
-					vTaskDelay(50 / portTICK_PERIOD_MS);
-
-					//home界面互控图标比较值重置，以及相关互控图标对象重置（lv系统删除对象指针后 不会 进行NULL赋值）
-					memset(btnBindingStatus_record, 0, sizeof(uint8_t) * DEVICE_MUTUAL_CTRL_GROUP_NUM);
-					iconBtn_binding_A = NULL;
-					iconBtn_binding_B = NULL;
-					iconBtn_binding_C = NULL;
-					
-				}break;
-
-				case bussinessType_Menu:{
-
-					lv_img_set_src(imageBK, usrAppHomepageBkPic_dataGet());
-					vTaskDelay(50 / portTICK_PERIOD_MS);
-					lv_obj_refresh_style(imageBK);
-					vTaskDelay(50 / portTICK_PERIOD_MS);
-
-					lvGui_businessMenu(imageBK);
-
-				}break;
-
-				case bussinessType_menuPageOther:{
-
-					//控件风格设定：二级菜单白色底图对象
-					lv_style_copy(&styleBk_secMenu, &lv_style_plain);
-					styleBk_secMenu.body.main_color = LV_COLOR_BLACK;
-					styleBk_secMenu.body.grad_color = LV_COLOR_WHITE;
-					lvUsr_objBkReales2SecMenu();
-
-					lv_obj_set_size(imageBK, 240, 75);
-					
-					lvGui_businessMenu_other(imageBK);
-					
-				}break;
-				
-				case bussinessType_menuPageDelayer:{
-					
-					//控件风格设定：二级菜单白色底图对象
-					lv_style_copy(&styleBk_secMenu, &lv_style_plain);
-					styleBk_secMenu.body.main_color = LV_COLOR_BLACK;
-					styleBk_secMenu.body.grad_color = LV_COLOR_WHITE;
-					lvUsr_objBkReales2SecMenu();
-
-					lv_obj_set_size(imageBK, 240, 75);
-					
-					lvGui_businessMenu_delayer(imageBK);
-
-				}break;
-				
-				case bussinessType_menuPageTimer:{
-					
-					//控件风格设定：二级菜单白色底图对象
-					lv_style_copy(&styleBk_secMenu, &lv_style_plain);
-					styleBk_secMenu.body.main_color = LV_COLOR_BLACK;
-					styleBk_secMenu.body.grad_color = LV_COLOR_WHITE;
-					lvUsr_objBkReales2SecMenu();
-
-					lv_obj_set_size(imageBK, 240, 75);
-					
-					lvGui_businessMenu_timer(imageBK);
-	
-				}break;
-				
-				case bussinessType_menuPageLinkageConfig:{
-					
-					//控件风格设定：二级菜单白色底图对象
-					lv_style_copy(&styleBk_secMenu, &lv_style_plain);
-					styleBk_secMenu.body.main_color = LV_COLOR_BLACK;
-					styleBk_secMenu.body.grad_color = LV_COLOR_GRAY;
-					lvUsr_objBkReales2SecMenu();
-
-					lv_obj_set_size(imageBK, 240, 75);
-
-					lvGui_businessMenu_linkageConfig(imageBK);
-
-				}break;
-				
-				case bussinessType_menuPageSetting:{
-
-//					//控件风格设定：二级菜单灰色底图对象
-//					lv_style_copy(&styleBk_secMenu, &lv_style_plain);
-//					styleBk_secMenu.body.main_color = LV_COLOR_BLACK;
-//					styleBk_secMenu.body.grad_color = LV_COLOR_GRAY;
-//					vTaskDelay(100 / portTICK_PERIOD_MS);
-//					lvUsr_objBkReales2SecMenu();
-
-//					lvGui_businessMenu_setting(imageBK);
-//					lv_obj_set_size(imageBK, 240, 75);
-
-					//控件风格设定：二级菜单灰色底图对象
-					lv_style_copy(&styleBk_secMenu, &lv_style_plain);
-					styleBk_secMenu.body.main_color = LV_COLOR_BLACK;
-					styleBk_secMenu.body.grad_color = LV_COLOR_GRAY;
-					lvUsr_objBkReales2SecMenu();
-
-					lv_obj_set_size(imageBK, 240, 75);
-					
-					lvGui_businessMenu_settingSet(imageBK);
-					
-				}break;
-
-				case bussinessType_menuPageWifiConfig:{
-
-					//控件风格设定：二级菜单白色底图对象
-					lv_style_copy(&styleBk_secMenu, &lv_style_plain);
-					styleBk_secMenu.body.main_color = LV_COLOR_BLACK;
-					styleBk_secMenu.body.grad_color = LV_COLOR_WHITE;
-					lvUsr_objBkReales2SecMenu();
-					
-					lvGui_businessMenu_wifiConfig(imageBK);
-			
-				}break;
-
-				default:break;
-			}
-
-			vTaskDelay(20 / portTICK_PERIOD_MS);
-			continue;
-		}
-
 		if(guiInfoRefresh_calmDn_counter)guiInfoRefresh_calmDn_counter --;
 		else{
 
@@ -3665,16 +3695,113 @@ void lvGui_usrSwitch(usrGuiBussiness_type guiPage){
 
 	guiPage_current = guiPage;
 
-	if(guiPage_record != bussinessType_Home && guiPage_record != bussinessType_Menu){
+	lvGuiRefreshCounter_bussinessBk = 0;
 
-		lv_obj_del(imageBK);
-		imageBK = lv_img_create(lv_scr_act(), NULL);
-		lv_img_set_src(imageBK, usrAppHomepageBkPic_dataGet());
+	//GUI界面刷新检测
+	if(guiPage_record != guiPage_current){
+	
+		guiPage_record = guiPage_current;
+
+		imageBK_corpse = imageBK; //傀儡复制
+	
+		lv_style_copy(&styleBk_secMenu, &lv_style_plain);
 		
-	}else{
-
-		if(btn_homeMenu)lv_obj_del(btn_homeMenu);
-		lv_obj_clean(imageBK);
+		switch(guiPage_record){
+	
+			case bussinessType_Home:{
+	
+				imageBK = lv_img_create(lv_scr_act(), NULL);
+				lv_img_set_src(imageBK, usrAppHomepageBkPic_dataGet());
+				lvGui_businessHome(imageBK);
+				pageHome_buttonMain_imageRefresh(true);
+	
+				//home界面互控图标比较值重置，以及相关互控图标对象重置（lv系统删除对象指针后 不会 进行NULL赋值）
+				memset(btnBindingStatus_record, 0, sizeof(uint8_t) * DEVICE_MUTUAL_CTRL_GROUP_NUM);
+				iconBtn_binding_A = NULL;
+				iconBtn_binding_B = NULL;
+				iconBtn_binding_C = NULL;
+	
+			}break;
+			
+			case bussinessType_Menu:{
+				
+				imageBK = lv_img_create(lv_scr_act(), NULL);
+				lv_img_set_src(imageBK, usrAppHomepageBkPic_dataGet());
+				lvGui_businessMenu(imageBK);
+	
+			}break;
+			
+			case bussinessType_menuPageOther:{
+	
+				imageBK = lv_obj_create(lv_scr_act(), NULL);
+				lv_obj_set_size(imageBK, 240, 75);
+				styleBk_secMenu.body.main_color = LV_COLOR_BLACK;
+				styleBk_secMenu.body.grad_color = LV_COLOR_WHITE;
+				lv_obj_set_style(imageBK, &styleBk_secMenu);
+				lvGui_businessMenu_other(imageBK);
+				
+			}break;
+			
+			case bussinessType_menuPageDelayer:{
+	
+				imageBK = lv_obj_create(lv_scr_act(), NULL);
+				lv_obj_set_size(imageBK, 240, 75);
+				styleBk_secMenu.body.main_color = LV_COLOR_BLACK;
+				styleBk_secMenu.body.grad_color = LV_COLOR_WHITE;
+				lv_obj_set_style(imageBK, &styleBk_secMenu);
+				lvGui_businessMenu_delayer(imageBK);
+	
+			}break;
+			
+			case bussinessType_menuPageTimer:{
+	
+				imageBK = lv_obj_create(lv_scr_act(), NULL);
+				lv_obj_set_size(imageBK, 240, 75);
+				styleBk_secMenu.body.main_color = LV_COLOR_BLACK;
+				styleBk_secMenu.body.grad_color = LV_COLOR_WHITE;
+				lv_obj_set_style(imageBK, &styleBk_secMenu);
+				lvGui_businessMenu_timer(imageBK);
+	
+			}break;
+			
+			case bussinessType_menuPageLinkageConfig:{
+	
+				imageBK = lv_obj_create(lv_scr_act(), NULL);
+				lv_obj_set_size(imageBK, 240, 75);
+				styleBk_secMenu.body.main_color = LV_COLOR_BLACK;
+				styleBk_secMenu.body.grad_color = LV_COLOR_GRAY;
+				lv_obj_set_style(imageBK, &styleBk_secMenu);
+				lvGui_businessMenu_linkageConfig(imageBK);
+	
+			}break;
+			
+			case bussinessType_menuPageSetting:{
+	
+				imageBK = lv_obj_create(lv_scr_act(), NULL);
+				lv_obj_set_size(imageBK, 240, 75);
+				styleBk_secMenu.body.main_color = LV_COLOR_BLACK;
+				styleBk_secMenu.body.grad_color = LV_COLOR_GRAY;
+				lv_obj_set_style(imageBK, &styleBk_secMenu);
+				lvGui_businessMenu_settingSet(imageBK);
+	
+			}break;
+			
+			case bussinessType_menuPageWifiConfig:{
+	
+				imageBK = lv_obj_create(lv_scr_act(), NULL);
+				lv_obj_set_size(imageBK, 240, 100);
+				styleBk_secMenu.body.main_color = LV_COLOR_BLACK;
+				styleBk_secMenu.body.grad_color = LV_COLOR_WHITE;
+				lv_obj_set_style(imageBK, &styleBk_secMenu);
+				lvGui_businessMenu_wifiConfig(imageBK);
+	
+			}break;
+	
+			default:break;
+		}
+	
+		lv_obj_refresh_style(imageBK);
+		lv_obj_del(imageBK_corpse); //傀儡删除
 	}
 }
 
@@ -3715,9 +3842,12 @@ static void lvGuiHome_styleApplicationInit(void){
 	styleText_devFans_instract.text.color = LV_COLOR_MAKE(153, 217, 234);
 
 	//文字风格设定：热水器开关对应档位文字描述
-	lv_style_copy(&styleText_devHeater_timeInst, &lv_style_plain);
-	styleText_devHeater_timeInst.text.font = &lv_font_consola_19;
-	styleText_devHeater_timeInst.text.color = LV_COLOR_MAKE(255, 240, 155);
+	lv_style_copy(&styleText_devHeater_timeInstTar, &lv_style_plain);
+	styleText_devHeater_timeInstTar.text.font = &lv_font_consola_19;
+	styleText_devHeater_timeInstTar.text.color = LV_COLOR_MAKE(255, 240, 155);
+	lv_style_copy(&styleText_devHeater_timeInstCur, &lv_style_plain);
+	styleText_devHeater_timeInstCur.text.font = &lv_font_consola_19;
+	styleText_devHeater_timeInstCur.text.color = LV_COLOR_MAKE(126, 220, 231);
 
 	//文字风格设定：热水器开关对应延时关闭文字描述
 	lv_style_copy(&styleText_devHeater_Bk_timeRemind, &lv_style_plain);
@@ -3755,7 +3885,7 @@ static void lvGuiHome_styleApplicationInit(void){
 	//图片风格设定：多位开关按键 开关状态下按键底图
 	lv_style_copy(&styleBtn_devMulitSw_statusOn, &lv_style_plain);
 	lv_style_copy(&styleBtn_devMulitSw_statusOff, &lv_style_plain);
-	styleBtn_devMulitSw_statusOn.image.color = LV_COLOR_BLUE;
+	styleBtn_devMulitSw_statusOn.image.color = LV_COLOR_SILVER;
 	styleBtn_devMulitSw_statusOn.image.intense = LV_OPA_50;
 	styleBtn_devMulitSw_statusOff.image.color = LV_COLOR_GRAY;
 	styleBtn_devMulitSw_statusOff.image.intense = LV_OPA_50;
@@ -3806,7 +3936,7 @@ static void lvGuiHome_styleApplicationInit(void){
 //	styleImgBk_underlying.image.intense = LV_OPA_0;
 //	styleImgBk_underlying.image.opa = LV_OPA_0;
 
-	//空间风格设定：按键透明
+	//控间风格设定：按键透明
 	stylebtnBk_transFull.body.main_color = LV_COLOR_TRANSP;
 	stylebtnBk_transFull.body.grad_color = LV_COLOR_TRANSP;
 	stylebtnBk_transFull.body.border.part = LV_BORDER_NONE;
@@ -3836,11 +3966,11 @@ static void lvGuiHome_styleApplicationInit(void){
 	styleSliderBk_devDimmer_bg.body.radius = LV_RADIUS_CIRCLE;
 	styleSliderBk_devDimmer_bg.body.border.color = LV_COLOR_WHITE;
 	lv_style_copy(&styleSliderBk_devDimmer_indic, &lv_style_pretty);
-	styleSliderBk_devDimmer_indic.body.grad_color = LV_COLOR_GREEN;
-	styleSliderBk_devDimmer_indic.body.main_color = LV_COLOR_LIME;
+	styleSliderBk_devDimmer_indic.body.grad_color = LV_COLOR_MAKE(64, 128, 128);
+	styleSliderBk_devDimmer_indic.body.main_color = LV_COLOR_SILVER;
 	styleSliderBk_devDimmer_indic.body.radius = LV_RADIUS_CIRCLE;
 	styleSliderBk_devDimmer_indic.body.shadow.width = 10;
-	styleSliderBk_devDimmer_indic.body.shadow.color = LV_COLOR_LIME;
+	styleSliderBk_devDimmer_indic.body.shadow.color = LV_COLOR_GRAY;
 	styleSliderBk_devDimmer_indic.body.padding.hor = 3;
 	styleSliderBk_devDimmer_indic.body.padding.ver = 3;
 	lv_style_copy(&styleSliderBk_devDimmer_knob, &lv_style_pretty);
@@ -3854,11 +3984,11 @@ static void lvGuiHome_styleApplicationInit(void){
 	styleSliderBk_devCurtain_bg.body.radius = LV_RADIUS_CIRCLE;
 	styleSliderBk_devCurtain_bg.body.border.color = LV_COLOR_WHITE;
 	lv_style_copy(&styleSliderBk_devCurtain_indic, &lv_style_pretty);
-	styleSliderBk_devCurtain_indic.body.grad_color = LV_COLOR_GREEN;
-	styleSliderBk_devCurtain_indic.body.main_color = LV_COLOR_LIME;
+	styleSliderBk_devCurtain_indic.body.grad_color = LV_COLOR_MAKE(64, 128, 128);
+	styleSliderBk_devCurtain_indic.body.main_color = LV_COLOR_SILVER;
 	styleSliderBk_devCurtain_indic.body.radius = LV_RADIUS_CIRCLE;
 	styleSliderBk_devCurtain_indic.body.shadow.width = 10;
-	styleSliderBk_devCurtain_indic.body.shadow.color = LV_COLOR_LIME;
+	styleSliderBk_devCurtain_indic.body.shadow.color = LV_COLOR_GRAY;
 	styleSliderBk_devCurtain_indic.body.padding.hor = 3;
 	styleSliderBk_devCurtain_indic.body.padding.ver = 3;
 	lv_style_copy(&styleSliderBk_devCurtain_knob, &lv_style_pretty);
@@ -3892,114 +4022,140 @@ static void lvGuiHome_styleApplicationInit(void){
 	styleCb_devThermostat_EcoEn.text.opa = LV_OPA_100;
 
 	//控件风格设定：风扇开关档位按钮矩阵选定框背景、选中风格设置
-//    lv_style_copy(&styleBtnm_devFans_btnBg, &lv_style_plain);
-//    styleBtnm_devFans_btnBg.body.main_color = lv_color_hsv_to_rgb(15, 11, 30);
-//    styleBtnm_devFans_btnBg.body.grad_color = lv_color_hsv_to_rgb(15, 11, 30);
-//    styleBtnm_devFans_btnBg.text.color = lv_color_hsv_to_rgb(15, 5, 95);
-
-//    lv_style_copy(&styleBtnm_devFans_btnRel, &lv_style_pretty);
-//    styleBtnm_devFans_btnRel.body.main_color = lv_color_hsv_to_rgb(15, 10, 40);
-//    styleBtnm_devFans_btnRel.body.grad_color = lv_color_hsv_to_rgb(15, 10, 20);
-//    styleBtnm_devFans_btnRel.body.border.color = LV_COLOR_HEX3(0x111);
-//    styleBtnm_devFans_btnRel.body.border.width = 1;
-//    styleBtnm_devFans_btnRel.body.border.opa = LV_OPA_70;
-//    styleBtnm_devFans_btnRel.body.padding.hor = LV_DPI / 4;
-//    styleBtnm_devFans_btnRel.body.padding.ver = LV_DPI / 8;
-//    styleBtnm_devFans_btnRel.body.shadow.type = LV_SHADOW_BOTTOM;
-//    styleBtnm_devFans_btnRel.body.shadow.color = LV_COLOR_HEX3(0x111);
-//    styleBtnm_devFans_btnRel.body.shadow.width = LV_DPI / 30;
-//    styleBtnm_devFans_btnRel.text.color = LV_COLOR_HEX3(0xeee);
-
-//    lv_style_copy(&styleBtnm_devFans_btnPre, &styleBtnm_devFans_btnRel);
-//    styleBtnm_devFans_btnPre.body.main_color = lv_color_hsv_to_rgb(15, 10, 30);
-//    styleBtnm_devFans_btnPre.body.grad_color = lv_color_hsv_to_rgb(15, 10, 10);
-
-//    lv_style_copy(&styleBtnm_devFans_btnTglRel, &styleBtnm_devFans_btnRel);
-//    styleBtnm_devFans_btnTglRel.body.main_color = lv_color_hsv_to_rgb(15, 10, 20);
-//    styleBtnm_devFans_btnTglRel.body.grad_color = lv_color_hsv_to_rgb(15, 10, 40);
-//    styleBtnm_devFans_btnTglRel.body.shadow.width = LV_DPI / 40;
-//    styleBtnm_devFans_btnTglRel.text.color = LV_COLOR_HEX3(0xddd);
-
-//    lv_style_copy(&styleBtnm_devFans_btnTglPre, &styleBtnm_devFans_btnRel);
-//    styleBtnm_devFans_btnTglPre.body.main_color = lv_color_hsv_to_rgb(15, 10, 10);
-//    styleBtnm_devFans_btnTglPre.body.grad_color = lv_color_hsv_to_rgb(15, 10, 30);
-//    styleBtnm_devFans_btnTglPre.body.shadow.width = LV_DPI / 30;
-//    styleBtnm_devFans_btnTglPre.text.color = LV_COLOR_HEX3(0xddd);
-
-//    lv_style_copy(&styleBtnm_devFans_btnIna, &styleBtnm_devFans_btnRel);
-//    styleBtnm_devFans_btnIna.body.main_color = lv_color_hsv_to_rgb(15, 10, 20);
-//    styleBtnm_devFans_btnIna.body.grad_color = lv_color_hsv_to_rgb(15, 10, 20);
-//    styleBtnm_devFans_btnIna.text.color = LV_COLOR_HEX3(0xaaa);
-//    styleBtnm_devFans_btnIna.body.shadow.width = 0;
-
     lv_style_copy(&styleBtnm_devFans_btnBg, &lv_style_plain);
-    styleBtnm_devFans_btnBg.body.main_color = LV_COLOR_HEX3(0x333);
-    styleBtnm_devFans_btnBg.body.grad_color =  LV_COLOR_HEX3(0x333);
-    styleBtnm_devFans_btnBg.body.border.width = 2;
-    styleBtnm_devFans_btnBg.body.border.color =  LV_COLOR_HEX3(0x666);
-    styleBtnm_devFans_btnBg.body.shadow.color = LV_COLOR_SILVER;
+	styleBtnm_devFans_btnBg.body.opa = LV_OPA_70;
+	styleBtnm_devFans_btnBg.body.radius = 4;
+    styleBtnm_devFans_btnBg.body.main_color = lv_color_hsv_to_rgb(15, 11, 30);
+    styleBtnm_devFans_btnBg.body.grad_color = lv_color_hsv_to_rgb(15, 11, 30);
+    styleBtnm_devFans_btnBg.text.color = lv_color_hsv_to_rgb(15, 5, 95);
 
-    lv_style_copy(&styleBtnm_devFans_btnRel, &lv_style_plain);
-    styleBtnm_devFans_btnRel.glass = 0;
-    styleBtnm_devFans_btnRel.body.empty = 1;
-    styleBtnm_devFans_btnRel.body.radius = LV_RADIUS_CIRCLE;
-    styleBtnm_devFans_btnRel.body.border.width = 2;
-    styleBtnm_devFans_btnRel.body.border.color = lv_color_hsv_to_rgb(15, 70, 90);
-    styleBtnm_devFans_btnRel.body.border.opa = LV_OPA_80;
+    lv_style_copy(&styleBtnm_devFans_btnRel, &lv_style_pretty);
+    styleBtnm_devFans_btnRel.body.main_color = lv_color_hsv_to_rgb(15, 10, 40);
+    styleBtnm_devFans_btnRel.body.grad_color = lv_color_hsv_to_rgb(15, 10, 20);
+    styleBtnm_devFans_btnRel.body.border.color = LV_COLOR_HEX3(0x111);
+    styleBtnm_devFans_btnRel.body.border.width = 1;
+    styleBtnm_devFans_btnRel.body.border.opa = LV_OPA_70;
     styleBtnm_devFans_btnRel.body.padding.hor = LV_DPI / 4;
-    styleBtnm_devFans_btnRel.body.padding.ver = LV_DPI / 6;
-    styleBtnm_devFans_btnRel.body.padding.inner = LV_DPI / 10;
-    styleBtnm_devFans_btnRel.text.color = lv_color_hsv_to_rgb(15, 8, 96);
+    styleBtnm_devFans_btnRel.body.padding.ver = LV_DPI / 8;
+    styleBtnm_devFans_btnRel.body.shadow.type = LV_SHADOW_BOTTOM;
+    styleBtnm_devFans_btnRel.body.shadow.color = LV_COLOR_HEX3(0x111);
+    styleBtnm_devFans_btnRel.body.shadow.width = LV_DPI / 30;
+    styleBtnm_devFans_btnRel.text.color = LV_COLOR_HEX3(0xeee);
 
     lv_style_copy(&styleBtnm_devFans_btnPre, &styleBtnm_devFans_btnRel);
-    styleBtnm_devFans_btnPre.body.opa = LV_OPA_COVER;
-    styleBtnm_devFans_btnPre.body.empty = 0;
-    styleBtnm_devFans_btnPre.body.main_color = lv_color_hsv_to_rgb(15, 50, 50);
-    styleBtnm_devFans_btnPre.body.grad_color = lv_color_hsv_to_rgb(15, 50, 50);
-    styleBtnm_devFans_btnPre.body.border.opa = LV_OPA_60;
-    styleBtnm_devFans_btnPre.text.color = lv_color_hsv_to_rgb(15, 10, 100);
+    styleBtnm_devFans_btnPre.body.main_color = lv_color_hsv_to_rgb(15, 10, 30);
+    styleBtnm_devFans_btnPre.body.grad_color = lv_color_hsv_to_rgb(15, 10, 10);
 
-    lv_style_copy(&styleBtnm_devFans_btnTglRel, &styleBtnm_devFans_btnPre);
-    styleBtnm_devFans_btnTglRel.body.opa = LV_OPA_COVER;
-    styleBtnm_devFans_btnTglRel.body.empty = 0;
-    styleBtnm_devFans_btnTglRel.body.main_color = lv_color_hsv_to_rgb(15, 50, 60);
-    styleBtnm_devFans_btnTglRel.body.grad_color = lv_color_hsv_to_rgb(15, 50, 60);
-    styleBtnm_devFans_btnTglRel.body.border.opa = LV_OPA_60;
-    styleBtnm_devFans_btnTglRel.body.border.color = lv_color_hsv_to_rgb(15, 80, 90);
-    styleBtnm_devFans_btnTglRel.text.color = lv_color_hsv_to_rgb(15, 0, 100);
+    lv_style_copy(&styleBtnm_devFans_btnTglRel, &styleBtnm_devFans_btnRel);
+    styleBtnm_devFans_btnTglRel.body.main_color = lv_color_hsv_to_rgb(15, 10, 20);
+    styleBtnm_devFans_btnTglRel.body.grad_color = lv_color_hsv_to_rgb(15, 10, 40);
+    styleBtnm_devFans_btnTglRel.body.shadow.width = LV_DPI / 40;
+    styleBtnm_devFans_btnTglRel.text.color = LV_COLOR_HEX3(0xddd);
 
-    lv_style_copy(&styleBtnm_devFans_btnTglPre, &styleBtnm_devFans_btnTglRel);
-    styleBtnm_devFans_btnTglPre.body.opa = LV_OPA_COVER;
-    styleBtnm_devFans_btnTglPre.body.empty = 0;
-    styleBtnm_devFans_btnTglPre.body.main_color = lv_color_hsv_to_rgb(15, 50, 50);
-    styleBtnm_devFans_btnTglPre.body.grad_color = lv_color_hsv_to_rgb(15, 50, 50);
-    styleBtnm_devFans_btnTglPre.body.border.opa = LV_OPA_60;
-    styleBtnm_devFans_btnTglPre.body.border.color = lv_color_hsv_to_rgb(15, 80, 70);
-    styleBtnm_devFans_btnTglPre.text.color = lv_color_hsv_to_rgb(15, 10, 90);
+    lv_style_copy(&styleBtnm_devFans_btnTglPre, &styleBtnm_devFans_btnRel);
+    styleBtnm_devFans_btnTglPre.body.main_color = lv_color_hsv_to_rgb(15, 10, 10);
+    styleBtnm_devFans_btnTglPre.body.grad_color = lv_color_hsv_to_rgb(15, 10, 30);
+    styleBtnm_devFans_btnTglPre.body.shadow.width = LV_DPI / 30;
+    styleBtnm_devFans_btnTglPre.text.color = LV_COLOR_HEX3(0xddd);
 
     lv_style_copy(&styleBtnm_devFans_btnIna, &styleBtnm_devFans_btnRel);
-    styleBtnm_devFans_btnIna.body.border.opa = LV_OPA_60;
-    styleBtnm_devFans_btnIna.body.border.color = lv_color_hsv_to_rgb(15, 10, 50);
-    styleBtnm_devFans_btnIna.text.color = lv_color_hsv_to_rgb(15, 10, 90);
+    styleBtnm_devFans_btnIna.body.main_color = lv_color_hsv_to_rgb(15, 10, 20);
+    styleBtnm_devFans_btnIna.body.grad_color = lv_color_hsv_to_rgb(15, 10, 20);
+    styleBtnm_devFans_btnIna.text.color = LV_COLOR_HEX3(0xaaa);
+    styleBtnm_devFans_btnIna.body.shadow.width = 0;
+
+//    lv_style_copy(&styleBtnm_devFans_btnBg, &lv_style_plain);
+//    styleBtnm_devFans_btnBg.body.main_color = LV_COLOR_HEX3(0x333);
+//    styleBtnm_devFans_btnBg.body.grad_color =  LV_COLOR_HEX3(0x333);
+//    styleBtnm_devFans_btnBg.body.border.width = 2;
+//    styleBtnm_devFans_btnBg.body.border.color =  LV_COLOR_HEX3(0x666);
+//    styleBtnm_devFans_btnBg.body.shadow.color = LV_COLOR_SILVER;
+
+//    lv_style_copy(&styleBtnm_devFans_btnRel, &lv_style_plain);
+//    styleBtnm_devFans_btnRel.glass = 0;
+//    styleBtnm_devFans_btnRel.body.empty = 1;
+//    styleBtnm_devFans_btnRel.body.radius = LV_RADIUS_CIRCLE;
+//    styleBtnm_devFans_btnRel.body.border.width = 2;
+//    styleBtnm_devFans_btnRel.body.border.color = lv_color_hsv_to_rgb(15, 70, 90);
+//    styleBtnm_devFans_btnRel.body.border.opa = LV_OPA_80;
+//    styleBtnm_devFans_btnRel.body.padding.hor = LV_DPI / 4;
+//    styleBtnm_devFans_btnRel.body.padding.ver = LV_DPI / 6;
+//    styleBtnm_devFans_btnRel.body.padding.inner = LV_DPI / 10;
+//    styleBtnm_devFans_btnRel.text.color = lv_color_hsv_to_rgb(15, 8, 96);
+
+//    lv_style_copy(&styleBtnm_devFans_btnPre, &styleBtnm_devFans_btnRel);
+//    styleBtnm_devFans_btnPre.body.opa = LV_OPA_COVER;
+//    styleBtnm_devFans_btnPre.body.empty = 0;
+//    styleBtnm_devFans_btnPre.body.main_color = lv_color_hsv_to_rgb(15, 50, 50);
+//    styleBtnm_devFans_btnPre.body.grad_color = lv_color_hsv_to_rgb(15, 50, 50);
+//    styleBtnm_devFans_btnPre.body.border.opa = LV_OPA_60;
+//    styleBtnm_devFans_btnPre.text.color = lv_color_hsv_to_rgb(15, 10, 100);
+
+//    lv_style_copy(&styleBtnm_devFans_btnTglRel, &styleBtnm_devFans_btnPre);
+//    styleBtnm_devFans_btnTglRel.body.opa = LV_OPA_COVER;
+//    styleBtnm_devFans_btnTglRel.body.empty = 0;
+//    styleBtnm_devFans_btnTglRel.body.main_color = lv_color_hsv_to_rgb(15, 50, 60);
+//    styleBtnm_devFans_btnTglRel.body.grad_color = lv_color_hsv_to_rgb(15, 50, 60);
+//    styleBtnm_devFans_btnTglRel.body.border.opa = LV_OPA_60;
+//    styleBtnm_devFans_btnTglRel.body.border.color = lv_color_hsv_to_rgb(15, 80, 90);
+//    styleBtnm_devFans_btnTglRel.text.color = lv_color_hsv_to_rgb(15, 0, 100);
+
+//    lv_style_copy(&styleBtnm_devFans_btnTglPre, &styleBtnm_devFans_btnTglRel);
+//    styleBtnm_devFans_btnTglPre.body.opa = LV_OPA_COVER;
+//    styleBtnm_devFans_btnTglPre.body.empty = 0;
+//    styleBtnm_devFans_btnTglPre.body.main_color = lv_color_hsv_to_rgb(15, 50, 50);
+//    styleBtnm_devFans_btnTglPre.body.grad_color = lv_color_hsv_to_rgb(15, 50, 50);
+//    styleBtnm_devFans_btnTglPre.body.border.opa = LV_OPA_60;
+//    styleBtnm_devFans_btnTglPre.body.border.color = lv_color_hsv_to_rgb(15, 80, 70);
+//    styleBtnm_devFans_btnTglPre.text.color = lv_color_hsv_to_rgb(15, 10, 90);
+
+//    lv_style_copy(&styleBtnm_devFans_btnIna, &styleBtnm_devFans_btnRel);
+//    styleBtnm_devFans_btnIna.body.border.opa = LV_OPA_60;
+//    styleBtnm_devFans_btnIna.body.border.color = lv_color_hsv_to_rgb(15, 10, 50);
+//    styleBtnm_devFans_btnIna.text.color = lv_color_hsv_to_rgb(15, 10, 90);
 
 	//控件风格设定：热水器开关档位按钮矩阵选定框背景、选中风格设置
-	lv_style_copy(&styleBtnm_devHeater_btnBg, &lv_style_plain);
-	styleBtnm_devHeater_btnBg.body.main_color = LV_COLOR_SILVER;
-	styleBtnm_devHeater_btnBg.body.grad_color = LV_COLOR_SILVER;
-	styleBtnm_devHeater_btnBg.body.padding.hor = 0;
-	styleBtnm_devHeater_btnBg.body.padding.ver = 0;
-	styleBtnm_devHeater_btnBg.body.padding.inner = 0;
-	lv_style_copy(&styleBtnm_devHeater_btnRel, &lv_style_btn_rel);
-	styleBtnm_devHeater_btnRel.body.main_color = LV_COLOR_MAKE(0x30, 0x30, 0x30);
-	styleBtnm_devHeater_btnRel.body.grad_color = LV_COLOR_BLACK;
-	styleBtnm_devHeater_btnRel.body.border.color = LV_COLOR_SILVER;
-	styleBtnm_devHeater_btnRel.body.border.width = 1;
-	styleBtnm_devHeater_btnRel.body.border.opa = LV_OPA_50;
-	styleBtnm_devHeater_btnRel.body.radius = 0;
-	lv_style_copy(&styleBtnm_devHeater_btnPre, &lv_style_btn_rel);
-	styleBtnm_devHeater_btnPre.body.main_color = LV_COLOR_MAKE(0x55, 0x96, 0xd8);
-	styleBtnm_devHeater_btnPre.body.grad_color = LV_COLOR_MAKE(0x37, 0x62, 0x90);
-	styleBtnm_devHeater_btnPre.text.color = LV_COLOR_MAKE(0xbb, 0xd5, 0xf1);
+    lv_style_copy(&styleBtnm_devHeater_btnBg, &lv_style_plain);
+	styleBtnm_devHeater_btnBg.body.opa = LV_OPA_70;
+	styleBtnm_devHeater_btnBg.body.radius = 4;
+    styleBtnm_devHeater_btnBg.body.main_color = lv_color_hsv_to_rgb(15, 11, 30);
+    styleBtnm_devHeater_btnBg.body.grad_color = lv_color_hsv_to_rgb(15, 11, 30);
+    styleBtnm_devHeater_btnBg.text.color = lv_color_hsv_to_rgb(15, 5, 95);
+
+    lv_style_copy(&styleBtnm_devHeater_btnRel, &lv_style_pretty);
+    styleBtnm_devHeater_btnRel.body.main_color = lv_color_hsv_to_rgb(15, 10, 40);
+    styleBtnm_devHeater_btnRel.body.grad_color = lv_color_hsv_to_rgb(15, 10, 20);
+    styleBtnm_devHeater_btnRel.body.border.color = LV_COLOR_HEX3(0x111);
+    styleBtnm_devHeater_btnRel.body.border.width = 1;
+    styleBtnm_devHeater_btnRel.body.border.opa = LV_OPA_70;
+    styleBtnm_devHeater_btnRel.body.padding.hor = LV_DPI / 4;
+    styleBtnm_devHeater_btnRel.body.padding.ver = LV_DPI / 8;
+    styleBtnm_devHeater_btnRel.body.shadow.type = LV_SHADOW_BOTTOM;
+    styleBtnm_devHeater_btnRel.body.shadow.color = LV_COLOR_HEX3(0x111);
+    styleBtnm_devHeater_btnRel.body.shadow.width = LV_DPI / 30;
+    styleBtnm_devHeater_btnRel.text.color = LV_COLOR_HEX3(0xeee);
+
+    lv_style_copy(&styleBtnm_devHeater_btnPre, &styleBtnm_devHeater_btnRel);
+    styleBtnm_devHeater_btnPre.body.main_color = lv_color_hsv_to_rgb(15, 10, 30);
+    styleBtnm_devHeater_btnPre.body.grad_color = lv_color_hsv_to_rgb(15, 10, 10);
+
+    lv_style_copy(&styleBtnm_devHeater_btnTglRel, &styleBtnm_devHeater_btnRel);
+    styleBtnm_devHeater_btnTglRel.body.main_color = lv_color_hsv_to_rgb(15, 10, 20);
+    styleBtnm_devHeater_btnTglRel.body.grad_color = lv_color_hsv_to_rgb(15, 10, 40);
+    styleBtnm_devHeater_btnTglRel.body.shadow.width = LV_DPI / 40;
+    styleBtnm_devHeater_btnTglRel.text.color = LV_COLOR_HEX3(0xddd);
+
+    lv_style_copy(&styleBtnm_devHeater_btnTglPre, &styleBtnm_devHeater_btnRel);
+    styleBtnm_devHeater_btnTglPre.body.main_color = lv_color_hsv_to_rgb(15, 10, 10);
+    styleBtnm_devHeater_btnTglPre.body.grad_color = lv_color_hsv_to_rgb(15, 10, 30);
+    styleBtnm_devHeater_btnTglPre.body.shadow.width = LV_DPI / 30;
+    styleBtnm_devHeater_btnTglPre.text.color = LV_COLOR_HEX3(0xddd);
+
+    lv_style_copy(&styleBtnm_devHeater_btnIna, &styleBtnm_devHeater_btnRel);
+    styleBtnm_devHeater_btnIna.body.main_color = lv_color_hsv_to_rgb(15, 10, 20);
+    styleBtnm_devHeater_btnIna.body.grad_color = lv_color_hsv_to_rgb(15, 10, 20);
+    styleBtnm_devHeater_btnIna.text.color = LV_COLOR_HEX3(0xaaa);
+    styleBtnm_devHeater_btnIna.body.shadow.width = 0;
 
 	//控件风格设定：热水器时间设置界面，滚轮设置
 	lv_style_copy(&styleTextRoller_devHeater_timeSetPage_bg, &lv_style_plain);
@@ -4028,8 +4184,8 @@ static void lvGuiHome_styleApplicationInit(void){
 
 	//控件风格设定：场景开关 触发冷却 预加载器 风格
 	lv_style_copy(&stylePreload_devScenario_driverCalmDown, &lv_style_plain);
-	stylePreload_devScenario_driverCalmDown.line.width = 10;						   /*10 px thick arc*/
-	stylePreload_devScenario_driverCalmDown.line.color = LV_COLOR_HEX3(0x258);	   /*Blueish arc color*/
+	stylePreload_devScenario_driverCalmDown.line.width = 10;						  /*10 px thick arc*/
+	stylePreload_devScenario_driverCalmDown.line.color = LV_COLOR_HEX3(0x258);	   	  /*Blueish arc color*/
 	stylePreload_devScenario_driverCalmDown.body.border.color = LV_COLOR_HEX3(0xBBB); /*Gray background color*/
 	stylePreload_devScenario_driverCalmDown.body.border.width = 10;
 	stylePreload_devScenario_driverCalmDown.body.padding.hor = 0;
@@ -4122,15 +4278,16 @@ void lvGui_businessInit(void){
 	lv_obj_set_style(textHeaderObj_temperature, &styleText_temperature);
 
 	lvGui_businessHome(imageBK);
+	lvGuiRefreshCounter_bussinessBk = 0;
 
 	xEventGp_screenTouch = xEventGroupCreate();
 	msgQh_wifiConfigCompleteTips = xQueueCreate(2, sizeof(uint8_t));
 
 	xTaskCreate(task_guiSwitch_Detecting, //Task Function
 				"guiDetect", //Task Name
-				1024 * 4,	 //Stack Depth
+				1024 * 8,	 //Stack Depth
 				NULL,		 //Parameters
-				CONFIG_MDF_TASK_DEFAULT_PRIOTY,	//Priority
+				CONFIG_MDF_TASK_DEFAULT_PRIOTY - 1,			 //Priority  
 				NULL);		 //Task Handler
 
 	usrAppHomepageThemeType_Set(homepageThemeType_typeFlg, false); //数据自更新，因为guiInit在dataInit之后，对象创建较晚

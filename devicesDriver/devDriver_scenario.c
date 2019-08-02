@@ -124,6 +124,8 @@ static void devDriverBussiness_scnarioSwitch_bussinessDataReq(uint8_t dstMac[6],
 
 void devDriverBussiness_scnarioSwitch_scenarioStatusReales(stt_devDataPonitTypedef *param){
 
+	scnarioSwitchDriver_clamDown_counter = DEVSCENARIO_DRIVER_CALMDOWN_PERIOD; //UI按键冷却触发
+
 	if(systemDevice_startUpTime_get() < 2)return; //场景开关不需要状态记录恢复业务逻辑，根据开机时间跳过既定业务
 
 //	printf("watch point!!!.\n");
@@ -141,8 +143,6 @@ void devDriverBussiness_scnarioSwitch_actionTrig(void){
 	currentDev_dataPointGet(&devParam);
 
 	if(swCurrentDevType == devTypeDef_scenario){
-
-		scnarioSwitchDriver_clamDown_counter = DEVSCENARIO_DRIVER_CALMDOWN_PERIOD;
 
 		if(mwifi_is_connected()){
 

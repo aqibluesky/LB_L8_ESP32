@@ -827,6 +827,30 @@ static void mconfig_blufi_event_callback(esp_blufi_cb_event_t event, esp_blufi_c
     }
 }
 
+void mconfig_blufi_completeInadvice_byKBoard(char ssid[32], char psd[64], uint8_t bssid[6]){
+
+	mdf_err_t ret = MDF_OK;
+
+	mconfig_chain_slave_channel_switch_disable();
+	
+	wifi_config_t sta_config = {0};
+	
+	memcpy(sta_config.sta.ssid, g_recv_config->config.router_ssid, strlen(ssid));
+	memcpy(sta_config.sta.bssid, g_recv_config->config.router_bssid, sizeof(uint8_t) * 6);
+	memcpy(sta_config.sta.password, g_recv_config->config.router_password, strlen(psd));
+	
+	ret = esp_wifi_set_config(WIFI_IF_STA, &sta_config);
+	MDF_ERROR_BREAK(ret != ESP_OK, "<%s> Set the configuration of the ESP32 STA", mdf_err_to_name(ret));
+	
+	esp_event_loop_set_cb(blufi_wifi_event_handler, NULL);
+	
+	ret = esp_wifi_connect();
+	MDF_ERROR_BREAK(ret != ESP_OK, "<%s> Connect the ESP32 WiFi station to the AP", mdf_err_to_name(ret));
+	
+	ret = mdf_event_loop_send(MDF_EVENT_MCONFIG_BLUFI_STA_CONNECTED, NULL);
+	MDF_ERROR_BREAK(ret < 0, "<%s> Send the event to the event handler", mdf_err_to_name(ret));
+}
+
 static void mconfig_blufi_gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param)
 {
     switch (event) {

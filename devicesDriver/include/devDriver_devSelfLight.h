@@ -46,14 +46,9 @@ typedef enum{
 
 typedef struct{
 
-	uint8_t linkageWith_screenBkLight:1;
-	uint8_t linkageWith_swRelay:1;
-}stt_infraActDetectCombineFLG;
-
-typedef struct{
-
 	uint32_t timePeriod_devScreenBkLight_weakDown;
 	uint8_t devScreenBkLight_brightness;
+	uint8_t devScreenBkLight_brightnessSleep;
 }stt_devScreenRunningParam;
 
 /**********************
@@ -68,8 +63,11 @@ void devScreenBkLight_statusRefresh(void);
 void devScreenBkLight_weakUp(void);
 
 void devScreenDriver_configParamSave_actionDetect(void);
+void devScreenDriver_configParam_set(stt_devScreenRunningParam *param, bool nvsRecord_IF);
 void devScreenDriver_configParam_brightness_set(uint8_t brightnessVal, bool nvsRecord_IF);
+void devScreenDriver_configParam_brightnessSleep_set(uint8_t brightnessSleepVal, bool nvsRecord_IF);
 uint8_t devScreenDriver_configParam_brightness_get(void);
+uint8_t devScreenDriver_configParam_brightnessSleep_get(void);
 void devScreenDriver_configParam_screenLightTime_set(uint32_t timeVal, bool nvsRecord_IF);
 uint32_t devScreenDriver_configParam_screenLightTime_get(void);
 

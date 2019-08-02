@@ -771,7 +771,7 @@ static void mqtt_remoteDataHandler(esp_mqtt_event_handle_t event, uint8_t cmdTop
 				memcpy(&dataRespond_temp[1], &devLock_dats, 1); //数据
 				
 				ret = mwifi_root_write(boardcastAddr, 1,
-									 &data_type, dataRespond_temp, 1 + 1, true);  //数据内容填充 -头命令长度1 + 操作值数据长度1
+									   &data_type, dataRespond_temp, 1 + 1, true);  //数据内容填充 -头命令长度1 + 操作值数据长度1
 				MDF_ERROR_BREAK(ret != MDF_OK, "<%s> mqtt mwifi_root_write", mdf_err_to_name(ret)); 
 			}
 			else //选改
@@ -1145,6 +1145,11 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 			msg_id = esp_mqtt_client_subscribe(client, devMqtt_topicTemp, 0);
 			ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
 
+			memset(devMqtt_topicTemp, 0, DEVMQTT_TOPIC_TEMP_LENGTH);
+			sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_A"%s", (char *)mqttTopicSpecial_elecsumReport);
+			msg_id = esp_mqtt_client_subscribe(client, devMqtt_topicTemp, 0);
+			ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
+
 //            ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
 //            msg_id = esp_mqtt_client_publish(client, "/topic/qos0", "data", 0, 0, 0);
 //            ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
@@ -1196,6 +1201,49 @@ static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
     return ESP_OK;
 }
 
+#define ELECSUM_REPORT_USR_DEBUG	0
+
+#if(ELECSUM_REPORT_USR_DEBUG == 1)
+void mqtt_rootDevRemoteDatatransLoop_elecSumReport(void){
+
+	const uint8_t devSum = 6;
+	const uint8_t devRouterBssid[DEVICE_MAC_ADDR_APPLICATION_LEN] = {0xAA, 0xBB, 0xA1, 0xA2, 0xA3, 0xA4};
+	uint8_t devNodeMAC[DEVICE_MAC_ADDR_APPLICATION_LEN] = {0, 0, 0, 0, 0, 1};
+	static float devElecSum_temp = 12345.67F;
+
+	if(mwifi_is_connected() && esp_mesh_get_layer() == MESH_ROOT);
+	else{
+
+		return; //角色不对，不可用
+	}
+
+	if(!remoteMqtt_connectFlg)return; //远程连接不可用
+
+	while(!mqttClientElecsumRepot_reserveFlg)vTaskDelay(1 / portTICK_PERIOD_MS); //等待mqttClient资源可用
+
+	memset(devMqtt_topicTemp, 0, DEVMQTT_TOPIC_TEMP_LENGTH); //主题缓存清零
+	memset(dataRespond_temp, 0, DEVMQTT_DATA_RESPOND_LENGTH); //数据缓存清零
+	
+	sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_A"%s", (char *)mqttTopicSpecial_elecsumReport);
+
+	dataRespond_temp[0] = devSum;
+	dataRespond_temp[1] = 8;
+	dataRespond_temp[2] = 0;
+	memcpy(&dataRespond_temp[3], devRouterBssid, sizeof(uint8_t) * DEVICE_MAC_ADDR_APPLICATION_LEN);
+	
+	for(uint8_t loop = 0; loop < devSum; loop ++){
+
+		memcpy(&dataRespond_temp[loop * 9 + 9], devNodeMAC, sizeof(uint8_t) * DEVICE_MAC_ADDR_APPLICATION_LEN);
+		functionSpecialUsrApp_floatToHex(&dataRespond_temp[loop * 9 + 15], devElecSum_temp);
+		devNodeMAC[5] ++;
+	}
+
+	devElecSum_temp += 1.01F;
+
+	printf("mqtt cmdQuery_devElecsumInfo debugOpreat report res:0x%04X.\n", esp_mqtt_client_publish(usrAppClient, devMqtt_topicTemp, (const char*)dataRespond_temp, devSum * 9 + 9, 1, 0));
+}
+
+#else
 void mqtt_rootDevRemoteDatatransLoop_elecSumReport(void){
 
 	uint8_t *dataReport_devElecsumInfo = NULL;
@@ -1209,12 +1257,14 @@ void mqtt_rootDevRemoteDatatransLoop_elecSumReport(void){
 		return; //角色不对，不可用
 	}
 
+	ESP_LOGI(TAG, "rootDev elecsumInfo report trig.");
+
 	if(!remoteMqtt_connectFlg)return; //远程连接不可用
 
 	while(!mqttClientElecsumRepot_reserveFlg)vTaskDelay(1 / portTICK_PERIOD_MS); //等待mqttClient资源可用
 
 	memset(devMqtt_topicTemp, 0, DEVMQTT_TOPIC_TEMP_LENGTH); //主题缓存清零
-	sprintf(devMqtt_topicTemp, "%s", (char *)mqttTopicSpecial_elecsumReport);
+	sprintf(devMqtt_topicTemp, DEVMQTT_TOPIC_HEAD_A"%s", (char *)mqttTopicSpecial_elecsumReport);
 
 	dataReport_devElecsumInfo = L8devElecsumInfoGet(listHead_nodeDevDataManage);
 	devUnitNum_temp = dataReport_devElecsumInfo[0];
@@ -1262,6 +1312,8 @@ void mqtt_rootDevRemoteDatatransLoop_elecSumReport(void){
 		
 	os_free(dataReport_devElecsumInfo); //设备信息获取缓存 释放
 }
+
+#endif
 
 void mqtt_remoteDataTrans(uint8_t dtCmd, uint8_t *data, uint16_t dataLen){
 

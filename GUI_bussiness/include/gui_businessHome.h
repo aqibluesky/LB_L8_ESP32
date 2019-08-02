@@ -18,6 +18,8 @@ extern "C" {
 /*********************
  *      DEFINES
  *********************/
+#define LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK			0x0A
+#define LV_OBJ_FREENUM_BTNNUM_DEF_MENUHOME			0x0B
 
 /**********************
  *      TYPEDEFS
@@ -44,6 +46,8 @@ enum{
 /**********************
  * GLOBAL PROTOTYPES
  **********************/
+
+extern bool volatile task_guiSwitch_Detecting_runningFlg;
 
 /**
  * Create a test screen with a lot objects and apply the given theme on them

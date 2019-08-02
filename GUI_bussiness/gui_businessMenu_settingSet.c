@@ -27,13 +27,14 @@
 #define OBJ_DDLIST_DEVTYPE_FREENUM			1
 #define OBJ_DDLIST_HPTHEME_FREENUM			2
 
-#define FUNCTION_NUM_DEF_SCREENLIGHT_TIME	12
+#define FUNCTION_NUM_DEF_SCREENLIGHT_TIME	13
 
 LV_FONT_DECLARE(lv_font_dejavu_15);
 LV_FONT_DECLARE(lv_font_consola_17);
 LV_FONT_DECLARE(lv_font_consola_19);
 
-LV_FONT_DECLARE(iconMenu_funBack_arrowLeft);
+LV_IMG_DECLARE(iconMenu_funBack_arrowLeft);
+LV_IMG_DECLARE(iconMenu_funBack_homePage);
 LV_IMG_DECLARE(imageBtn_feedBackNormal);
 
 static const char *deviceType_listTab = {
@@ -94,7 +95,8 @@ static const struct stt_gearScreenLightTime{
 	{60 * 05 + 1 * 00, "#FFFF00 05##C0C0FF min##FFFF00 00##C0C0FF sec#"},
 	{60 * 10 + 1 * 00, "#FFFF00 10##C0C0FF min##FFFF00 00##C0C0FF sec#"},
 	{60 * 20 + 1 * 00, "#FFFF00 20##C0C0FF min##FFFF00 00##C0C0FF sec#"},
-	{60 * 30 + 1 * 00, "#FFFF00 30##C0C0FF min##FFFF00 00##C0C0FF sec#"}
+	{60 * 30 + 1 * 00, "#FFFF00 30##C0C0FF min##FFFF00 00##C0C0FF sec#"},
+	{COUNTER_DISENABLE_MASK_SPECIALVAL_U16, 	    "#FFFF00   ALWAYS#"}
 };
 
 static const uint8_t screenBrightness_sliderAdj_div = 20;
@@ -113,8 +115,13 @@ static lv_style_t styleMbox_bg;
 static lv_style_t styleMbox_btn_pr;
 static lv_style_t styleMbox_btn_rel;
 static lv_style_t styleBtn_specialTransparent;
+static lv_style_t styleImg_menuFun_btnFun;
 
 static lv_obj_t *menuBtnChoIcon_fun_back = NULL;
+static lv_obj_t *menuBtnChoIcon_fun_home = NULL;
+static lv_obj_t *imgMenuBtnChoIcon_fun_home = NULL;
+static lv_obj_t *imgMenuBtnChoIcon_fun_back = NULL;
+
 static lv_obj_t *page_funSetOption = NULL;
 static lv_obj_t *text_Title = NULL;
 static lv_obj_t *textSettingA_deviceType = NULL;
@@ -134,6 +141,7 @@ static lv_obj_t	*swSettingA_devStatusRecordIF = NULL;
 static lv_obj_t *mboxFactoryRecovery_comfirm = NULL;
 static lv_obj_t *mboxTouchRecalibration_comfirm = NULL;
 static lv_obj_t *sliderSettingA_screenBrightness = NULL;
+static lv_obj_t *sliderSettingA_screenBrightnessSleep = NULL;
 static lv_obj_t *textBtnTimeRef_screenLightTime = NULL;
 static lv_obj_t *btnTimeAdd_screenLightTime = NULL;
 static lv_obj_t *textBtnTimeAdd_screenLightTime = NULL;
@@ -149,16 +157,55 @@ static void currentGui_elementClear(void){
 
 static lv_res_t funCb_btnActionClick_menuBtn_funBack(lv_obj_t *btn){
 
+	LV_OBJ_FREE_NUM_TYPE btnFreeNum = lv_obj_get_free_num(btn);
+	usrGuiBussiness_type guiChg_temp = bussinessType_Menu;
+
 	currentGui_elementClear();
-	lvGui_usrSwitch(bussinessType_Menu);
+
+	switch(btnFreeNum){
+
+		case LV_OBJ_FREENUM_BTNNUM_DEF_MENUHOME:
+
+			guiChg_temp = bussinessType_Home;
+
+		break;
+
+		case LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK	:
+		default:
+
+			guiChg_temp = bussinessType_Menu;
+
+		break;
+	}
+
+	lvGui_usrSwitch(guiChg_temp);
 
 	return LV_RES_OK;
 }
 
 static lv_res_t funCb_btnActionPress_menuBtn_funBack(lv_obj_t *btn){
 
-	lv_obj_t *btnFeedBk = lv_img_create(btn, NULL);
-	lv_img_set_src(btnFeedBk, &imageBtn_feedBackNormal);
+	LV_OBJ_FREE_NUM_TYPE btnFreeNum = lv_obj_get_free_num(btn);
+	lv_obj_t *objImg_colorChg = NULL;
+
+	switch(btnFreeNum){
+
+		case LV_OBJ_FREENUM_BTNNUM_DEF_MENUHOME:
+
+			objImg_colorChg = imgMenuBtnChoIcon_fun_home;
+
+		break;
+
+		case LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK	:
+		default:
+
+			objImg_colorChg = imgMenuBtnChoIcon_fun_back;
+
+		break;
+	}
+
+	lv_img_set_style(objImg_colorChg, &styleImg_menuFun_btnFun);
+	lv_obj_refresh_style(objImg_colorChg);
 
 	return LV_RES_OK;
 }
@@ -249,9 +296,42 @@ static lv_res_t funCb_mboxBtnActionClick_touchRecalibration(lv_obj_t * mbox, con
 
 static lv_res_t funCb_slidAction_functionSet_screenBrightnessAdj(lv_obj_t *slider){
 
-	uint8_t devScreen_brightneesValSet = lv_slider_get_value(slider) * (DEVLEDC_SCREEN_BRIGHTNESS_LEVEL_DIV / screenBrightness_sliderAdj_div);
+	LV_OBJ_FREE_NUM_TYPE sliderFreeNum = lv_obj_get_free_num(slider);
 
-	devScreenDriver_configParam_brightness_set(devScreen_brightneesValSet, true);
+	uint8_t brightnessTemp = lv_slider_get_value(slider) * (DEVLEDC_SCREEN_BRIGHTNESS_LEVEL_DIV / screenBrightness_sliderAdj_div);
+	uint8_t brightnessA = devScreenDriver_configParam_brightness_get();
+	uint8_t brightnessB = devScreenDriver_configParam_brightnessSleep_get();
+
+	switch(sliderFreeNum){
+
+		case 0:{
+
+			if(brightnessTemp == 0){
+			
+				lv_slider_set_value(sliderSettingA_screenBrightness, 1);
+				brightnessTemp = lv_slider_get_value(slider) * (DEVLEDC_SCREEN_BRIGHTNESS_LEVEL_DIV / screenBrightness_sliderAdj_div);
+			}
+
+			devScreenDriver_configParam_brightness_set(brightnessTemp, true);
+			if(brightnessTemp < brightnessB){
+
+				devScreenDriver_configParam_brightnessSleep_set(brightnessTemp, true);
+				lv_slider_set_value(sliderSettingA_screenBrightnessSleep, brightnessTemp / (DEVLEDC_SCREEN_BRIGHTNESS_LEVEL_DIV / screenBrightness_sliderAdj_div));
+			}
+
+		}break;
+
+		case 1:{
+
+			devScreenDriver_configParam_brightnessSleep_set(brightnessTemp, true);
+			if(brightnessTemp > brightnessA){
+
+				devScreenDriver_configParam_brightness_set(brightnessTemp, true);
+				lv_slider_set_value(sliderSettingA_screenBrightness, brightnessTemp / (DEVLEDC_SCREEN_BRIGHTNESS_LEVEL_DIV / screenBrightness_sliderAdj_div));
+			}
+
+		}break;
+	}
 
 	return LV_RES_OK;
 }
@@ -442,6 +522,10 @@ static void lvGuiSettingSet_objStyle_Init(void){
     styleBtn_specialTransparent.body.opa = LV_OPA_TRANSP;
 	styleBtn_specialTransparent.body.radius = 0;
     styleBtn_specialTransparent.body.shadow.width =  0;
+
+	lv_style_copy(&styleImg_menuFun_btnFun, &lv_style_plain);
+	styleImg_menuFun_btnFun.image.intense = LV_OPA_COVER;
+	styleImg_menuFun_btnFun.image.color = LV_COLOR_MAKE(200, 191, 231);
 }
 
 void lvGui_businessMenu_settingSet(lv_obj_t * obj_Parent){
@@ -461,12 +545,35 @@ void lvGui_businessMenu_settingSet(lv_obj_t * obj_Parent){
 	lv_obj_set_pos(text_Title, 40, 45); 
 	lv_obj_set_style(text_Title, &styleText_menuLevel_A);
 
-	menuBtnChoIcon_fun_back = lv_imgbtn_create(obj_Parent, NULL);
-	lv_imgbtn_set_src(menuBtnChoIcon_fun_back, LV_BTN_STATE_REL, &iconMenu_funBack_arrowLeft);
-	lv_imgbtn_set_src(menuBtnChoIcon_fun_back, LV_BTN_STATE_PR, &iconMenu_funBack_arrowLeft);
-	lv_obj_set_pos(menuBtnChoIcon_fun_back, 8, 45);
+	menuBtnChoIcon_fun_home = lv_btn_create(obj_Parent, NULL);
+	lv_obj_set_size(menuBtnChoIcon_fun_home, 80, 20);
+	lv_obj_set_pos(menuBtnChoIcon_fun_home, 160, 45);
+	lv_obj_set_top(menuBtnChoIcon_fun_home, true);
+	lv_obj_set_free_num(menuBtnChoIcon_fun_home, LV_OBJ_FREENUM_BTNNUM_DEF_MENUHOME);
+	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_REL, &styleBtn_specialTransparent);
+	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_PR, &styleBtn_specialTransparent);
+	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_TGL_REL, &styleBtn_specialTransparent);
+	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_TGL_PR, &styleBtn_specialTransparent);
+	lv_btn_set_action(menuBtnChoIcon_fun_home, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
+	lv_btn_set_action(menuBtnChoIcon_fun_home, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
+	imgMenuBtnChoIcon_fun_home = lv_img_create(obj_Parent, NULL);
+	lv_img_set_src(imgMenuBtnChoIcon_fun_home, &iconMenu_funBack_homePage);
+	lv_obj_set_protect(imgMenuBtnChoIcon_fun_home, LV_PROTECT_POS);
+	lv_obj_align(imgMenuBtnChoIcon_fun_home, menuBtnChoIcon_fun_home, LV_ALIGN_IN_RIGHT_MID, -5, 0);
+	lv_obj_set_top(menuBtnChoIcon_fun_home, true);
+
+	menuBtnChoIcon_fun_back = lv_btn_create(obj_Parent, menuBtnChoIcon_fun_home);
+	lv_obj_set_pos(menuBtnChoIcon_fun_back, 0, 45);
+	lv_obj_set_free_num(menuBtnChoIcon_fun_back, LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK);
 	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
 	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
+	imgMenuBtnChoIcon_fun_back = lv_img_create(obj_Parent, NULL);
+	lv_img_set_src(imgMenuBtnChoIcon_fun_back, &iconMenu_funBack_arrowLeft);
+	lv_obj_set_protect(imgMenuBtnChoIcon_fun_back, LV_PROTECT_POS);
+	lv_obj_align(imgMenuBtnChoIcon_fun_back, menuBtnChoIcon_fun_back, LV_ALIGN_IN_LEFT_MID, 5, 0);
+	lv_obj_set_top(menuBtnChoIcon_fun_back, true);
+
+	lv_obj_set_click(menuBtnChoIcon_fun_home, false);
 	lv_obj_set_click(menuBtnChoIcon_fun_back, false);
 
 	page_funSetOption = lv_page_create(lv_scr_act(), NULL);
@@ -560,13 +667,13 @@ void lvGui_businessMenu_settingSet(lv_obj_t * obj_Parent){
     lv_btn_set_style(btnSettingA_factoryRecoveryIf, LV_BTN_STYLE_TGL_PR, &styleBtn_specialTransparent);
 	textBtnRef_factoryRecoveryIf = lv_label_create(btnSettingA_factoryRecoveryIf, NULL);
 	lv_label_set_recolor(textBtnRef_factoryRecoveryIf, true);
-	lv_label_set_text(textBtnRef_factoryRecoveryIf, "#00FF40 >>>o<<<<#");
+	lv_label_set_text(textBtnRef_factoryRecoveryIf, "#00FF40 >>>o<<<#");
 	lv_obj_set_style(textBtnRef_factoryRecoveryIf, &styleText_menuLevel_B);
 	lv_obj_set_protect(textBtnRef_factoryRecoveryIf, LV_PROTECT_POS);
 	lv_obj_align(textBtnRef_factoryRecoveryIf, NULL, LV_ALIGN_CENTER, 0, 0);
 
 	textSettingA_touchRecalibrationIf = lv_label_create(page_funSetOption, NULL);
-	lv_label_set_text(textSettingA_touchRecalibrationIf, "touch recalibration");
+	lv_label_set_text(textSettingA_touchRecalibrationIf, "touch recalibration:");
 	lv_obj_set_style(textSettingA_touchRecalibrationIf, &styleText_menuLevel_B);
 	lv_obj_set_protect(textSettingA_touchRecalibrationIf, LV_PROTECT_POS);
 	lv_obj_align(textSettingA_touchRecalibrationIf, textSettingA_factoryRecoveryIf, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 60);
@@ -587,21 +694,28 @@ void lvGui_businessMenu_settingSet(lv_obj_t * obj_Parent){
 	lv_obj_align(textBtnRef_touchRecalibrationIf, NULL, LV_ALIGN_CENTER, 0, 0);
 
 	textSettingA_screenBrightness = lv_label_create(page_funSetOption, NULL);
-	lv_label_set_text(textSettingA_screenBrightness, "screen brightness");
+	lv_label_set_text(textSettingA_screenBrightness, "screen brightness:");
 	lv_obj_set_style(textSettingA_screenBrightness, &styleText_menuLevel_B);
 	lv_obj_set_protect(textSettingA_screenBrightness, LV_PROTECT_POS);
 	lv_obj_align(textSettingA_screenBrightness, textSettingA_touchRecalibrationIf, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 60);
 	sliderSettingA_screenBrightness = lv_slider_create(page_funSetOption, NULL);
 	lv_obj_set_size(sliderSettingA_screenBrightness, 180, 15);
 	lv_obj_set_protect(sliderSettingA_screenBrightness, LV_PROTECT_POS);
-	lv_obj_align(sliderSettingA_screenBrightness, textSettingA_screenBrightness, LV_ALIGN_OUT_BOTTOM_LEFT, 10, 25);
+	lv_obj_align(sliderSettingA_screenBrightness, textSettingA_screenBrightness, LV_ALIGN_OUT_BOTTOM_LEFT, 10, 10);
+	lv_obj_set_free_num(sliderSettingA_screenBrightness, 0);
 	lv_slider_set_action(sliderSettingA_screenBrightness, funCb_slidAction_functionSet_screenBrightnessAdj);
 	lv_slider_set_range(sliderSettingA_screenBrightness, 0, screenBrightness_sliderAdj_div);
 	uint8_t brightnessSlider_valDisp = devScreenDriver_configParam_brightness_get();
 	lv_slider_set_value(sliderSettingA_screenBrightness, brightnessSlider_valDisp / (DEVLEDC_SCREEN_BRIGHTNESS_LEVEL_DIV / screenBrightness_sliderAdj_div));
+	sliderSettingA_screenBrightnessSleep = lv_slider_create(page_funSetOption, sliderSettingA_screenBrightness);
+	lv_slider_set_action(sliderSettingA_screenBrightnessSleep, funCb_slidAction_functionSet_screenBrightnessAdj);
+	lv_obj_set_free_num(sliderSettingA_screenBrightnessSleep, 1);
+	lv_obj_align(sliderSettingA_screenBrightnessSleep, textSettingA_screenBrightness, LV_ALIGN_OUT_BOTTOM_LEFT, 10, 40);
+	uint8_t brightnessSleepSlider_valDisp = devScreenDriver_configParam_brightnessSleep_get();
+	lv_slider_set_value(sliderSettingA_screenBrightnessSleep, brightnessSleepSlider_valDisp / (DEVLEDC_SCREEN_BRIGHTNESS_LEVEL_DIV / screenBrightness_sliderAdj_div));
 
 	textSettingA_screenLightTime = lv_label_create(page_funSetOption, NULL);
-	lv_label_set_text(textSettingA_screenLightTime, "screen light time");
+	lv_label_set_text(textSettingA_screenLightTime, "screen light time:");
 	lv_obj_set_style(textSettingA_screenLightTime, &styleText_menuLevel_B);
 	lv_obj_set_protect(textSettingA_screenLightTime, LV_PROTECT_POS);
 	lv_obj_align(textSettingA_screenLightTime, textSettingA_screenBrightness, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 60);
@@ -662,6 +776,7 @@ void lvGui_businessMenu_settingSet(lv_obj_t * obj_Parent){
 	lv_page_glue_obj(textSettingA_touchRecalibrationIf, true);
 	lv_page_glue_obj(btnSettingA_touchRecalibrationIf, true);
 //	lv_page_glue_obj(sliderSettingA_screenBrightness, true);
+//	lv_page_glue_obj(sliderSettingA_screenBrightnessSleep, true);
 	lv_page_glue_obj(textBtnTimeRef_screenLightTime, true);
 	lv_page_glue_obj(btnTimeAdd_screenLightTime, true);
 	lv_page_glue_obj(textBtnTimeAdd_screenLightTime, true);
@@ -685,6 +800,7 @@ void lvGui_businessMenu_settingSet(lv_obj_t * obj_Parent){
 	
 	lv_obj_animate(textSettingA_screenBrightness, LV_ANIM_FLOAT_LEFT, obj_animate_time, obj_animate_delayBasic += obj_animate_delay, NULL);
 	lv_obj_animate(sliderSettingA_screenBrightness, LV_ANIM_FLOAT_LEFT, obj_animate_time, obj_animate_delayBasic += obj_animate_delay, NULL);
+	lv_obj_animate(sliderSettingA_screenBrightnessSleep, LV_ANIM_FLOAT_LEFT, obj_animate_time, obj_animate_delayBasic += obj_animate_delay, NULL);
 	
 	lv_obj_animate(textSettingA_screenLightTime, LV_ANIM_FLOAT_LEFT, obj_animate_time, obj_animate_delayBasic += obj_animate_delay,  NULL);
 	lv_obj_animate(textBtnTimeRef_screenLightTime, LV_ANIM_FLOAT_LEFT, obj_animate_time, obj_animate_delayBasic += obj_animate_delay, NULL);
@@ -693,13 +809,15 @@ void lvGui_businessMenu_settingSet(lv_obj_t * obj_Parent){
 
 	vTaskDelay(50 / portTICK_RATE_MS);	
 	lv_obj_refresh_style(page_funSetOption);
+	lv_obj_refresh_style(obj_Parent);
 
-	vTaskDelay((obj_animate_delay * 3) / portTICK_RATE_MS);
-	lv_page_focus(page_funSetOption, btnTimeCut_screenLightTime, obj_animate_time * 5);
-	vTaskDelay((obj_animate_time * 10) / portTICK_RATE_MS);
-	lv_page_focus(page_funSetOption, textSettingA_deviceType, obj_animate_time * 3);
+//	vTaskDelay((obj_animate_delay * 10) / portTICK_RATE_MS);
+//	lv_page_focus(page_funSetOption, btnTimeCut_screenLightTime, obj_animate_time * 5);
+//	vTaskDelay((obj_animate_time * 15) / portTICK_RATE_MS);
+//	lv_page_focus(page_funSetOption, textSettingA_deviceType, obj_animate_time * 3);
 
 	lv_obj_set_click(menuBtnChoIcon_fun_back, true);
+	lv_obj_set_click(menuBtnChoIcon_fun_home, true);
 }
 
 

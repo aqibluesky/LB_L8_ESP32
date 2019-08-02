@@ -42,7 +42,7 @@ extern "C" {
 
 #define L8_DEVICE_TYPEDEFINE_BASE_ADDR		(0x49)
 
-#define TOUCHEVENT_FLG_BITHOLD_RESERVE		(0xFFFF)
+#define TOUCHEVENT_FLG_BITHOLD_RESERVE		(0x00FF)
 
 #define TOUCHEVENT_FLG_BITHOLD_TOUCHTRIG	(1 << 0)
 #define TOUCHEVENT_FLG_BITHOLD_GESTRUEHAP	(1 << 1)
@@ -83,6 +83,8 @@ extern "C" {
 #define L8_DEV_LISTMANAGE_REALES_CONFIRM		60	//mesh内部心跳管理表确认可用时间，单位：s
 
 #define DEV_TIMER_OPREATION_OBJSLIDER_VAL_DIV	5	//设备设置定时业务开关响应值时，滑动条操作分量
+
+#define DEV_MESH_PSD_DEFAULT()					{"psd456456123"}
 
 #define GUI_BUSSINESS_HOME_BTNTEXT_STR_UTF8_SIZE		40
 #define GUI_BUSSINESS_HOME_BTNTEXT_PIC_PIXEL_SIZE	   (120 * 20) //动态图片内存大小定义
@@ -422,6 +424,8 @@ extern bool mutualCtrlTrigIf_A;
 extern bool mutualCtrlTrigIf_B;
 extern bool mutualCtrlTrigIf_C;
 
+extern const char meshPsd_default[20];
+
 //extern uint8_t *dataPtr_btnTextImg_sw_A;
 //extern uint8_t *dataPtr_btnTextImg_sw_B;
 //extern uint8_t *dataPtr_btnTextImg_sw_C;
@@ -492,6 +496,8 @@ void L8devHeartbeatFunctionParamLoad(stt_hbDataUpload *nodeDev_dataTemp);
 bool usrAppMethod_mwifiMacAddrRemoveFromList(uint8_t *macAddrList, uint8_t macAddrList_num, uint8_t macAddrRemove[MWIFI_ADDR_LEN]);
 
 void usrApplication_systemRestartTrig(uint8_t trigDelay);
+
+void functionSpecialUsrApp_floatToHex(stt_devElecsumParam2Hex *param, float fData);
 
 #ifdef __cplusplus
 } /* extern "C" */

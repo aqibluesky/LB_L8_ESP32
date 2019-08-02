@@ -42,6 +42,8 @@ bool mutualCtrlTrigIf_A = false;
 bool mutualCtrlTrigIf_B = false;
 bool mutualCtrlTrigIf_C = false;
 
+const char meshPsd_default[20] = DEV_MESH_PSD_DEFAULT();
+
 //uint8_t *dataPtr_btnTextImg_sw_A = NULL;
 //uint8_t *dataPtr_btnTextImg_sw_B = NULL;
 //uint8_t *dataPtr_btnTextImg_sw_C = NULL;
@@ -83,12 +85,17 @@ static const char *DATA_DEVHEATER_CUSTOMTIME		= "devHeaterCstTim";
 
 static stt_dataDisp_guiBussinessHome_btnText dataBtnTextObjDisp_bussinessHome = {
 
-	.countryFlg = countryT_Arabic,
-	.dataBtnTextDisp[0] = "غرفة الاجتماعاتغرفة الاجتماعاتغرفة الاجتماعات",
-	.dataBtnTextDisp[1] = "غرفة النوم",
-	.dataBtnTextDisp[2] = "مرحاض",
+//	.countryFlg = countryT_Arabic,
+//	.dataBtnTextDisp[0] = "غرفة الاجتماعاتغرفة الاجتماعاتغرفة الاجتماعات",
+//	.dataBtnTextDisp[1] = "غرفة النوم",
+//	.dataBtnTextDisp[2] = "مرحاض",
+
+	.countryFlg = countryT_EnglishSerail,
+	.dataBtnTextDisp[0] = "light1",
+	.dataBtnTextDisp[1] = "light2",
+	.dataBtnTextDisp[2] = "light3",
 };
-static uint8_t dataBtnIconNumObjDisp_bussinessHome[GUIBUSSINESS_CTRLOBJ_MAX_NUM] = {12, 21, 31};
+static uint8_t dataBtnIconNumObjDisp_bussinessHome[GUIBUSSINESS_CTRLOBJ_MAX_NUM] = {1, 1, 1};
 
 static bool listNodeDevOpreating_Flg = false; //子节点链表是否正在被进行管理操作
 
@@ -251,52 +258,52 @@ lv_img_dsc_t *usrAppHomepageBtnIconDisp_dataGet(uint8_t iconNum){
 
 	switch(iconNum){
 
-		case 1:		res = &homepageCtrlObjIcon_1; 	break;
-		case 2:		res = &homepageCtrlObjIcon_2; 	break;
-		case 3:		res = &homepageCtrlObjIcon_3; 	break;
-		case 4:		res = &homepageCtrlObjIcon_4; 	break;
-		case 5:		res = &homepageCtrlObjIcon_5; 	break;
-		case 6:		res = &homepageCtrlObjIcon_6; 	break;
-		case 7:		res = &homepageCtrlObjIcon_7; 	break;
-		case 8:		res = &homepageCtrlObjIcon_8; 	break;
-		case 9:		res = &homepageCtrlObjIcon_9; 	break;
-		case 10:	res = &homepageCtrlObjIcon_10; 	break;
-		case 11:	res = &homepageCtrlObjIcon_11; 	break;
-		case 12:	res = &homepageCtrlObjIcon_12; 	break;
-		case 13:	res = &homepageCtrlObjIcon_13; 	break;
-		case 14:	res = &homepageCtrlObjIcon_14; 	break;
-		case 15:	res = &homepageCtrlObjIcon_15; 	break;
-		case 16:	res = &homepageCtrlObjIcon_16; 	break;
-		case 17:	res = &homepageCtrlObjIcon_17; 	break;
-		case 18:	res = &homepageCtrlObjIcon_18; 	break;
-		case 19:	res = &homepageCtrlObjIcon_19; 	break;
-		case 20:	res = &homepageCtrlObjIcon_20; 	break;
-		case 21:	res = &homepageCtrlObjIcon_21; 	break;
-		case 22:	res = &homepageCtrlObjIcon_22; 	break;
+		case 35:	res = &homepageCtrlObjIcon_1; 	break;
+		case 36:	res = &homepageCtrlObjIcon_2; 	break;
+		case 34:	res = &homepageCtrlObjIcon_3; 	break;
+		case 37:	res = &homepageCtrlObjIcon_4; 	break;
+		case 33:	res = &homepageCtrlObjIcon_5; 	break;
+		case 100:	res = &homepageCtrlObjIcon_6; 	break;
+		case 48:	res = &homepageCtrlObjIcon_7; 	break;
+		case 51:	res = &homepageCtrlObjIcon_8; 	break;
+		case 42:	res = &homepageCtrlObjIcon_9; 	break;
+		case 39:	res = &homepageCtrlObjIcon_10; 	break;
+		case 56:	res = &homepageCtrlObjIcon_11; 	break;
+		case 43:	res = &homepageCtrlObjIcon_12; 	break;
+		case 9:		res = &homepageCtrlObjIcon_13; 	break;
+		case 8:		res = &homepageCtrlObjIcon_14; 	break;
+		case 7:		res = &homepageCtrlObjIcon_15; 	break;
+		case 6:		res = &homepageCtrlObjIcon_16; 	break;
+		case 4:		res = &homepageCtrlObjIcon_17; 	break;
+		case 3:		res = &homepageCtrlObjIcon_18; 	break;
+		case 5:		res = &homepageCtrlObjIcon_19; 	break;
+		case 2:		res = &homepageCtrlObjIcon_20; 	break;
+		case 1:		res = &homepageCtrlObjIcon_21; 	break;
+		case 49:	res = &homepageCtrlObjIcon_22; 	break;
 
-		case 23:	res = &homepageCtrlObjIcon2_1; 	break;
-		case 24:	res = &homepageCtrlObjIcon2_2; 	break;
-		case 25:	res = &homepageCtrlObjIcon2_3; 	break;
-		case 26:	res = &homepageCtrlObjIcon2_4; 	break;
-		case 27:	res = &homepageCtrlObjIcon2_5; 	break;
-		case 28:	res = &homepageCtrlObjIcon2_6; 	break;
-		case 29:	res = &homepageCtrlObjIcon2_7; 	break;
-		case 30:	res = &homepageCtrlObjIcon2_8; 	break;
-		case 31:	res = &homepageCtrlObjIcon2_9; 	break;
-		case 32:	res = &homepageCtrlObjIcon2_10; break;
-		case 33:	res = &homepageCtrlObjIcon2_11; break;
-		case 34:	res = &homepageCtrlObjIcon2_12; break;
+		case 44:	res = &homepageCtrlObjIcon2_1; 	break;
+		case 40:	res = &homepageCtrlObjIcon2_2; 	break;
+		case 41:	res = &homepageCtrlObjIcon2_3; 	break;
+		case 54:	res = &homepageCtrlObjIcon2_4; 	break;
+		case 50:	res = &homepageCtrlObjIcon2_5; 	break;
+		case 55:	res = &homepageCtrlObjIcon2_6; 	break;
+		case 38:	res = &homepageCtrlObjIcon2_7; 	break;
+		case 52:	res = &homepageCtrlObjIcon2_8; 	break;
+		case 13:	res = &homepageCtrlObjIcon2_9; 	break;
+		case 12:	res = &homepageCtrlObjIcon2_10; break;
+		case 11:	res = &homepageCtrlObjIcon2_11; break;
+		case 10:	res = &homepageCtrlObjIcon2_12; break;
 
-		case 35:	res = &homepageCtrlObjIcon3_1; 	break;
-		case 36:	res = &homepageCtrlObjIcon3_2; 	break;
-		case 37:	res = &homepageCtrlObjIcon3_3; 	break;
-		case 38:	res = &homepageCtrlObjIcon3_4; 	break;
-		case 39:	res = &homepageCtrlObjIcon3_5; 	break;
-		case 40:	res = &homepageCtrlObjIcon3_6; 	break;
-		case 41:	res = &homepageCtrlObjIcon3_7; 	break;
-		case 42:	res = &homepageCtrlObjIcon3_8; 	break;
+		case 46:	res = &homepageCtrlObjIcon3_1; 	break;
+		case 47:	res = &homepageCtrlObjIcon3_2; 	break;
+		case 45:	res = &homepageCtrlObjIcon3_3; 	break;
+		case 18:	res = &homepageCtrlObjIcon3_4; 	break;
+		case 17:	res = &homepageCtrlObjIcon3_5; 	break;
+		case 16:	res = &homepageCtrlObjIcon3_6; 	break;
+		case 15:	res = &homepageCtrlObjIcon3_7; 	break;
+		case 14:	res = &homepageCtrlObjIcon3_8; 	break;
 		
-		default:res = &btnIconHome_meeting; break;
+		default:res = &homepageCtrlObjIcon_1; break;
 	}
 
 	return res;
@@ -706,13 +713,18 @@ uint8_t *L8devElecsumInfoGet(stt_nodeDev_hbDataManage *pHead){
 
 	}else{
 
-		const uint8_t dataPackHead_length = sizeof(uint8_t) * 1 + sizeof(stt_timeZone) * 1; //设备数量描述占1 Byte，时区占2bytes，本身设备状态信息占对应结构体 size Byte
+		const uint8_t dataPackHead_length = sizeof(uint8_t) * 1 + 
+											sizeof(stt_timeZone) * 1 + 
+											sizeof(uint8_t) * MWIFI_ADDR_LEN; //设备数量描述占1 Byte，时区占2bytes，BSSID/MESHID占6字节，本身设备状态信息占对应结构体 size Byte
 		uint8_t devList_num = (uint8_t)esp_mesh_get_total_node_num();
 		uint8_t loopCount = 0;
+		uint8_t headInfo_loadIst = 0,
+				headInfo_loadLenTemp = 0;
 		stt_timeZone devTimeZone_paramTemp = {0};
 		stt_nodeDev_hbDataManage *pAbove = pHead;
 		stt_devUnitElecsumReport elecsumInfo_dataUnitTemp = {0};
 		uint8_t devSelfMac[MWIFI_ADDR_LEN] = {0};
+		uint8_t devRouterBssid[6] = {0};
 
 		while(listNodeDevOpreating_Flg)vTaskDelay(1 / portTICK_PERIOD_MS);		
 		listNodeDevOpreating_Flg = true;
@@ -727,7 +739,7 @@ uint8_t *L8devElecsumInfoGet(stt_nodeDev_hbDataManage *pHead){
 			   sizeof(uint8_t) * MWIFI_ADDR_LEN);
 		devDriverBussiness_elecMeasure_valElecsumGetByHex(&(elecsumInfo_dataUnitTemp.nodeDev_dataElecsum));
 		
-		memcpy(&devElecsumInfo[sizeof(stt_devStatusInfoResp) * loopCount + dataPackHead_length], //数据对应下标偏移量，即数据包头长度dataPackHead_length
+		memcpy(&devElecsumInfo[sizeof(stt_devUnitElecsumReport) * loopCount + dataPackHead_length], //数据对应下标偏移量，即数据包头长度dataPackHead_length
 			   &elecsumInfo_dataUnitTemp, 
 			   sizeof(stt_devUnitElecsumReport));
 
@@ -748,7 +760,7 @@ uint8_t *L8devElecsumInfoGet(stt_nodeDev_hbDataManage *pHead){
 				   sizeof(stt_devUnitElecsumReport));
 			
 			//单位缓存填装进总数据队列缓存
-			memcpy(&devElecsumInfo[sizeof(stt_devStatusInfoResp) * loopCount + dataPackHead_length], //数据对应下标偏移量，即数据包头长度dataPackHead_length
+			memcpy(&devElecsumInfo[sizeof(stt_devUnitElecsumReport) * loopCount + dataPackHead_length], //数据对应下标偏移量，即数据包头长度dataPackHead_length
 				   &elecsumInfo_dataUnitTemp, 
 				   sizeof(stt_devUnitElecsumReport));
 
@@ -757,9 +769,20 @@ uint8_t *L8devElecsumInfoGet(stt_nodeDev_hbDataManage *pHead){
 		}
 
 		deviceParamGet_timeZone(&devTimeZone_paramTemp);
+		devRouterConnectBssid_Get(devRouterBssid);
 
-		devElecsumInfo[0] = loopCount; //设备数量
-		memcpy(&devElecsumInfo[1], &devTimeZone_paramTemp, sizeof(stt_timeZone));//设备时区
+		headInfo_loadLenTemp = sizeof(uint8_t) * 1;
+		devElecsumInfo[headInfo_loadIst] = loopCount; //设备数量
+
+		headInfo_loadIst += headInfo_loadLenTemp;	
+		
+		headInfo_loadLenTemp = sizeof(stt_timeZone) * 1;
+		memcpy(&devElecsumInfo[headInfo_loadIst], &devTimeZone_paramTemp, headInfo_loadLenTemp); //设备时区
+
+		headInfo_loadIst += headInfo_loadLenTemp;
+		
+		headInfo_loadLenTemp = sizeof(uint8_t) * MWIFI_ADDR_LEN;
+		memcpy(&devElecsumInfo[headInfo_loadIst], devRouterBssid, headInfo_loadLenTemp); //设备当前bssid/meshid
 
 		listNodeDevOpreating_Flg = false;
 
@@ -1433,8 +1456,7 @@ void devSystemInfoLocalRecord_initialize(void){
 	err = nvs_get_blob(handle, DATA_DEVSCREEN_CONFIGPARAM, &dataTemp_devScreenRunningConfigParam, &dataLength);
 	if(err == ESP_OK){	
 
-		devScreenDriver_configParam_brightness_set(dataTemp_devScreenRunningConfigParam.devScreenBkLight_brightness, false);
-		devScreenDriver_configParam_screenLightTime_set(dataTemp_devScreenRunningConfigParam.timePeriod_devScreenBkLight_weakDown, false);
+		devScreenDriver_configParam_set(&dataTemp_devScreenRunningConfigParam, false);
 		
 		ESP_LOGI(TAG,"nvs_data devScreen runningParam read success, brightness:%d, lightTime:%d.\n", dataTemp_devScreenRunningConfigParam.devScreenBkLight_brightness,
 																									 dataTemp_devScreenRunningConfigParam.timePeriod_devScreenBkLight_weakDown);
@@ -1664,4 +1686,19 @@ void devSystemInfoLocalRecord_save(enum_dataSaveObj obj, void *dataSave){
 
 	usrAppOpreation_nvsFlashOpen_flg = false;
 }
+
+void functionSpecialUsrApp_floatToHex(stt_devElecsumParam2Hex *param, float fData){
+
+	const float decimal_prtCoefficient = 100.0F; //小数计算偏移倍数 --100倍对应十进制两位
+
+	uint16_t dataInteger_prt = (uint16_t)fData & 0xFFFF;
+	uint8_t dataDecimal_prt = (uint8_t)((fData - (float)dataInteger_prt) * decimal_prtCoefficient);
+
+	//只可能为正数，不做负数处理
+
+	param->integer_h8bit = (uint8_t)((dataInteger_prt & 0xFF00) >> 8);
+	param->integer_l8bit = (uint8_t)((dataInteger_prt & 0x00FF) >> 0);
+	param->decimal_8bit = dataDecimal_prt;
+}
+
 

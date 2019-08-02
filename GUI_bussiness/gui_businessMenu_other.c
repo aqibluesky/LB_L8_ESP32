@@ -27,7 +27,8 @@
 LV_FONT_DECLARE(lv_font_consola_17);
 LV_FONT_DECLARE(lv_font_consola_19);
 
-LV_FONT_DECLARE(iconMenu_funBack_arrowLeft);
+LV_IMG_DECLARE(iconMenu_funBack_arrowLeft);
+LV_IMG_DECLARE(iconMenu_funBack_homePage);
 LV_IMG_DECLARE(imageBtn_feedBackNormal);
 
 static const char strInfoWeek_tab[7][6] = {
@@ -50,12 +51,18 @@ static lv_obj_t *labelSysInfo_devPower = NULL;
 static lv_obj_t *labelSysInfo_devElecSum = NULL;
 static lv_obj_t *labelSysInfo_routerSSID = NULL;
 static lv_obj_t *labelSysInfo_routerPSD = NULL;
-static lv_obj_t *menuBtnChoIcon_fun_back = NULL;
+
 static lv_obj_t *objText_menuCurrentTitle = NULL;
+static lv_obj_t *menuBtnChoIcon_fun_back = NULL;
+static lv_obj_t *menuBtnChoIcon_fun_home = NULL;
+static lv_obj_t *imgMenuBtnChoIcon_fun_home = NULL;
+static lv_obj_t *imgMenuBtnChoIcon_fun_back = NULL;
 
 static lv_style_t labelStyle_sysInfo;
 static lv_style_t stylePage_sysInfo;
 static lv_style_t styleText_menuLevel_A;
+static lv_style_t styleImg_menuFun_btnFun;
+static lv_style_t styleBtn_specialTransparent;
 
 static void currentGui_elementClear(void){
 
@@ -64,16 +71,55 @@ static void currentGui_elementClear(void){
 
 static lv_res_t funCb_btnActionClick_menuBtn_funBack(lv_obj_t *btn){
 
+	LV_OBJ_FREE_NUM_TYPE btnFreeNum = lv_obj_get_free_num(btn);
+	usrGuiBussiness_type guiChg_temp = bussinessType_Menu;
+
+	switch(btnFreeNum){
+
+		case LV_OBJ_FREENUM_BTNNUM_DEF_MENUHOME:
+
+			guiChg_temp = bussinessType_Home;
+
+		break;
+
+		case LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK	:
+		default:
+
+			guiChg_temp = bussinessType_Menu;
+
+		break;
+	}
+
+	lvGui_usrSwitch(guiChg_temp);
+
 	currentGui_elementClear();
-	lvGui_usrSwitch(bussinessType_Menu);
 
 	return LV_RES_OK;
 }
 
 static lv_res_t funCb_btnActionPress_menuBtn_funBack(lv_obj_t *btn){
 
-	lv_obj_t *btnFeedBk = lv_img_create(btn, NULL);
-	lv_img_set_src(btnFeedBk, &imageBtn_feedBackNormal);
+	LV_OBJ_FREE_NUM_TYPE btnFreeNum = lv_obj_get_free_num(btn);
+	lv_obj_t *objImg_colorChg = NULL;
+
+	switch(btnFreeNum){
+
+		case LV_OBJ_FREENUM_BTNNUM_DEF_MENUHOME:
+
+			objImg_colorChg = imgMenuBtnChoIcon_fun_home;
+
+		break;
+
+		case LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK	:
+		default:
+
+			objImg_colorChg = imgMenuBtnChoIcon_fun_back;
+
+		break;
+	}
+
+	lv_img_set_style(objImg_colorChg, &styleImg_menuFun_btnFun);
+	lv_obj_refresh_style(objImg_colorChg);
 
 	return LV_RES_OK;
 }
@@ -90,6 +136,18 @@ void lvGuiOther_styleApplicationInit(void){
 	lv_style_copy(&stylePage_sysInfo, &lv_style_plain);
 	stylePage_sysInfo.body.main_color = LV_COLOR_WHITE;
 	stylePage_sysInfo.body.grad_color = LV_COLOR_WHITE;
+
+    lv_style_copy(&styleBtn_specialTransparent, &lv_style_btn_rel);
+	styleBtn_specialTransparent.body.main_color = LV_COLOR_TRANSP;
+	styleBtn_specialTransparent.body.grad_color = LV_COLOR_TRANSP;
+	styleBtn_specialTransparent.body.border.part = LV_BORDER_NONE;
+    styleBtn_specialTransparent.body.opa = LV_OPA_TRANSP;
+	styleBtn_specialTransparent.body.radius = 0;
+    styleBtn_specialTransparent.body.shadow.width = 0;
+
+	lv_style_copy(&styleImg_menuFun_btnFun, &lv_style_plain);
+	styleImg_menuFun_btnFun.image.intense = LV_OPA_COVER;
+	styleImg_menuFun_btnFun.image.color = LV_COLOR_MAKE(200, 191, 231);
 }
 
 void lvGuiOther_devInfoRefresh(void){
@@ -188,12 +246,33 @@ void lvGui_businessMenu_other(lv_obj_t * obj_Parent){
 	lv_obj_set_pos(objText_menuCurrentTitle, 40, 45);
 	lv_obj_set_style(objText_menuCurrentTitle, &styleText_menuLevel_A);
 
-	menuBtnChoIcon_fun_back = lv_imgbtn_create(obj_Parent, NULL);
-	lv_imgbtn_set_src(menuBtnChoIcon_fun_back, LV_BTN_STATE_REL, &iconMenu_funBack_arrowLeft);
-	lv_imgbtn_set_src(menuBtnChoIcon_fun_back, LV_BTN_STATE_PR, &iconMenu_funBack_arrowLeft);
-	lv_obj_set_pos(menuBtnChoIcon_fun_back, 8, 45);
+	menuBtnChoIcon_fun_home = lv_btn_create(obj_Parent, NULL);
+	lv_obj_set_size(menuBtnChoIcon_fun_home, 80, 20);
+	lv_obj_set_pos(menuBtnChoIcon_fun_home, 160, 45);
+	lv_obj_set_top(menuBtnChoIcon_fun_home, true);
+	lv_obj_set_free_num(menuBtnChoIcon_fun_home, LV_OBJ_FREENUM_BTNNUM_DEF_MENUHOME);
+	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_REL, &styleBtn_specialTransparent);
+	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_PR, &styleBtn_specialTransparent);
+	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_TGL_REL, &styleBtn_specialTransparent);
+	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_TGL_PR, &styleBtn_specialTransparent);
+	lv_btn_set_action(menuBtnChoIcon_fun_home, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
+	lv_btn_set_action(menuBtnChoIcon_fun_home, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
+	imgMenuBtnChoIcon_fun_home = lv_img_create(obj_Parent, NULL);
+	lv_img_set_src(imgMenuBtnChoIcon_fun_home, &iconMenu_funBack_homePage);
+	lv_obj_set_protect(imgMenuBtnChoIcon_fun_home, LV_PROTECT_POS);
+	lv_obj_align(imgMenuBtnChoIcon_fun_home, menuBtnChoIcon_fun_home, LV_ALIGN_IN_RIGHT_MID, -5, 0);
+	lv_obj_set_top(menuBtnChoIcon_fun_home, true);
+
+	menuBtnChoIcon_fun_back = lv_btn_create(obj_Parent, menuBtnChoIcon_fun_home);
+	lv_obj_set_pos(menuBtnChoIcon_fun_back, 0, 45);
+	lv_obj_set_free_num(menuBtnChoIcon_fun_back, LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK);
 	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
 	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
+	imgMenuBtnChoIcon_fun_back = lv_img_create(obj_Parent, NULL);
+	lv_img_set_src(imgMenuBtnChoIcon_fun_back, &iconMenu_funBack_arrowLeft);
+	lv_obj_set_protect(imgMenuBtnChoIcon_fun_back, LV_PROTECT_POS);
+	lv_obj_align(imgMenuBtnChoIcon_fun_back, menuBtnChoIcon_fun_back, LV_ALIGN_IN_LEFT_MID, 5, 0);
+	lv_obj_set_top(menuBtnChoIcon_fun_back, true);
 
 	page_sysInfo = lv_page_create(lv_scr_act(), NULL);
 	lv_obj_set_size(page_sysInfo, 280, 320);

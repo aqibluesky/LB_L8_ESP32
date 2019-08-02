@@ -31,6 +31,7 @@
 LV_FONT_DECLARE(lv_font_dejavu_15);
 LV_FONT_DECLARE(lv_font_consola_13);
 LV_FONT_DECLARE(lv_font_consola_16);
+LV_FONT_DECLARE(lv_font_consola_17);
 LV_FONT_DECLARE(lv_font_consola_19);
 LV_FONT_DECLARE(lv_font_arial_12);
 LV_FONT_DECLARE(lv_font_arial_15);
@@ -38,7 +39,8 @@ LV_FONT_DECLARE(lv_font_arial_18);
 LV_FONT_DECLARE(lv_font_ariblk_18);
 LV_FONT_DECLARE(lv_font_dejavu_20);
 
-LV_FONT_DECLARE(iconMenu_funBack_arrowLeft);
+LV_IMG_DECLARE(iconMenu_funBack_arrowLeft);
+LV_IMG_DECLARE(iconMenu_funBack_homePage);
 LV_IMG_DECLARE(imageBtn_feedBackNormal);
 
 static lv_style_t styleTabview_gmdyTimeSet_bg;
@@ -56,9 +58,17 @@ static lv_style_t styleLabel_gmdyTimeSet_title;
 static lv_style_t styleLabel_gmdyTimeSet_funSave;
 static lv_style_t styleBtn_gmdyTimeSet_funSave;
 static lv_style_t styleText_menuLevel_A;
+static lv_style_t styleImg_menuFun_btnFun;
+
+static lv_style_t styleMbox_bg;
+static lv_style_t styleMbox_btn_pr;
+static lv_style_t styleMbox_btn_rel;
 
 static lv_obj_t *menuBtnChoIcon_fun_back = NULL;
 static lv_obj_t *objText_menuCurrentTitle = NULL;
+static lv_obj_t *menuBtnChoIcon_fun_home = NULL;
+static lv_obj_t *imgMenuBtnChoIcon_fun_back = NULL;
+static lv_obj_t *imgMenuBtnChoIcon_fun_home = NULL;
 
 static lv_obj_t *objCont_gmdyOpMenu = NULL;
 static lv_obj_t *objTabv_gmdyOpMenu = NULL;
@@ -68,6 +78,7 @@ static lv_obj_t *objBtn_delayTrigSet_save = NULL;
 static lv_obj_t *objBtn_greenModeSet_save = NULL;
 static lv_obj_t *objLabel_delayTrigSet_save = NULL;
 static lv_obj_t *objLabel_greenModeSet_save = NULL;
+static lv_obj_t *mboxBtnKbCall_paramSaveSuccess = NULL;
 
 static lv_obj_t *objLine_delayTrigSet_limit_A = NULL;
 static lv_obj_t *objLine_delayTrigSet_limit_B = NULL;
@@ -94,6 +105,8 @@ static lv_obj_t *objRoller_greenModeSet_second = NULL;
 static lv_obj_t *objLabel_greenModeSet_hour = NULL;
 static lv_obj_t *objLabel_greenModeSet_minute = NULL;
 static lv_obj_t *objLabel_greenModeSet_second = NULL;
+
+static const char *mbox_btnm_textTab[] ={"OK", ""};
 
 static uint8_t paramSetTemp_delayTrig[3] = {0}; //合并缓存
 static struct sttParam_delayTrigTimeSet{ //散装缓存
@@ -122,18 +135,79 @@ static void currentGui_elementClear(void){
 
 static lv_res_t funCb_btnActionClick_menuBtn_funBack(lv_obj_t *btn){
 
+	LV_OBJ_FREE_NUM_TYPE btnFreeNum = lv_obj_get_free_num(btn);
+	usrGuiBussiness_type guiChg_temp = bussinessType_Menu;
+
+	switch(btnFreeNum){
+
+		case LV_OBJ_FREENUM_BTNNUM_DEF_MENUHOME:
+
+			guiChg_temp = bussinessType_Home;
+
+		break;
+
+		case LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK	:
+		default:
+
+			guiChg_temp = bussinessType_Menu;
+
+		break;
+	}
+
+	lvGui_usrSwitch(guiChg_temp);
+
 	currentGui_elementClear();
-	lvGui_usrSwitch(bussinessType_Menu);
 
 	return LV_RES_OK;
 }
 
 static lv_res_t funCb_btnActionPress_menuBtn_funBack(lv_obj_t *btn){
 
-	lv_obj_t *btnFeedBk = lv_img_create(btn, NULL);
-	lv_img_set_src(btnFeedBk, &imageBtn_feedBackNormal);
+	LV_OBJ_FREE_NUM_TYPE btnFreeNum = lv_obj_get_free_num(btn);
+	lv_obj_t *objImg_colorChg = NULL;
+
+	switch(btnFreeNum){
+
+		case LV_OBJ_FREENUM_BTNNUM_DEF_MENUHOME:
+
+			objImg_colorChg = imgMenuBtnChoIcon_fun_home;
+
+		break;
+
+		case LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK	:
+		default:
+
+			objImg_colorChg = imgMenuBtnChoIcon_fun_back;
+
+		break;
+	}
+
+	lv_img_set_style(objImg_colorChg, &styleImg_menuFun_btnFun);
+	lv_obj_refresh_style(objImg_colorChg);
 
 	return LV_RES_OK;
+}
+
+static lv_res_t funCb_mboxBtnActionClick_paramSaveSuccess(lv_obj_t * mbox, const char * txt){
+
+	lv_mbox_start_auto_close(mboxBtnKbCall_paramSaveSuccess, 20);
+
+	return LV_RES_OK;
+}
+
+static void lvGuiDelayerSet_mboxCreat_paramSaveSuccess(void){
+
+	mboxBtnKbCall_paramSaveSuccess = lv_mbox_create(lv_scr_act(), NULL);
+	lv_obj_set_protect(mboxBtnKbCall_paramSaveSuccess, LV_PROTECT_POS);
+	lv_obj_align(mboxBtnKbCall_paramSaveSuccess, NULL, LV_ALIGN_CENTER, -55, -55);
+	lv_obj_set_width(mboxBtnKbCall_paramSaveSuccess, 230);
+	lv_mbox_set_text(mboxBtnKbCall_paramSaveSuccess, "Opreation is successful.");
+	lv_mbox_add_btns(mboxBtnKbCall_paramSaveSuccess, mbox_btnm_textTab, NULL);
+	lv_mbox_set_style(mboxBtnKbCall_paramSaveSuccess, LV_MBOX_STYLE_BG, &styleMbox_bg);
+	lv_mbox_set_style(mboxBtnKbCall_paramSaveSuccess, LV_MBOX_STYLE_BTN_REL, &styleMbox_btn_rel);
+	lv_mbox_set_style(mboxBtnKbCall_paramSaveSuccess, LV_MBOX_STYLE_BTN_PR, &styleMbox_btn_pr);
+	lv_mbox_set_action(mboxBtnKbCall_paramSaveSuccess, funCb_mboxBtnActionClick_paramSaveSuccess);
+	lv_mbox_set_anim_time(mboxBtnKbCall_paramSaveSuccess, 100);
 }
 
 static lv_res_t funCb_btnActionClick_tabDelayTrigSet_funSave(lv_obj_t *btn){
@@ -150,6 +224,8 @@ static lv_res_t funCb_btnActionClick_tabDelayTrigSet_funSave(lv_obj_t *btn){
 	memcpy(&paramSetTemp_delayTrig[2], &param_delayTrigSwTrigSet, sizeof(stt_devDataPonitTypedef));
 
 	usrAppParamSet_devDelayTrig(paramSetTemp_delayTrig);
+
+	lvGuiDelayerSet_mboxCreat_paramSaveSuccess();
 
 	return LV_RES_OK;
 }
@@ -205,6 +281,8 @@ static lv_res_t funCb_btnActionClick_tabGreenModeSet_funSave(lv_obj_t *btn){
 	paramSetTemp_greenMode[1] = (uint8_t)(greenMode_timeCount & 0x00FF);						   
 
 	usrAppParamSet_devGreenMode(paramSetTemp_greenMode, true);
+	
+	lvGuiDelayerSet_mboxCreat_paramSaveSuccess();
 	
 	return LV_RES_OK;
 }
@@ -290,6 +368,28 @@ void lvGui_businessMenu_delayerSet(lv_obj_t * obj_Parent){
 	uint16_t delayTrig_timeCount = 0;
 	uint16_t greenMode_timeCount = 0;
 
+	lv_style_copy(&styleMbox_bg, &lv_style_pretty);
+	styleMbox_bg.body.main_color = LV_COLOR_MAKE(0, 128, 0);
+	styleMbox_bg.body.grad_color = LV_COLOR_MAKE(0, 128, 0);
+	styleMbox_bg.body.border.color = LV_COLOR_MAKE(0x3f, 0x0a, 0x03);
+	styleMbox_bg.text.font = &lv_font_consola_17;
+	styleMbox_bg.text.color = LV_COLOR_WHITE;
+	styleMbox_bg.body.padding.hor = 12;
+	styleMbox_bg.body.padding.ver = 8;
+	styleMbox_bg.body.shadow.width = 8;
+	lv_style_copy(&styleMbox_btn_rel, &lv_style_btn_rel);
+	styleMbox_btn_rel.text.font = &lv_font_consola_19;
+	styleMbox_btn_rel.body.empty = 1;					 /*Draw only the border*/
+	styleMbox_btn_rel.body.border.color = LV_COLOR_WHITE;
+	styleMbox_btn_rel.body.border.width = 2;
+	styleMbox_btn_rel.body.border.opa = LV_OPA_70;
+	styleMbox_btn_rel.body.padding.hor = 12;
+	styleMbox_btn_rel.body.padding.ver = 8;
+	lv_style_copy(&styleMbox_btn_pr, &styleMbox_btn_rel);
+	styleMbox_btn_pr.body.empty = 0;
+	styleMbox_btn_pr.body.main_color = LV_COLOR_MAKE(0x5d, 0x0f, 0x04);
+	styleMbox_btn_pr.body.grad_color = LV_COLOR_MAKE(0x5d, 0x0f, 0x04);
+
 	usrAppParamGet_devDelayTrig(paramSetTemp_delayTrig);
 	delayTrig_timeCount = ((uint8_t)paramSetTemp_delayTrig[0] << 8) | ((uint8_t)paramSetTemp_delayTrig[1]);
 	memcpy(&param_delayTrigSwTrigSet, &paramSetTemp_delayTrig[2], sizeof(stt_devDataPonitTypedef));
@@ -354,18 +454,45 @@ void lvGui_businessMenu_delayerSet(lv_obj_t * obj_Parent){
 	styleBtn_gmdyTimeSet_funSave.body.radius = 0;
 	styleBtn_gmdyTimeSet_funSave.body.shadow.width = 0;
 
+	lv_style_copy(&styleImg_menuFun_btnFun, &lv_style_plain);
+	styleImg_menuFun_btnFun.image.intense = LV_OPA_COVER;
+	styleImg_menuFun_btnFun.image.color = LV_COLOR_MAKE(200, 191, 231);
+
 	objText_menuCurrentTitle = lv_label_create(obj_Parent, NULL);
 	lv_label_set_text(objText_menuCurrentTitle, "delay set");
+	lv_obj_set_width(objText_menuCurrentTitle, 80);
 	lv_obj_set_pos(objText_menuCurrentTitle, 40, 45);
+	lv_obj_set_top(objText_menuCurrentTitle, true);
 	lv_obj_set_style(objText_menuCurrentTitle, &styleText_menuLevel_A);
 
-	menuBtnChoIcon_fun_back = lv_imgbtn_create(obj_Parent, NULL);
-	lv_imgbtn_set_src(menuBtnChoIcon_fun_back, LV_BTN_STATE_REL, &iconMenu_funBack_arrowLeft);
-	lv_imgbtn_set_src(menuBtnChoIcon_fun_back, LV_BTN_STATE_PR, &iconMenu_funBack_arrowLeft);
-	lv_obj_set_pos(menuBtnChoIcon_fun_back, 8, 45);
+	menuBtnChoIcon_fun_home = lv_btn_create(obj_Parent, NULL);
+	lv_obj_set_size(menuBtnChoIcon_fun_home, 80, 20);
+	lv_obj_set_pos(menuBtnChoIcon_fun_home, 160, 45);
+	lv_obj_set_top(menuBtnChoIcon_fun_home, true);
+	lv_obj_set_free_num(menuBtnChoIcon_fun_home, LV_OBJ_FREENUM_BTNNUM_DEF_MENUHOME);
+	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_REL, &styleBtn_gmdyTimeSet_funSave);
+	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_PR, &styleBtn_gmdyTimeSet_funSave);
+	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_TGL_REL, &styleBtn_gmdyTimeSet_funSave);
+	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_TGL_PR, &styleBtn_gmdyTimeSet_funSave);
+	lv_btn_set_action(menuBtnChoIcon_fun_home, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
+	lv_btn_set_action(menuBtnChoIcon_fun_home, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
+	imgMenuBtnChoIcon_fun_home = lv_img_create(obj_Parent, NULL);
+	lv_img_set_src(imgMenuBtnChoIcon_fun_home, &iconMenu_funBack_homePage);
+	lv_obj_set_protect(imgMenuBtnChoIcon_fun_home, LV_PROTECT_POS);
+	lv_obj_align(imgMenuBtnChoIcon_fun_home, menuBtnChoIcon_fun_home, LV_ALIGN_IN_RIGHT_MID, -5, 0);
+	lv_obj_set_top(menuBtnChoIcon_fun_home, true);
+
+	menuBtnChoIcon_fun_back = lv_btn_create(obj_Parent, menuBtnChoIcon_fun_home);
+	lv_obj_set_pos(menuBtnChoIcon_fun_back, 0, 45);
+	lv_obj_set_free_num(menuBtnChoIcon_fun_back, LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK);
 	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
 	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
-	
+	imgMenuBtnChoIcon_fun_back = lv_img_create(obj_Parent, NULL);
+	lv_img_set_src(imgMenuBtnChoIcon_fun_back, &iconMenu_funBack_arrowLeft);
+	lv_obj_set_protect(imgMenuBtnChoIcon_fun_back, LV_PROTECT_POS);
+	lv_obj_align(imgMenuBtnChoIcon_fun_back, menuBtnChoIcon_fun_back, LV_ALIGN_IN_LEFT_MID, 5, 0);
+	lv_obj_set_top(menuBtnChoIcon_fun_back, true);
+
 	objTabv_gmdyOpMenu = lv_tabview_create(lv_scr_act(), NULL);
 	lv_tabview_set_style(objTabv_gmdyOpMenu, LV_TABVIEW_STYLE_BG, &styleTabview_gmdyTimeSet_bg);
 	lv_tabview_set_style(objTabv_gmdyOpMenu, LV_TABVIEW_STYLE_INDIC, &styleTabview_gmdyTimeSet_indic);
@@ -616,6 +743,7 @@ void lvGui_businessMenu_delayerSet(lv_obj_t * obj_Parent){
 
 	vTaskDelay(50 / portTICK_RATE_MS);
 	lv_obj_refresh_style(objTabv_gmdyOpMenu);
+	lv_obj_refresh_style(obj_Parent);
 }
 
 

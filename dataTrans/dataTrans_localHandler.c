@@ -93,6 +93,14 @@ void dataHandler_devNodeMeshData(const uint8_t *src_addr, const mlink_httpd_type
 
 		}break;
 
+		case L8DEV_MESH_CMD_SET_NIGHTMODE:{
+
+			usrAppNightModeTimeTab_paramSet(&dataRcv_temp[1], true);
+
+			ESP_LOGI(TAG, "<R2N>mesh data rcv, cmdNightmodeSet.\n");
+
+		}break;
+
 		case L8DEV_MESH_CMD_SET_MUTUALCTRL:{
 		
 			uint8_t deviceMutualNum = (uint8_t)dataRcv_temp[1];
@@ -350,7 +358,11 @@ void dataHandler_devNodeMeshData(const uint8_t *src_addr, const mlink_httpd_type
 
 			const uint8_t *dataRcv_kernel = &dataRcv_temp[1];
 
-			usrAppHomepageBtnIconNumDisp_paramSet((uint8_t *)&dataRcv_kernel, true);
+			usrAppHomepageBtnIconNumDisp_paramSet((uint8_t *)dataRcv_kernel, true);
+
+			printf("dataRcv:%02x, %02x, %02x.\n", dataRcv_kernel[0],
+												  dataRcv_kernel[1],
+												  dataRcv_kernel[2]);
 
 			ESP_LOGI(TAG, "<R2N>mesh data rcv, cmd btnIconSet.\n");
 

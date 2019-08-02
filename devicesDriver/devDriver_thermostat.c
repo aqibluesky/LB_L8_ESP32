@@ -114,6 +114,9 @@ void devDriverBussiness_thermostatSwitch_periphStatusReales(stt_devDataPonitType
 
 		devParam_thermostat.temperatureVal_target = 
 			param->devType_thermostat.devThermostat_tempratureTarget;
+
+		if(devParam_thermostat.temperatureVal_target < 16)
+			devParam_thermostat.temperatureVal_target = 16;
 	}
 }
 

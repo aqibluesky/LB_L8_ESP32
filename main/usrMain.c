@@ -140,6 +140,8 @@ static lv_chart_series_t *series = NULL;
 static EventGroupHandle_t wifi_event_group;
 const static int CONNECTED_BIT = BIT0;
 
+static void littlevgl_demo(void);
+
 static esp_err_t wifi_event_handler(void *ctx, system_event_t *event)
 {
     switch (event->event_id) {
@@ -182,91 +184,91 @@ static void wifi_init_custom(void)
     xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT, false, true, portMAX_DELAY);
 }
 
-void nvs_write_data_to_flash(void)
-{
-    nvs_handle handle;
-    static const char *NVS_CUSTOMER = "customer data";
-    static const char *DATA1 = "param 1";
-    static const char *DATA2 = "param 2";
-    static const char *DATA3 = "param 3";
-	static const char *DATA4 = "image_data";
-	static const char *DATA5 = "image_data1";
+//void nvs_write_data_to_flash(void)
+//{
+//    nvs_handle handle;
+//    static const char *NVS_CUSTOMER = "customer data";
+//    static const char *DATA1 = "param 1";
+//    static const char *DATA2 = "param 2";
+//    static const char *DATA3 = "param 3";
+//	static const char *DATA4 = "image_data";
+//	static const char *DATA5 = "image_data1";
 
-    int32_t value_for_store = 666;
+//    int32_t value_for_store = 666;
 
-    wifi_config_t wifi_config_to_store = {
-        .sta = {
-            .ssid = "store_ssid:hello_kitty",
-            .password = "store_password:1234567890",
-        },
-    };
+//    wifi_config_t wifi_config_to_store = {
+//        .sta = {
+//            .ssid = "store_ssid:hello_kitty",
+//            .password = "store_password:1234567890",
+//        },
+//    };
 
-	ESP_ERROR_CHECK( nvs_flash_init_partition("L8_devDataRcord"));
-    printf("set size:%u\r\n", sizeof(wifi_config_to_store));
-    ESP_ERROR_CHECK( nvs_open_from_partition("L8_devDataRcord", NVS_CUSTOMER, NVS_READWRITE, &handle) );
-    ESP_ERROR_CHECK( nvs_set_str( handle, DATA1, "i am a string.") );
-    ESP_ERROR_CHECK( nvs_set_i32( handle, DATA2, value_for_store) );
-    ESP_ERROR_CHECK( nvs_set_blob( handle, DATA3, &wifi_config_to_store, sizeof(wifi_config_to_store)) );
-	ESP_ERROR_CHECK( nvs_set_blob( handle, DATA4, ttA.data, sizeof(uint8_t) * 960 * LV_IMG_PX_SIZE_ALPHA_BYTE) );
-//	ESP_ERROR_CHECK( nvs_set_blob( handle, DATA5, &(testPic.data[2400]), sizeof(uint8_t) * 2400) )
+//	ESP_ERROR_CHECK( nvs_flash_init_partition("L8_devDataRcord"));
+//    printf("set size:%u\r\n", sizeof(wifi_config_to_store));
+//    ESP_ERROR_CHECK( nvs_open_from_partition("L8_devDataRcord", NVS_CUSTOMER, NVS_READWRITE, &handle) );
+//    ESP_ERROR_CHECK( nvs_set_str( handle, DATA1, "i am a string.") );
+//    ESP_ERROR_CHECK( nvs_set_i32( handle, DATA2, value_for_store) );
+//    ESP_ERROR_CHECK( nvs_set_blob( handle, DATA3, &wifi_config_to_store, sizeof(wifi_config_to_store)) );
+//	ESP_ERROR_CHECK( nvs_set_blob( handle, DATA4, ttA.data, sizeof(uint8_t) * 960 * LV_IMG_PX_SIZE_ALPHA_BYTE) );
+// //	ESP_ERROR_CHECK( nvs_set_blob( handle, DATA5, &(testPic.data[2400]), sizeof(uint8_t) * 2400) )
 
-    ESP_ERROR_CHECK( nvs_commit(handle) );
-	nvs_close(handle);
-	ESP_ERROR_CHECK( nvs_flash_deinit_partition("L8_devDataRcord"));
+//    ESP_ERROR_CHECK( nvs_commit(handle) );
+//	nvs_close(handle);
+//	ESP_ERROR_CHECK( nvs_flash_deinit_partition("L8_devDataRcord"));
 
-}
+//}
 
-void nvs_read_data_from_flash(void)
-{
-    nvs_handle handle;
-    static const char *NVS_CUSTOMER = "customer data";
-    static const char *DATA1 = "param 1";
-    static const char *DATA2 = "param 2";
-    static const char *DATA3 = "param 3";
-	static const char *DATA4 = "image_data";
-	static const char *DATA5 = "image_data1";
+//void nvs_read_data_from_flash(void)
+//{
+//    nvs_handle handle;
+//    static const char *NVS_CUSTOMER = "customer data";
+//    static const char *DATA1 = "param 1";
+//    static const char *DATA2 = "param 2";
+//    static const char *DATA3 = "param 3";
+//	static const char *DATA4 = "image_data";
+//	static const char *DATA5 = "image_data1";
 
-    uint32_t str_length = 32;
-    char str_data[32] = {0};
-    int32_t value = 0;
-    wifi_config_t wifi_config_stored;
-    memset(&wifi_config_stored, 0x0, sizeof(wifi_config_stored));
-    uint32_t len = sizeof(wifi_config_stored);
+//    uint32_t str_length = 32;
+//    char str_data[32] = {0};
+//    int32_t value = 0;
+//    wifi_config_t wifi_config_stored;
+//    memset(&wifi_config_stored, 0x0, sizeof(wifi_config_stored));
+//    uint32_t len = sizeof(wifi_config_stored);
 
-	uint32_t dataLen_test = sizeof(uint8_t) * 960 * LV_IMG_PX_SIZE_ALPHA_BYTE;
+//	uint32_t dataLen_test = sizeof(uint8_t) * 960 * LV_IMG_PX_SIZE_ALPHA_BYTE;
 
-	testImg_data.data = (uint8_t *)os_zalloc(dataLen_test);
+//	testImg_data.data = (uint8_t *)os_zalloc(dataLen_test);
 
-//	memcpy(testImg_data.data, ttA.data, 960 * LV_IMG_PX_SIZE_ALPHA_BYTE * sizeof(uint8_t));
+// //	memcpy(testImg_data.data, ttA.data, 960 * LV_IMG_PX_SIZE_ALPHA_BYTE * sizeof(uint8_t));
 
-	lv_obj_t * wp = lv_img_create(lv_scr_act(), NULL);
+//	lv_obj_t * wp = lv_img_create(lv_scr_act(), NULL);
 
-	ESP_ERROR_CHECK( nvs_flash_init_partition("L8_devDataRcord"));
+//	ESP_ERROR_CHECK( nvs_flash_init_partition("L8_devDataRcord"));
 
-    ESP_ERROR_CHECK( nvs_open_from_partition("L8_devDataRcord", NVS_CUSTOMER, NVS_READWRITE, &handle) );
+//    ESP_ERROR_CHECK( nvs_open_from_partition("L8_devDataRcord", NVS_CUSTOMER, NVS_READWRITE, &handle) );
 
-    ESP_ERROR_CHECK ( nvs_get_str(handle, DATA1, str_data, &str_length) );
-    ESP_ERROR_CHECK ( nvs_get_i32(handle, DATA2, &value) );
-    ESP_ERROR_CHECK ( nvs_get_blob(handle, DATA3, &wifi_config_stored, &len) );
-	
-	ESP_ERROR_CHECK ( nvs_get_blob(handle, DATA4, testImg_data.data, &dataLen_test) );
+//    ESP_ERROR_CHECK ( nvs_get_str(handle, DATA1, str_data, &str_length) );
+//    ESP_ERROR_CHECK ( nvs_get_i32(handle, DATA2, &value) );
+//    ESP_ERROR_CHECK ( nvs_get_blob(handle, DATA3, &wifi_config_stored, &len) );
+//	
+//	ESP_ERROR_CHECK ( nvs_get_blob(handle, DATA4, testImg_data.data, &dataLen_test) );
 
-    printf("[data1]: %s len:%u\r\n", str_data, str_length);
-    printf("[data2]: %d\r\n", value);
-    printf("[data3]: ssid:%s passwd:%s\r\n", wifi_config_stored.sta.ssid, wifi_config_stored.sta.password);
-	
-    nvs_close(handle);
-	ESP_ERROR_CHECK( nvs_flash_deinit_partition("L8_devDataRcord"));
+//    printf("[data1]: %s len:%u\r\n", str_data, str_length);
+//    printf("[data2]: %d\r\n", value);
+//    printf("[data3]: ssid:%s passwd:%s\r\n", wifi_config_stored.sta.ssid, wifi_config_stored.sta.password);
+//	
+//    nvs_close(handle);
+//	ESP_ERROR_CHECK( nvs_flash_deinit_partition("L8_devDataRcord"));
 
-//	memcpy(sssssT, ttA.data, 960 * LV_IMG_PX_SIZE_ALPHA_BYTE * sizeof(uint8_t));
+// //	memcpy(sssssT, ttA.data, 960 * LV_IMG_PX_SIZE_ALPHA_BYTE * sizeof(uint8_t));
 
-//	memcpy(testImg_data.data, ttA.data, 960 * LV_IMG_PX_SIZE_ALPHA_BYTE * sizeof(uint8_t));
+// //	memcpy(testImg_data.data, ttA.data, 960 * LV_IMG_PX_SIZE_ALPHA_BYTE * sizeof(uint8_t));
 
-//	testImg_data.data = ttA.data;
+// //	testImg_data.data = ttA.data;
 
-	lv_img_set_src(wp, (lv_img_dsc_t *)&testImg_data);
-	lv_obj_set_pos(wp, 0, 10);
-}
+//	lv_img_set_src(wp, (lv_img_dsc_t *)&testImg_data);
+//	lv_obj_set_pos(wp, 0, 10);
+//}
 
 static void littlevgl_usrTest(void){
 
@@ -274,6 +276,8 @@ static void littlevgl_usrTest(void){
 //	nvs_read_data_from_flash();
 
 	lvGui_businessInit();
+
+//	littlevgl_demo();
 }
 
 static lv_res_t on_led_switch_toggled(lv_obj_t *sw)
@@ -918,6 +922,7 @@ static mdf_err_t event_loop_cb(mdf_event_loop_t event, void *ctx)
 
         case MDF_EVENT_MWIFI_PARENT_CONNECTED:
 
+			meshNetwork_connectReserve_IF_set(true);
 			flgSet_gotRouterOrMeshConnect(true);
 		
             MDF_LOGI("Parent is connected on station interface");
@@ -965,7 +970,6 @@ static mdf_err_t event_loop_cb(mdf_event_loop_t event, void *ctx)
 			IP2STR(&ip_info.netmask),
 			IP2STR(&ip_info.gw));
 
-			meshNetwork_connectReserve_IF_set(true);
 			flgSet_gotRouterOrMeshConnect(true);
 
             ret = mlink_notice_init();
@@ -1158,7 +1162,7 @@ static void trigger_handle_task(void *arg)
 
 //			ESP_LOGI(TAG, "decElecsum info report trig.");
 
-//			mqtt_rootDevRemoteDatatransLoop_elecSumReport();
+			mqtt_rootDevRemoteDatatransLoop_elecSumReport();
 			vTaskDelay(20 / portTICK_RATE_MS);
 		}
 

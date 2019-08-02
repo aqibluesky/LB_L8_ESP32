@@ -65,8 +65,8 @@ static void currentGui_elementClear(void){
 
 static lv_res_t funCb_btnActionClick_menuBtn_funBack(lv_obj_t *btn){
 
-	currentGui_elementClear();
 	lvGui_usrSwitch(bussinessType_Menu);
+	currentGui_elementClear();
 
 	return LV_RES_OK;
 }

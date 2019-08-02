@@ -101,6 +101,7 @@ static stt_devScreenRunningParam devScreenConfigParam = {
 
 	.timePeriod_devScreenBkLight_weakDown = DEVVALUE_DEFAULT_PERIOD_SCRBKLT_WEAKDOWN,
 	.devScreenBkLight_brightness = 100,
+	.devScreenBkLight_brightnessSleep = 20,
 };
 static uint8_t  devScreenConfigParam_nvsSave_timeDelay_count = 0;	//存储延迟计时变量
 static uint32_t timePeriod_devScreenBkLight_shutDown = DEVVALUE_DEFAULT_PERIOD_SCRBKLT_WEAKDOWN + DEVVALUE_DEFAULT_SCRBKLT_SHUTDOWN_TIMEDELAY; //屏幕全灭灭活检测计时变量
@@ -111,12 +112,6 @@ static bool		screenBkLight_initializedFLG = false;
 static enum_screenBkLight_status devScreenBklightCurrent_status = screenBkLight_statusEmpty;
 static enum_atmosphereLightType devAtmosphereCurrent_status = atmosphereLightType_normalWithoutNet;
 static enum_atmosphereLightType devAtmosphereStatus_record = atmosphereLightType_none;
-
-static stt_infraActDetectCombineFLG devLinkageCombine_FLG = {
-
-	.linkageWith_screenBkLight = 0,
-	.linkageWith_swRelay = 0
-};
 
 static ledc_channel_config_t devLight_lecCfgParam[LEDC_DEV_RESERVE_NUM] = {
 
@@ -174,7 +169,19 @@ static ledc_channel_config_t devLight_lecCfgParam[LEDC_DEV_RESERVE_NUM] = {
 
 static void devScreenBkLight_brightnessSet(enum_screenBkLight_status val){
 
+	uint32_t pwmHalf_brightness = 0;
+	uint8_t compensateWe_pwmHalf_brightness = devScreenConfigParam.devScreenBkLight_brightness - devScreenConfigParam.devScreenBkLight_brightnessSleep;
+
 	if(!screenBkLight_initializedFLG)return;
+
+	if(compensateWe_pwmHalf_brightness > 0){
+	
+		pwmHalf_brightness = (uint32_t)(devScreenConfigParam.devScreenBkLight_brightnessSleep + (compensateWe_pwmHalf_brightness / 5)) * DEVLEDC_SCREEN_BRIGHTNESS_ADJ_PERCENT;
+	}
+	else
+	{
+		pwmHalf_brightness = (uint32_t)(devScreenConfigParam.devScreenBkLight_brightness) * DEVLEDC_SCREEN_BRIGHTNESS_ADJ_PERCENT;
+	}
 
 	devScreenBklightCurrent_status = val;
 
@@ -184,7 +191,7 @@ static void devScreenBkLight_brightnessSet(enum_screenBkLight_status val){
 
 			ledc_set_fade_with_time(devLight_lecCfgParam[DEVLEDC_PARAMNUM_SCREEN_BK_LIGHT].speed_mode, 
 									devLight_lecCfgParam[DEVLEDC_PARAMNUM_SCREEN_BK_LIGHT].channel, 
-									0, 
+									(uint32_t)(devScreenConfigParam.devScreenBkLight_brightnessSleep) * DEVLEDC_SCREEN_BRIGHTNESS_ADJ_PERCENT,
 									DEVLEDC_FADE_TIME_DEFAULT);
 
 		}break;
@@ -193,7 +200,8 @@ static void devScreenBkLight_brightnessSet(enum_screenBkLight_status val){
 
 			ledc_set_fade_with_time(devLight_lecCfgParam[DEVLEDC_PARAMNUM_SCREEN_BK_LIGHT].speed_mode, 
 									devLight_lecCfgParam[DEVLEDC_PARAMNUM_SCREEN_BK_LIGHT].channel, 
-									DEVLEDC_SCREEN_BRIGHTNESS_DUTY_BASIC, 
+//									DEVLEDC_SCREEN_BRIGHTNESS_DUTY_BASIC, 
+									pwmHalf_brightness,
 									DEVLEDC_FADE_TIME_DEFAULT);
 
 		}break;
@@ -202,7 +210,8 @@ static void devScreenBkLight_brightnessSet(enum_screenBkLight_status val){
 
 			ledc_set_fade_with_time(devLight_lecCfgParam[DEVLEDC_PARAMNUM_SCREEN_BK_LIGHT].speed_mode, 
 									devLight_lecCfgParam[DEVLEDC_PARAMNUM_SCREEN_BK_LIGHT].channel, 
-									(uint32_t)(devScreenConfigParam.devScreenBkLight_brightness) * DEVLEDC_SCREEN_BRIGHTNESS_ADJ_PERCENT + DEVLEDC_SCREEN_BRIGHTNESS_DUTY_BASIC, 
+//									(uint32_t)(devScreenConfigParam.devScreenBkLight_brightness) * DEVLEDC_SCREEN_BRIGHTNESS_ADJ_PERCENT + DEVLEDC_SCREEN_BRIGHTNESS_DUTY_BASIC, 
+									(uint32_t)(devScreenConfigParam.devScreenBkLight_brightness) * DEVLEDC_SCREEN_BRIGHTNESS_ADJ_PERCENT, 
 									DEVLEDC_FADE_TIME_DEFAULT / 2);
 
 		}break;
@@ -279,26 +288,31 @@ void devScreenBkLight_statusRefresh(void){
 												0);
 	if((infraActDetect_etBits & INFRAACTDETECTEVENT_FLG_BITHOLD_TRIGHAPPEN) == INFRAACTDETECTEVENT_FLG_BITHOLD_TRIGHAPPEN){
 
+		stt_paramLinkageConfig linkageConfigParamGet_temp = {0};
+
+		devSystemOpration_linkageConfig_paramGet(&linkageConfigParamGet_temp);
+
 //		printf("infraActDetect trig!.\n");
 //		devAtmosphere_statusTips_trigSet(atmosphereLightType_infraActDetectTrig); //氛围灯触发
 
-		if(devLinkageCombine_FLG.linkageWith_screenBkLight){
+		if(linkageConfigParamGet_temp.linkageRunning_proxmity_en){
 
-			devScreenBkLight_weakUp();
-		}
+			if(linkageConfigParamGet_temp.linkageReaction_proxmity_scrLightTrigIf){
 
-		if(devLinkageCombine_FLG.linkageWith_swRelay){
+				devScreenBkLight_weakUp();
+			}
 
-			
+			currentDev_dataPointSet(&(linkageConfigParamGet_temp.linkageReaction_proxmity_swVal), true, true, true);
 		}
 	}
 
 	//背光灯业务
-	if(timeCounter_devScreenBkLight_keepAlive < (timePeriod_devScreenBkLight_shutDown * DEVLEDC_DRIVER_REFRESH_TIME_PERIOD_COEFFI)){
+	if(timeCounter_devScreenBkLight_keepAlive < (devScreenConfigParam.timePeriod_devScreenBkLight_weakDown * DEVLEDC_DRIVER_REFRESH_TIME_PERIOD_COEFFI)){
 
-		timeCounter_devScreenBkLight_keepAlive ++;
+		if(devScreenConfigParam.timePeriod_devScreenBkLight_weakDown != COUNTER_DISENABLE_MASK_SPECIALVAL_U16) //常亮档位设置检测
+			timeCounter_devScreenBkLight_keepAlive ++;
 
-		if(timeCounter_devScreenBkLight_keepAlive > (devScreenConfigParam.timePeriod_devScreenBkLight_weakDown * DEVLEDC_DRIVER_REFRESH_TIME_PERIOD_COEFFI)){
+		if(timeCounter_devScreenBkLight_keepAlive > ((devScreenConfigParam.timePeriod_devScreenBkLight_weakDown - DEVVALUE_DEFAULT_SCRBKLT_SHUTDOWN_TIMEDELAY) * DEVLEDC_DRIVER_REFRESH_TIME_PERIOD_COEFFI)){
 
 			devScreenBkLight_brightnessSet(screenBkLight_statusHalf);
 		}
@@ -573,9 +587,28 @@ void devScreenDriver_configParam_brightness_set(uint8_t brightnessVal, bool nvsR
 		devScreenConfigParam_nvsSave_timeDelay_count = DEVDRIVER_DEVSELFLIGHT_SCR_PARAMSAVE_TIMEDELAY;
 }
 
+void devScreenDriver_configParam_brightnessSleep_set(uint8_t brightnessSleepVal, bool nvsRecord_IF){
+
+	printf("brightnessSleep set val:%d.\n", brightnessSleepVal);
+
+	if(brightnessSleepVal > DEVLEDC_SCREEN_BRIGHTNESS_LEVEL_DIV)
+		brightnessSleepVal = DEVLEDC_SCREEN_BRIGHTNESS_LEVEL_DIV;
+
+	devScreenConfigParam.devScreenBkLight_brightnessSleep = brightnessSleepVal;
+	devScreenBkLight_brightnessSet(screenBkLight_statusFull);	
+
+	if(nvsRecord_IF)
+		devScreenConfigParam_nvsSave_timeDelay_count = DEVDRIVER_DEVSELFLIGHT_SCR_PARAMSAVE_TIMEDELAY;
+}
+
 uint8_t devScreenDriver_configParam_brightness_get(void){
 
 	return devScreenConfigParam.devScreenBkLight_brightness;
+}
+
+uint8_t devScreenDriver_configParam_brightnessSleep_get(void){
+
+	return devScreenConfigParam.devScreenBkLight_brightnessSleep;
 }
 
 void devScreenDriver_configParam_screenLightTime_set(uint32_t timeVal, bool nvsRecord_IF){
@@ -590,6 +623,14 @@ void devScreenDriver_configParam_screenLightTime_set(uint32_t timeVal, bool nvsR
 uint32_t devScreenDriver_configParam_screenLightTime_get(void){
 
 	return devScreenConfigParam.timePeriod_devScreenBkLight_weakDown;
+}
+
+void devScreenDriver_configParam_set(stt_devScreenRunningParam *param, bool nvsRecord_IF){
+
+	memcpy(&devScreenConfigParam, param, sizeof(stt_devScreenRunningParam));
+
+	if(nvsRecord_IF)
+		devScreenConfigParam_nvsSave_timeDelay_count = DEVDRIVER_DEVSELFLIGHT_SCR_PARAMSAVE_TIMEDELAY;
 }
 
 void bussiness_devLight_testApp(void)

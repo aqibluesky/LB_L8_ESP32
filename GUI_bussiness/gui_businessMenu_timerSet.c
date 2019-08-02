@@ -44,7 +44,8 @@ LV_FONT_DECLARE(lv_font_arial_18);
 LV_FONT_DECLARE(lv_font_ariblk_18);
 LV_FONT_DECLARE(lv_font_dejavu_20);
 
-LV_FONT_DECLARE(iconMenu_funBack_arrowLeft);
+LV_IMG_DECLARE(iconMenu_funBack_arrowLeft);
+LV_IMG_DECLARE(iconMenu_funBack_homePage);
 LV_IMG_DECLARE(imageBtn_feedBackNormal);
 
 static const LV_OBJ_FREE_NUM_TYPE objControls_btn_timerReaptSetPage = 1;
@@ -79,13 +80,17 @@ static lv_style_t styleBtn_timerSetPageA;
 static lv_style_t styleLabel_btnTimerSetPageA_timerInfo;
 static lv_style_t styleLabel_btnTimerSetPageA_reaptInfo;
 static lv_style_t styleLabel_SetInfoTitle_opreation;
+static lv_style_t styleImg_menuFun_btnFun;
 
 static lv_obj_t *guiObj_parentTemp = NULL;
 
 static lv_obj_t *bGround_obj = NULL;
-static lv_obj_t *menuBtnChoIcon_fun_back = NULL;
-static lv_obj_t *objText_menuCurrentTitle = NULL;
 static lv_obj_t *objBtn_currentParamSave = NULL;
+static lv_obj_t *objText_menuCurrentTitle = NULL;
+static lv_obj_t *menuBtnChoIcon_fun_back = NULL;
+static lv_obj_t *menuBtnChoIcon_fun_home = NULL;
+static lv_obj_t *imgMenuBtnChoIcon_fun_home = NULL;
+static lv_obj_t *imgMenuBtnChoIcon_fun_back = NULL;
 
 static lv_obj_t *objRoller_timeSet_hour = NULL;
 static lv_obj_t *objRoller_timeSet_minute = NULL;
@@ -155,16 +160,55 @@ static void currentGui_elementClear(void){
 
 static lv_res_t funCb_btnActionClick_menuBtn_funBack(lv_obj_t *btn){
 
-	currentGui_elementClear();
-	lvGui_usrSwitch(bussinessType_Menu);
+	LV_OBJ_FREE_NUM_TYPE btnFreeNum = lv_obj_get_free_num(btn);
+	usrGuiBussiness_type guiChg_temp = bussinessType_Menu;
 
+	switch(btnFreeNum){
+
+		case LV_OBJ_FREENUM_BTNNUM_DEF_MENUHOME:
+
+			guiChg_temp = bussinessType_Home;
+
+		break;
+
+		case LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK	:
+		default:
+
+			guiChg_temp = bussinessType_Menu;
+
+		break;
+	}
+
+	lvGui_usrSwitch(guiChg_temp);
+
+	currentGui_elementClear();
+	
 	return LV_RES_OK;
 }
 
 static lv_res_t funCb_btnActionPress_menuBtn_funBack(lv_obj_t *btn){
 
-	lv_obj_t *btnFeedBk = lv_img_create(btn, NULL);
-	lv_img_set_src(btnFeedBk, &imageBtn_feedBackNormal);
+	LV_OBJ_FREE_NUM_TYPE btnFreeNum = lv_obj_get_free_num(btn);
+	lv_obj_t *objImg_colorChg = NULL;
+
+	switch(btnFreeNum){
+
+		case LV_OBJ_FREENUM_BTNNUM_DEF_MENUHOME:
+
+			objImg_colorChg = imgMenuBtnChoIcon_fun_home;
+
+		break;
+
+		case LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK	:
+		default:
+
+			objImg_colorChg = imgMenuBtnChoIcon_fun_back;
+
+		break;
+	}
+
+	lv_img_set_style(objImg_colorChg, &styleImg_menuFun_btnFun);
+	lv_obj_refresh_style(objImg_colorChg);
 
 	return LV_RES_OK;
 }
@@ -176,6 +220,8 @@ static lv_res_t funCb_btnActionClick_btnReaptSet_funBack(lv_obj_t *btn){
 //	usrApp_trigTimer timerSetInfoTemp_currentUnit = {0};
 
 //	usrAppActTrigTimer_paramUnitGet(&timerSetInfoTemp_currentUnit, tmOpNum);
+
+	lv_obj_set_click(objBtn_reaptSet, false);
 
 	lvGui_bMenuSet_B_pageReaptSet_creat(timerSetInfoWeekBithold_cfmTemp);
 
@@ -210,6 +256,8 @@ static lv_res_t funCb_btnActionPress_btnPage_timerDataReapt_confirm(lv_obj_t *bt
 		objpage_reaptSet = NULL;
 	}
 
+	lv_obj_set_click(objBtn_reaptSet, true);
+
 	return LV_RES_OK;
 }
 
@@ -225,6 +273,8 @@ static lv_res_t funCb_btnActionPress_btnPage_timerDataReapt_cancel(lv_obj_t *btn
 		lv_obj_del(objpage_reaptSet);
 		objpage_reaptSet = NULL;
 	}
+
+	lv_obj_set_click(objBtn_reaptSet, true);
 	
 	return LV_RES_OK;
 }
@@ -312,20 +362,26 @@ static lv_res_t funCb_btnActionClick_timerSetUnit_opreatSave(lv_obj_t *btn){
 	usrAppActTrigTimer_paramUnitSet(&timerSetInfo_temp, tmOpNum, true);
 	memset(&timerSetInfo_temp, 0, sizeof(usrApp_trigTimer));
 
-	lv_obj_del(bGround_obj);
 	lv_obj_clean(guiObj_parentTemp);
-	lvGui_businessMenu_timerSetPageA(guiObj_parentTemp);
+	lvGui_businessMenu_timerSetPageA(guiObj_parentTemp);	
+	lv_obj_del(bGround_obj);
 	
 	return LV_RES_OK;
 }
 
 static lv_res_t funCb_btnActionClick_timerSetUnit_opreatCancel(lv_obj_t *btn){
 
+	lv_obj_t *parentObjTemp_corpse = guiObj_parentTemp;
+
 	memset(&timerSetInfo_temp, 0, sizeof(usrApp_trigTimer));
 
+//	lv_obj_clean(guiObj_parentTemp);
+	lvGui_businessMenu_timerSetPageA(parentObjTemp_corpse);
+	lv_obj_del(btnTitle_setInfo_save);
+	lv_obj_del(labelTitle_setInfo_save);
+	lv_obj_del(btnTitle_setInfo_cancel);
+	lv_obj_del(labelTitle_setInfo_cancel);
 	lv_obj_del(bGround_obj);
-	lv_obj_clean(guiObj_parentTemp);
-	lvGui_businessMenu_timerSetPageA(guiObj_parentTemp);
 
 	return LV_RES_OK;
 }
@@ -377,7 +433,7 @@ static void lvGui_bMenuSet_B_pageReaptSet_creat(uint8_t currentWeekHoldBit){
 		objpage_reaptSet = lv_page_create(lv_scr_act(), NULL);
 
 	lv_obj_set_size(objpage_reaptSet, 200, 260);
-	lv_obj_set_pos(objpage_reaptSet, 20, 30);					
+	lv_obj_set_pos(objpage_reaptSet, 20, 45);					
 	lv_page_set_style(objpage_reaptSet, LV_PAGE_STYLE_SB, &stylePage_reaptSet);
 	lv_page_set_style(objpage_reaptSet, LV_PAGE_STYLE_BG, &stylePage_reaptSet);
 	lv_page_set_sb_mode(objpage_reaptSet, LV_SB_MODE_HIDE); 	
@@ -484,7 +540,7 @@ static void lvGui_bMenuSet_B_pageReaptSet_creat(uint8_t currentWeekHoldBit){
 
 	lv_style_copy(&stylePageBtn_reaptSet, &lv_style_plain);
 	stylePageBtn_reaptSet.text.font = &lv_font_ariblk_18;
-	stylePageBtn_reaptSet.text.color = LV_COLOR_BLACK;
+	stylePageBtn_reaptSet.text.color = LV_COLOR_MAKE(0, 128, 255);
 	objpageBtnLabel_confirm = lv_label_create(objpageBtn_confirm, NULL);
 	lv_obj_set_style(objpageBtnLabel_confirm, &stylePageBtn_reaptSet);
 	lv_label_set_text(objpageBtnLabel_confirm, "confirm");
@@ -502,18 +558,6 @@ static void lvGui_businessMenu_timerSetPageA(lv_obj_t * obj_Parent){
 	lv_style_copy(&styleText_menuLevel_A, &lv_style_plain);
 	styleText_menuLevel_A.text.font = &lv_font_dejavu_20;
 	styleText_menuLevel_A.text.color = LV_COLOR_WHITE;
-
-	objText_menuCurrentTitle = lv_label_create(obj_Parent, NULL);
-	lv_label_set_text(objText_menuCurrentTitle, "timer set");
-	lv_obj_set_pos(objText_menuCurrentTitle, 40, 45);
-	lv_obj_set_style(objText_menuCurrentTitle, &styleText_menuLevel_A);
-
-	menuBtnChoIcon_fun_back = lv_imgbtn_create(obj_Parent, NULL);
-	lv_imgbtn_set_src(menuBtnChoIcon_fun_back, LV_BTN_STATE_REL, &iconMenu_funBack_arrowLeft);
-	lv_imgbtn_set_src(menuBtnChoIcon_fun_back, LV_BTN_STATE_PR, &iconMenu_funBack_arrowLeft);
-	lv_obj_set_pos(menuBtnChoIcon_fun_back, 8, 45);
-	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
-	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
 
 	lv_style_copy(&stylePage_timerSetPageA, &lv_style_plain);
 	stylePage_timerSetPageA.body.main_color = LV_COLOR_WHITE;
@@ -534,12 +578,49 @@ static void lvGui_businessMenu_timerSetPageA(lv_obj_t * obj_Parent){
 	styleBtn_timerSetPageA.body.radius = 0;
 	styleBtn_timerSetPageA.body.shadow.width = 0;
 
+	lv_style_copy(&styleImg_menuFun_btnFun, &lv_style_plain);
+	styleImg_menuFun_btnFun.image.intense = LV_OPA_COVER;
+	styleImg_menuFun_btnFun.image.color = LV_COLOR_MAKE(200, 191, 231);
+
 	lv_style_copy(&styleLabel_btnTimerSetPageA_timerInfo, &lv_style_plain);
 	styleLabel_btnTimerSetPageA_timerInfo.text.font = &lv_font_dejavu_20;
 	styleLabel_btnTimerSetPageA_timerInfo.text.color = LV_COLOR_BLACK;
 	lv_style_copy(&styleLabel_btnTimerSetPageA_reaptInfo, &lv_style_plain);
 	styleLabel_btnTimerSetPageA_reaptInfo.text.font = &lv_font_consola_16;
 	styleLabel_btnTimerSetPageA_reaptInfo.text.color = LV_COLOR_BLACK;
+
+	objText_menuCurrentTitle = lv_label_create(obj_Parent, NULL);
+	lv_label_set_text(objText_menuCurrentTitle, "timer set");
+	lv_obj_set_pos(objText_menuCurrentTitle, 40, 45);
+	lv_obj_set_style(objText_menuCurrentTitle, &styleText_menuLevel_A);
+
+	menuBtnChoIcon_fun_home = lv_btn_create(obj_Parent, NULL);
+	lv_obj_set_size(menuBtnChoIcon_fun_home, 80, 20);
+	lv_obj_set_pos(menuBtnChoIcon_fun_home, 160, 45);
+	lv_obj_set_top(menuBtnChoIcon_fun_home, true);
+	lv_obj_set_free_num(menuBtnChoIcon_fun_home, LV_OBJ_FREENUM_BTNNUM_DEF_MENUHOME);
+	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_REL, &styleBtn_timerSetPageA);
+	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_PR, &styleBtn_timerSetPageA);
+	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_TGL_REL, &styleBtn_timerSetPageA);
+	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_TGL_PR, &styleBtn_timerSetPageA);
+	lv_btn_set_action(menuBtnChoIcon_fun_home, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
+	lv_btn_set_action(menuBtnChoIcon_fun_home, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
+	imgMenuBtnChoIcon_fun_home = lv_img_create(obj_Parent, NULL);
+	lv_img_set_src(imgMenuBtnChoIcon_fun_home, &iconMenu_funBack_homePage);
+	lv_obj_set_protect(imgMenuBtnChoIcon_fun_home, LV_PROTECT_POS);
+	lv_obj_align(imgMenuBtnChoIcon_fun_home, menuBtnChoIcon_fun_home, LV_ALIGN_IN_RIGHT_MID, -5, 0);
+	lv_obj_set_top(menuBtnChoIcon_fun_home, true);
+
+	menuBtnChoIcon_fun_back = lv_btn_create(obj_Parent, menuBtnChoIcon_fun_home);
+	lv_obj_set_pos(menuBtnChoIcon_fun_back, 0, 45);
+	lv_obj_set_free_num(menuBtnChoIcon_fun_back, LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK);
+	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
+	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
+	imgMenuBtnChoIcon_fun_back = lv_img_create(obj_Parent, NULL);
+	lv_img_set_src(imgMenuBtnChoIcon_fun_back, &iconMenu_funBack_arrowLeft);
+	lv_obj_set_protect(imgMenuBtnChoIcon_fun_back, LV_PROTECT_POS);
+	lv_obj_align(imgMenuBtnChoIcon_fun_back, menuBtnChoIcon_fun_back, LV_ALIGN_IN_LEFT_MID, 5, 0);
+	lv_obj_set_top(menuBtnChoIcon_fun_back, true);
 
 	page_timerSetPageA = lv_page_create(lv_scr_act(), NULL);
 	lv_obj_set_size(page_timerSetPageA, 240, 260);
@@ -632,6 +713,7 @@ static void lvGui_businessMenu_timerSetPageA(lv_obj_t * obj_Parent){
 
 	vTaskDelay(50 / portTICK_PERIOD_MS);
 	lv_obj_refresh_style(page_timerSetPageA);
+	lv_obj_refresh_style(obj_Parent);
 }
 
 static void lvGui_businessMenu_timerSetUnitOpreat(lv_obj_t * obj_Parent, uint8_t timerUnit_num){
