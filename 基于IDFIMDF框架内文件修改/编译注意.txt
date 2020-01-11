@@ -1,0 +1,11 @@
+1. 十二月2日开始，程序编译partition_table OTA分区大小由3918改为3920；
+2. 十二月2日开始，新开辟硬件版本类型，以六合一 33（21H）开始，之前还是以六合一 1（01H）开始
+3. 十二月2日之前，程序编译config使能flash危险区域读写，用以防止因为ota flash分区没有进行4k对齐而导致的abort；
+
+编译条件
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+					partition1918				partition1920
+
+partitions.csv文件修改：			OTA分区大小改为1918k			OTA分区大小改为1920k
+宏DEVICE_FLASH_PARTITIONS_OFFSET		PROGMA_FLASH_PARTITIONS_OFFSET_A	PROGMA_FLASH_PARTITIONS_OFFSET_B
+SPI FLASH DRIVER危险区域操作		允许					操作失败

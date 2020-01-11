@@ -81,7 +81,7 @@ static bool ex_tp_read(lv_indev_data_t *data)
 	uint8_t touchPointNum = 0;
 	uint8_t touch_gestrue = 0;
     static lv_coord_t x = 0xFFFF, y = 0xFFFF;
-	static lv_point_t pointRecord[3] = {0};
+	static lv_point_t pointRecord[3] = {0}; //-参数对应业务保留，逻辑触发失能
 	static bool touchReales_flg = true;
 
 	enum_screenBkLight_status bkLightStatus_temp = devScreenBkLight_brightnessGet();
@@ -125,8 +125,8 @@ static bool ex_tp_read(lv_indev_data_t *data)
 				lv_coord_t t;
 				// Rescale X,Y if we are using self-calibration
 #ifdef CONFIG_LVGL_DISP_ROTATE_0
-					data->point.x = data->point.x;
-					data->point.y = data->point.y;
+					data->point.x = LV_HOR_RES - 1 - data->point.x;
+					data->point.y = LV_VER_RES - 1 - data->point.y;
 #elif defined(CONFIG_LVGL_DISP_ROTATE_90)
 					t = data->point.x;
 					data->point.x = LV_HOR_RES - 1 - data->point.y;
@@ -142,122 +142,133 @@ static bool ex_tp_read(lv_indev_data_t *data)
 				x = data->point.x;
 				y = data->point.y;
 			}
-
-			//自定义手势解析
-			if(memcmp(&pointRecord[0], &data->point, sizeof(lv_point_t))){
-
-				enum{
-
-					usrAppGuestrue_null = 0,
-					usrAppGuestrue_up,
-					usrAppGuestrue_down,
-					usrAppGuestrue_right,
-					usrAppGuestrue_left,
-					
-				}usrAppGuestrueDetect = usrAppGuestrue_null;
-
-				lv_coord_t diffVal_x = 0,
-					       diffVal_y = 0;
-
-				memcpy(&pointRecord[1], &pointRecord[0], sizeof(lv_point_t) * 2);
-				memcpy(&pointRecord[0], &data->point, sizeof(lv_point_t));
-
-				diffVal_x = pointRecord[1].x - pointRecord[0].x;
-				diffVal_y = pointRecord[1].y - pointRecord[0].y;
-
-				if(diffVal_x < 15 && diffVal_x > -15){ //预测
-
-					if((pointRecord[0].y - pointRecord[1].y) > 3){
-
-						usrAppGuestrueDetect = usrAppGuestrue_down;
-					}
-					else
-					if((pointRecord[0].y - pointRecord[1].y) < -3){
-
-						usrAppGuestrueDetect = usrAppGuestrue_up;
-					}
-				}
-				else
-				if(diffVal_y < 15 && diffVal_y > -15){
-				
-					if((pointRecord[0].x - pointRecord[1].x) > 3){
-					
-						usrAppGuestrueDetect = usrAppGuestrue_right;
-					}
-					else
-					if((pointRecord[0].x - pointRecord[1].x) < -3){
-					
-						usrAppGuestrueDetect = usrAppGuestrue_left;
-					}
-				}
-				else{
-
-					usrAppGuestrueDetect = usrAppGuestrue_null;
-				}
-
-				if(touchReales_flg){
-
-					switch(usrAppGuestrueDetect){ //精测
-
-						case usrAppGuestrue_down:{
-
-							if((pointRecord[1].y - pointRecord[2].y) > 3 ){
-
-							   touchReales_flg = false;
-							   memset(pointRecord, 0, sizeof(lv_point_t) * 3);
-
-							   devTouchGetInfo.valGestrue = FTIC_EXTRA_REGISTERVAL_GES_mDN;
-							   xEventGroupSetBits(xEventGp_screenTouch, TOUCHEVENT_FLG_BITHOLD_GESTRUEHAP);
-							}
-
-						}break;
-						
-						case usrAppGuestrue_up:{
-
-							if((pointRecord[1].y - pointRecord[2].y) < -3 ){
-
-							   touchReales_flg = false;
-							   memset(pointRecord, 0, sizeof(lv_point_t) * 3);
-							
-							   devTouchGetInfo.valGestrue = FTIC_EXTRA_REGISTERVAL_GES_mUP;
-							   xEventGroupSetBits(xEventGp_screenTouch, TOUCHEVENT_FLG_BITHOLD_GESTRUEHAP);
-							}
-
-						}break;
-						
-						case usrAppGuestrue_right:{
-
-							if((pointRecord[1].x - pointRecord[2].x) > 3 ){
-
-							   touchReales_flg = false;
-							   memset(pointRecord, 0, sizeof(lv_point_t) * 3);
-							
-							   devTouchGetInfo.valGestrue = FTIC_EXTRA_REGISTERVAL_GES_mRT;
-							   xEventGroupSetBits(xEventGp_screenTouch, TOUCHEVENT_FLG_BITHOLD_GESTRUEHAP);
-							}
-
-						}break;
-						
-						case usrAppGuestrue_left:{
-
-							if((pointRecord[1].x - pointRecord[2].x) < -3 ){
-
-							   touchReales_flg = false;
-							   memset(pointRecord, 0, sizeof(lv_point_t) * 3);
-							
-							   devTouchGetInfo.valGestrue = FTIC_EXTRA_REGISTERVAL_GES_mLT;
-							   xEventGroupSetBits(xEventGp_screenTouch, TOUCHEVENT_FLG_BITHOLD_GESTRUEHAP);
-							}
-
-						}break;
-						
-						default:break;
-					}
-				}
+			else //未进行校正业务
+			{
+//				x = data->point.x;
+//				y = data->point.y;
+//			
+				data->point.x = LV_HOR_RES - 1 - data->point.x;
+				data->point.y = LV_VER_RES - 1 - data->point.y;
 			}
+
+			//自定义手势解析 -业务保留，逻辑触发失能
+//			if(memcmp(&pointRecord[0], &data->point, sizeof(lv_point_t))){
+
+//				enum{
+
+//					usrAppGuestrue_null = 0,
+//					usrAppGuestrue_up,
+//					usrAppGuestrue_down,
+//					usrAppGuestrue_right,
+//					usrAppGuestrue_left,
+//					
+//				}usrAppGuestrueDetect = usrAppGuestrue_null;
+
+//				lv_coord_t diffVal_x = 0,
+//					       diffVal_y = 0;
+
+//				memcpy(&pointRecord[1], &pointRecord[0], sizeof(lv_point_t) * 2);
+//				memcpy(&pointRecord[0], &data->point, sizeof(lv_point_t));
+
+//				diffVal_x = pointRecord[1].x - pointRecord[0].x;
+//				diffVal_y = pointRecord[1].y - pointRecord[0].y;
+
+//				if(diffVal_x < 15 && diffVal_x > -15){ //预测
+
+//					if((pointRecord[0].y - pointRecord[1].y) > 3){
+
+//						usrAppGuestrueDetect = usrAppGuestrue_down;
+//					}
+//					else
+//					if((pointRecord[0].y - pointRecord[1].y) < -3){
+
+//						usrAppGuestrueDetect = usrAppGuestrue_up;
+//					}
+//				}
+//				else
+//				if(diffVal_y < 15 && diffVal_y > -15){
+//				
+//					if((pointRecord[0].x - pointRecord[1].x) > 3){
+//					
+//						usrAppGuestrueDetect = usrAppGuestrue_right;
+//					}
+//					else
+//					if((pointRecord[0].x - pointRecord[1].x) < -3){
+//					
+//						usrAppGuestrueDetect = usrAppGuestrue_left;
+//					}
+//				}
+//				else{
+
+//					usrAppGuestrueDetect = usrAppGuestrue_null;
+//				}
+
+//				if(touchReales_flg){
+
+//					switch(usrAppGuestrueDetect){ //精测
+
+//						case usrAppGuestrue_down:{
+
+//							if((pointRecord[1].y - pointRecord[2].y) > 3 ){
+
+//							   touchReales_flg = false;
+//							   memset(pointRecord, 0, sizeof(lv_point_t) * 3);
+
+//							   devTouchGetInfo.valGestrue = FTIC_EXTRA_REGISTERVAL_GES_mDN;
+//							   xEventGroupSetBits(xEventGp_screenTouch, TOUCHEVENT_FLG_BITHOLD_GESTRUEHAP);
+//							}
+
+//						}break;
+//						
+//						case usrAppGuestrue_up:{
+
+//							if((pointRecord[1].y - pointRecord[2].y) < -3 ){
+
+//							   touchReales_flg = false;
+//							   memset(pointRecord, 0, sizeof(lv_point_t) * 3);
+//							
+//							   devTouchGetInfo.valGestrue = FTIC_EXTRA_REGISTERVAL_GES_mUP;
+//							   xEventGroupSetBits(xEventGp_screenTouch, TOUCHEVENT_FLG_BITHOLD_GESTRUEHAP);
+//							}
+
+//						}break;
+//						
+//						case usrAppGuestrue_right:{
+
+//							if((pointRecord[1].x - pointRecord[2].x) > 3 ){
+
+//							   touchReales_flg = false;
+//							   memset(pointRecord, 0, sizeof(lv_point_t) * 3);
+//							
+//							   devTouchGetInfo.valGestrue = FTIC_EXTRA_REGISTERVAL_GES_mRT;
+//							   xEventGroupSetBits(xEventGp_screenTouch, TOUCHEVENT_FLG_BITHOLD_GESTRUEHAP);
+//							}
+
+//						}break;
+//						
+//						case usrAppGuestrue_left:{
+
+//							if((pointRecord[1].x - pointRecord[2].x) < -3 ){
+
+//							   	touchReales_flg = false;
+//							   	memset(pointRecord, 0, sizeof(lv_point_t) * 3);
+//							
+//							   	devTouchGetInfo.valGestrue = FTIC_EXTRA_REGISTERVAL_GES_mLT;
+//							   	if(xEventGp_screenTouch){
+
+//									xEventGroupSetBits(xEventGp_screenTouch, TOUCHEVENT_FLG_BITHOLD_GESTRUEHAP);
+//							   	}
+//							}
+//							
+//						}break;
+//						
+//						default:break;
+//					}
+//				}
+//			}
 			
-			// Apply calibration, rotation --redefine by Lanbon
-			// Transform the co-ordinates
+//			// Apply calibration, rotation --redefine by Lanbon
+//			// Transform the co-ordinates
 //			if (lvgl_calibration_transform(&(data->point))) {
 //				
 //				lv_coord_t t;
@@ -308,38 +319,32 @@ lv_indev_drv_t lvgl_indev_init()
     dev = iot_ft5x06_create(i2c_bus, FT5X06_ADDR_DEF);
 
     // Init default values. (From NHD-3.5-320240MF-ATXL-CTP-1 datasheet)
-    // Valid touching detect threshold
-//    write_reg(FT5x06_ID_G_THGROUP, 0x16);
+    // Valid touching detect threshold --def: 70
+    write_reg(FT5x06_ID_G_THGROUP, 0x08);
 
-//    // valid touching peak detect threshold
-//    write_reg(FT5x06_ID_G_THPEAK, 0x3C);
+    // valid touching peak detect threshold --def: 60
+    write_reg(FT5x06_ID_G_THPEAK, 15);
 
-//    // Touch focus threshold
-//    write_reg(FT5x06_ID_G_THCAL, 0xE9);
+    // Touch focus threshold --def: 16
+    write_reg(FT5x06_ID_G_THCAL, 0xE9);
 
-//    // threshold when there is surface water
-//    write_reg(FT5x06_ID_G_THWATER, 0x01);
+    // threshold when there is surface water --def: 60
+    write_reg(FT5x06_ID_G_THWATER, 25);
 
-//    // threshold of temperature compensation
-//    write_reg(FT5x06_ID_G_THTEMP, 0x01);
+    // threshold of temperature compensation --def: 10
+    write_reg(FT5x06_ID_G_THTEMP, 20);
 
-//    // Touch difference threshold
-//    write_reg(FT5x06_ID_G_THDIFF, 0xA0);
+    // Touch difference threshold --def: 20
+    write_reg(FT5x06_ID_G_THDIFF, 0x20);
 
-//    // Delay to enter 'Monitor' status (s)
-//    write_reg(FT5x06_ID_G_TIME_ENTER_MONITOR, 0x0A);
+    // Delay to enter 'Monitor' status (s) --def: 02
+    write_reg(FT5x06_ID_G_TIME_ENTER_MONITOR, 0x02);
 
-//    // Period of 'Active' status (ms)
-//    write_reg(FT5x06_ID_G_PERIODACTIVE, 0x06);
+    // Period of 'Active' status (ms) --def: 12
+    write_reg(FT5x06_ID_G_PERIODACTIVE, 0x03);
 
-//    // Timer to enter 'idle' when in 'Monitor' (ms)
-//    write_reg(FT5x06_ID_G_PERIODMONITOR, 0x28);
-
-	write_reg(FT5x06_DEVICE_MODE, 0);
-
-	write_reg(FT5x06_ID_G_THGROUP, 22);
-
-	write_reg(FT5x06_ID_G_PERIODACTIVE, 12);
+    // Timer to enter 'idle' when in 'Monitor' (ms) --def: 40
+    write_reg(FT5x06_ID_G_PERIODMONITOR, 0x28);
 
     lv_indev_drv_t indev_drv;      /*Descriptor of an input device driver*/
     lv_indev_drv_init(&indev_drv); /*Basic initialization*/

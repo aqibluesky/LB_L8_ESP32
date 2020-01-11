@@ -56,7 +56,6 @@ uint16_t devDriverBussiness_scnarioSwitch_driverClamDown_get(void){
 	return scnarioSwitchDriver_clamDown_counter;
 }
 
-
 void devDriverBussiness_scnarioSwitch_dataParam_save(stt_scenarioSwitchData_nvsOpreat *param){
 
 	devTypeDef_enum swCurrentDevType = currentDev_typeGet();

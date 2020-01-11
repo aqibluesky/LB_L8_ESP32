@@ -48,6 +48,7 @@ void IRAM_ATTR devDriverBussiness_dimmerSwitch_decCounterReales(void);
 void IRAM_ATTR devDriverBussiness_dimmerSwitch_debug(void);
 void IRAM_ATTR devDriverBussiness_dimmerSwitch_currentParamGet(stt_Dimmer_attrFreq *param);
 void IRAM_ATTR devDriverBussiness_dimmerSwitch_brightnessAdjDetectLoop(void);
+uint8_t devDriverBussiness_dimmerSwitch_brightnessLastGet(void);
 void devDriverBussiness_dimmerSwitch_periphStatusReales(stt_devDataPonitTypedef *param);
 
 #ifdef __cplusplus

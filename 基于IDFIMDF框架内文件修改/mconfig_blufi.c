@@ -55,6 +55,8 @@
 #define BLUFI_STA_AP_FOUND_ERR    (301)
 #define BLUFI_STA_TOOMANY_ERR     (302)
 
+extern void lvGui_usrAppBussinessRunning_block(uint8_t iconType, const char *strTips, uint8_t timeOut);
+
 /*
    The SEC_TYPE_xxx is for self-defined packet data type in the procedure of "BLUFI negotiate key"
    If user use other negotiation procedure to exchange(or generate) key, should redefine the type by yourself.
@@ -350,6 +352,14 @@ static mdf_err_t blufi_wifi_event_handler(void *ctx, system_event_t *event)
 
             MDF_LOGW("disconnected reason: %d", disconnected->reason);
 
+            { //UI提示连接失败原因
+				extern void lvGui_wifiConfig_bussiness_configFail_tipsTrig(uint8_t tipsTime, uint8_t err);
+				lvGui_wifiConfig_bussiness_configFail_tipsTrig(10, disconnected->reason);
+
+				meshNetwork_connectReserve_IF_set(false); //连接尝试，配置提示信息更新
+				devBeepTips_trig(5, 8, 1500, 0, 1);
+			}
+
             switch (disconnected->reason) {
                 case WIFI_REASON_ASSOC_TOOMANY:
                     MDF_LOGW("WIFI_REASON_ASSOC_TOOMANY Disassociated because AP is unable to handle all currently associated STAs");
@@ -638,7 +648,7 @@ static void mconfig_blufi_event_callback(esp_blufi_cb_event_t event, esp_blufi_c
                         break;
 
                     case BLUFI_DATA_MESH_PASSWORD:
-                        memcpy(g_recv_config->config.mesh_password, blufi_data->data, blufi_data->len);
+//                        memcpy(g_recv_config->config.mesh_password, blufi_data->data, blufi_data->len);
                         MDF_LOGI("Mesh password: %s", g_recv_config->config.mesh_password);
                         break;
 
@@ -795,13 +805,25 @@ static void mconfig_blufi_event_callback(esp_blufi_cb_event_t event, esp_blufi_c
                 }
             }
 
+			meshNetwork_connectReserve_IF_set(true); //连接尝试，配置提示信息更新
+			devBeepTips_trig(3, 10, 150, 0, 1);
+
             mconfig_chain_slave_channel_switch_disable();
 
             wifi_config_t sta_config = {0};
+			stt_routerCfgInfo routerCfgInfo_temp = {0};
+
+			//路由器配置信息本地记录
+			memcpy(routerCfgInfo_temp.routerInfo_ssid, g_recv_config->config.router_ssid, sizeof(uint8_t) * 32);
+			memcpy(routerCfgInfo_temp.routerInfo_psd, g_recv_config->config.router_password, sizeof(uint8_t) * 64);
+			currentRouterCfgInfo_paramSet(&routerCfgInfo_temp, true);
 
             memcpy(sta_config.sta.ssid, g_recv_config->config.router_ssid, strlen(g_recv_config->config.router_ssid));
             memcpy(sta_config.sta.bssid, g_recv_config->config.router_bssid, sizeof(g_recv_config->config.router_bssid));
             memcpy(sta_config.sta.password, g_recv_config->config.router_password, strlen(g_recv_config->config.router_password));
+			memcpy(g_recv_config->config.mesh_password, meshPsd_default, strlen(meshPsd_default));
+
+			lvGui_usrAppBussinessRunning_block(0, "wifi\nconnecting...", 30); //UI阻塞提示，wifi连接中
 
             ret = esp_wifi_set_config(WIFI_IF_STA, &sta_config);
             MDF_ERROR_BREAK(ret != ESP_OK, "<%s> Set the configuration of the ESP32 STA", mdf_err_to_name(ret));
@@ -830,25 +852,56 @@ static void mconfig_blufi_event_callback(esp_blufi_cb_event_t event, esp_blufi_c
 void mconfig_blufi_completeInadvice_byKBoard(char ssid[32], char psd[64], uint8_t bssid[6]){
 
 	mdf_err_t ret = MDF_OK;
+	wifi_config_t sta_config = {0};
+	stt_routerCfgInfo routerCfgInfo_temp = {0};
+	
+	const mwifi_init_config_t init_config = MWIFI_INIT_CONFIG_DEFAULT();
+	memcpy(&sta_config, &init_config, sizeof(mwifi_init_config_t));
+
+	lvGui_usrAppBussinessRunning_block(0, "wifi\nconnecting...", 30); //UI阻塞提示，wifi连接中
+
+	devRouterConnectBssid_Set(bssid, true);
+
+	mconfig_ble_connect_timer_delete();
+	
+	if (!g_recv_config) {
+		g_recv_config = MDF_MALLOC(sizeof(mconfig_data_t));
+	}
+
+	memcpy(&g_recv_config->init_config, &init_config, sizeof(mwifi_init_config_t));
 
 	mconfig_chain_slave_channel_switch_disable();
+
+	//路由器配置信息本地记录
+	memcpy(routerCfgInfo_temp.routerInfo_ssid, ssid, sizeof(uint8_t) * 32);
+	memcpy(routerCfgInfo_temp.routerInfo_psd, psd, sizeof(uint8_t) * 64);
+	currentRouterCfgInfo_paramSet(&routerCfgInfo_temp, true);
+
+	memcpy(g_recv_config->config.router_ssid, ssid, sizeof(uint8_t) * 32);
+	memcpy(g_recv_config->config.router_bssid, bssid, sizeof(uint8_t) * 6);
+	memcpy(g_recv_config->config.mesh_id, bssid, sizeof(uint8_t) * 6);
+	memcpy(g_recv_config->config.router_password, psd, sizeof(uint8_t) * 64);
+	memcpy(g_recv_config->config.mesh_password, meshPsd_default, strlen(meshPsd_default));
+	g_recv_config->config.mesh_type = MESH_IDLE;
+	g_recv_config->whitelist_size = 0;
 	
-	wifi_config_t sta_config = {0};
-	
-	memcpy(sta_config.sta.ssid, g_recv_config->config.router_ssid, strlen(ssid));
-	memcpy(sta_config.sta.bssid, g_recv_config->config.router_bssid, sizeof(uint8_t) * 6);
-	memcpy(sta_config.sta.password, g_recv_config->config.router_password, strlen(psd));
+	memcpy(sta_config.sta.ssid, ssid, sizeof(uint8_t) * 32);
+	memcpy(sta_config.sta.bssid, bssid, sizeof(uint8_t) * 6);
+	memcpy(sta_config.sta.password, psd, sizeof(uint8_t) * 64);
+
+	printf("kb ssid get:%s.\n", (const char *)ssid);
+	printf("kb psd get:%s.\n", (const char *)psd);
 	
 	ret = esp_wifi_set_config(WIFI_IF_STA, &sta_config);
-	MDF_ERROR_BREAK(ret != ESP_OK, "<%s> Set the configuration of the ESP32 STA", mdf_err_to_name(ret));
+	MDF_ERROR_CHECK(ret != ESP_OK, ret, "<%s> Set the configuration of the ESP32 STA", mdf_err_to_name(ret));
 	
 	esp_event_loop_set_cb(blufi_wifi_event_handler, NULL);
 	
 	ret = esp_wifi_connect();
-	MDF_ERROR_BREAK(ret != ESP_OK, "<%s> Connect the ESP32 WiFi station to the AP", mdf_err_to_name(ret));
+	MDF_ERROR_CHECK(ret != ESP_OK, ret, "<%s> Connect the ESP32 WiFi station to the AP", mdf_err_to_name(ret));
 	
 	ret = mdf_event_loop_send(MDF_EVENT_MCONFIG_BLUFI_STA_CONNECTED, NULL);
-	MDF_ERROR_BREAK(ret < 0, "<%s> Send the event to the event handler", mdf_err_to_name(ret));
+	MDF_ERROR_CHECK(ret < 0, ret, "<%s> Send the event to the event handler", mdf_err_to_name(ret));
 }
 
 static void mconfig_blufi_gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param)

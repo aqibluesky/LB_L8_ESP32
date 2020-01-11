@@ -143,6 +143,8 @@ static usrApp_trigTimer timerSetInfo_temp = {0};
 static uint8_t timerSetInfoWeekBithold_cfmTemp = 0;
 static uint8_t timerSetInfoWeekBithold_chgTemp = 0;
 
+static uint8_t screenLandscapeCoordinate_objOffset = 0;
+
 static const char strInfoWeek_tab[7][6] = {
 
 	"Mon ", "Tues ", "Wed ", "Thur ", "Fri ", "Sat ", "Sun ",
@@ -155,7 +157,50 @@ static void lvGui_bMenuSet_B_pageReaptSet_creat(uint8_t currentWeekHoldBit);
 
 static void currentGui_elementClear(void){
 
-	lv_obj_del(page_timerSetPageA);
+	if(btnTitle_setInfo_save){
+		
+		lv_obj_del(btnTitle_setInfo_save);
+		btnTitle_setInfo_save = NULL;
+	}
+	if(labelTitle_setInfo_save){
+		
+		lv_obj_del(labelTitle_setInfo_save);
+		labelTitle_setInfo_save = NULL;
+	}
+	if(btnTitle_setInfo_cancel){
+
+		lv_obj_del(btnTitle_setInfo_cancel);
+		btnTitle_setInfo_cancel = NULL;
+	}
+	if(labelTitle_setInfo_cancel){
+
+		lv_obj_del(labelTitle_setInfo_cancel);
+		labelTitle_setInfo_cancel = NULL;
+	}	
+	if(bGround_obj){
+		
+		lv_obj_del(bGround_obj);
+		bGround_obj = NULL;
+	}
+	if(objpage_reaptSet){
+
+		lv_obj_del(objpage_reaptSet);
+		objpage_reaptSet = NULL;
+	}
+	if(page_timerSetPageA){
+
+		lv_obj_del(page_timerSetPageA);
+		page_timerSetPageA = NULL;
+	}
+
+	guiObj_parentTemp = NULL;
+}
+
+void guiDispTimeOut_pageTimerSet(void){
+
+	lvGui_usrSwitch(bussinessType_Home);
+
+	currentGui_elementClear();
 }
 
 static lv_res_t funCb_btnActionClick_menuBtn_funBack(lv_obj_t *btn){
@@ -199,7 +244,7 @@ static lv_res_t funCb_btnActionPress_menuBtn_funBack(lv_obj_t *btn){
 
 		break;
 
-		case LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK	:
+		case LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK:
 		default:
 
 			objImg_colorChg = imgMenuBtnChoIcon_fun_back;
@@ -236,7 +281,7 @@ static lv_res_t funCb_btnActionPress_btnPage_timerDataReapt_confirm(lv_obj_t *bt
 	memset(strTemp, 0, 31);
 	if(!timerSetInfoWeekBithold_cfmTemp){
 	
-		sprintf(strTemp, "no reapt");
+		sprintf(strTemp, "no repeat");
 	}
 	else
 	{
@@ -341,6 +386,8 @@ static lv_res_t funCb_cbOpreat_timerUnitSetOpreation(lv_obj_t *cb){
 
 static lv_res_t funCb_btnActionClick_timerSetUnit_opreatSave(lv_obj_t *btn){
 
+	lv_obj_t *parentObjTemp_corpse = guiObj_parentTemp;
+
 	LV_OBJ_FREE_NUM_TYPE id = lv_obj_get_free_num(btn);
 	uint8_t tmOpNum = id - LV_OBJ_FREENUM_BASE_TIMERSETINFO_NUM;
 	stt_devDataPonitTypedef datapointParamSet_temp = {0};
@@ -360,12 +407,28 @@ static lv_res_t funCb_btnActionClick_timerSetUnit_opreatSave(lv_obj_t *btn){
 																				     timerSetInfo_temp.tmUp_Minute);
 
 	usrAppActTrigTimer_paramUnitSet(&timerSetInfo_temp, tmOpNum, true);
+	
 	memset(&timerSetInfo_temp, 0, sizeof(usrApp_trigTimer));
 
-	lv_obj_clean(guiObj_parentTemp);
-	lvGui_businessMenu_timerSetPageA(guiObj_parentTemp);	
+//	lv_obj_clean(guiObj_parentTemp);
+//	lvGui_businessMenu_timerSetPageA(guiObj_parentTemp);	
+//	lv_obj_del(bGround_obj);
+//	bGround_obj = NULL;
+
+//	lv_obj_clean(guiObj_parentTemp);
+	lvGui_businessMenu_timerSetPageA(parentObjTemp_corpse);
+	lv_obj_del(btnTitle_setInfo_save);
+	lv_obj_del(labelTitle_setInfo_save);
+	lv_obj_del(btnTitle_setInfo_cancel);
+	lv_obj_del(labelTitle_setInfo_cancel);
 	lv_obj_del(bGround_obj);
-	
+
+	labelTitle_setInfo_save = NULL;
+	btnTitle_setInfo_save = NULL;
+	labelTitle_setInfo_cancel = NULL;
+	btnTitle_setInfo_cancel = NULL;
+	bGround_obj = NULL;
+
 	return LV_RES_OK;
 }
 
@@ -383,6 +446,12 @@ static lv_res_t funCb_btnActionClick_timerSetUnit_opreatCancel(lv_obj_t *btn){
 	lv_obj_del(labelTitle_setInfo_cancel);
 	lv_obj_del(bGround_obj);
 
+	labelTitle_setInfo_save = NULL;
+	btnTitle_setInfo_save = NULL;
+	labelTitle_setInfo_cancel = NULL;
+	btnTitle_setInfo_cancel = NULL;
+	bGround_obj = NULL;
+
 	return LV_RES_OK;
 }
 
@@ -392,11 +461,18 @@ static lv_res_t funCb_btnActionClick_timerSetPageA(lv_obj_t *btn){
 	uint8_t tmOpNum = id - LV_OBJ_FREENUM_BASE_BTN_TIMESETPAGEA;
 
 	memset(&timerSetInfo_temp, 0, sizeof(usrApp_trigTimer));
-	lv_obj_clean(guiObj_parentTemp);
 	lvGui_businessMenu_timerSetUnitOpreat(guiObj_parentTemp, tmOpNum);
-	
+
+	lv_obj_del(objText_menuCurrentTitle);
+	lv_obj_del(menuBtnChoIcon_fun_home);
+	lv_obj_del(menuBtnChoIcon_fun_back);
+	objText_menuCurrentTitle = NULL;
+	menuBtnChoIcon_fun_home = NULL;
+	menuBtnChoIcon_fun_back = NULL;
+
 	//业务处理完了在进行控件删除，否则容易dump
 	lv_obj_del(page_timerSetPageA);
+	page_timerSetPageA = NULL;
 
 	return LV_RES_OK;
 }
@@ -432,8 +508,12 @@ static void lvGui_bMenuSet_B_pageReaptSet_creat(uint8_t currentWeekHoldBit){
 	if(objpage_reaptSet == NULL)
 		objpage_reaptSet = lv_page_create(lv_scr_act(), NULL);
 
-	lv_obj_set_size(objpage_reaptSet, 200, 260);
-	lv_obj_set_pos(objpage_reaptSet, 20, 45);					
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_set_size(objpage_reaptSet, 280, 190)):
+		(lv_obj_set_size(objpage_reaptSet, 200, 260));
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_set_pos(objpage_reaptSet, 20, 25)):
+		(lv_obj_set_pos(objpage_reaptSet, 20, 45));		
 	lv_page_set_style(objpage_reaptSet, LV_PAGE_STYLE_SB, &stylePage_reaptSet);
 	lv_page_set_style(objpage_reaptSet, LV_PAGE_STYLE_BG, &stylePage_reaptSet);
 	lv_page_set_sb_mode(objpage_reaptSet, LV_SB_MODE_HIDE); 	
@@ -445,7 +525,7 @@ static void lvGui_bMenuSet_B_pageReaptSet_creat(uint8_t currentWeekHoldBit){
 	styleTextPageTitle_reaptSet.text.color = LV_COLOR_BLACK;
 	objpageLabel_title = lv_label_create(objpage_reaptSet, NULL);
 	lv_obj_set_style(objpageLabel_title, &styleTextPageTitle_reaptSet);
-	lv_label_set_text(objpageLabel_title, "reapt setting");
+	lv_label_set_text(objpageLabel_title, "repeat cycle");
 	lv_obj_set_protect(objpageLabel_title, LV_PROTECT_POS);
 	lv_obj_align(objpageLabel_title, objpage_reaptSet, LV_ALIGN_IN_TOP_MID, 0, -5);
 	
@@ -460,31 +540,45 @@ static void lvGui_bMenuSet_B_pageReaptSet_creat(uint8_t currentWeekHoldBit){
 	lv_cb_set_text(objCb_dataSet_mon, " Monday");
 	lv_obj_set_protect(objCb_dataSet_mon, LV_PROTECT_POS);
 	lv_obj_set_protect(objCb_dataSet_mon, LV_PROTECT_FOLLOW);
-	lv_obj_align(objCb_dataSet_mon, objpageLabel_title, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 5);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_align(objCb_dataSet_mon, objpageLabel_title, LV_ALIGN_OUT_BOTTOM_LEFT, -60, 10)):
+		(lv_obj_align(objCb_dataSet_mon, objpageLabel_title, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 5));
 	objCb_dataSet_tues = lv_cb_create(objpage_reaptSet, NULL);
 	lv_cb_set_text(objCb_dataSet_tues, " Tuesday");
 	lv_obj_set_protect(objCb_dataSet_tues, LV_PROTECT_POS);
-	lv_obj_align(objCb_dataSet_tues, objCb_dataSet_mon, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_align(objCb_dataSet_tues, objpageLabel_title, LV_ALIGN_OUT_BOTTOM_LEFT, 65, 10)):
+		(lv_obj_align(objCb_dataSet_tues, objCb_dataSet_mon, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10));
 	objCb_dataSet_wed = lv_cb_create(objpage_reaptSet, NULL);
 	lv_cb_set_text(objCb_dataSet_wed, " Wednesday");
 	lv_obj_set_protect(objCb_dataSet_wed, LV_PROTECT_POS);
-	lv_obj_align(objCb_dataSet_wed, objCb_dataSet_tues, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_align(objCb_dataSet_wed, objCb_dataSet_mon, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10)):
+		(lv_obj_align(objCb_dataSet_wed, objCb_dataSet_tues, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10));
 	objCb_dataSet_thur = lv_cb_create(objpage_reaptSet, NULL);
 	lv_cb_set_text(objCb_dataSet_thur, " Thursday");
 	lv_obj_set_protect(objCb_dataSet_thur, LV_PROTECT_POS);
-	lv_obj_align(objCb_dataSet_thur, objCb_dataSet_wed, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_align(objCb_dataSet_thur, objCb_dataSet_tues, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10)):
+		(lv_obj_align(objCb_dataSet_thur, objCb_dataSet_wed, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10));
 	objCb_dataSet_fri = lv_cb_create(objpage_reaptSet, NULL);
 	lv_cb_set_text(objCb_dataSet_fri, " Friday");
 	lv_obj_set_protect(objCb_dataSet_fri, LV_PROTECT_POS);
-	lv_obj_align(objCb_dataSet_fri, objCb_dataSet_thur, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_align(objCb_dataSet_fri, objCb_dataSet_wed, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10)):
+		(lv_obj_align(objCb_dataSet_fri, objCb_dataSet_thur, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10));
 	objCb_dataSet_sat = lv_cb_create(objpage_reaptSet, NULL);
 	lv_cb_set_text(objCb_dataSet_sat, " Saturday");
 	lv_obj_set_protect(objCb_dataSet_sat, LV_PROTECT_POS);
-	lv_obj_align(objCb_dataSet_sat, objCb_dataSet_fri, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_align(objCb_dataSet_sat, objCb_dataSet_thur, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10)):
+		(lv_obj_align(objCb_dataSet_sat, objCb_dataSet_fri, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10));
 	objCb_dataSet_sun = lv_cb_create(objpage_reaptSet, NULL);
 	lv_cb_set_text(objCb_dataSet_sun, " Sunday");
 	lv_obj_set_protect(objCb_dataSet_sun, LV_PROTECT_POS);
-	lv_obj_align(objCb_dataSet_sun, objCb_dataSet_sat, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_align(objCb_dataSet_sun, objCb_dataSet_fri, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10)):
+		(lv_obj_align(objCb_dataSet_sun, objCb_dataSet_sat, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10));
 	lv_cb_set_style(objCb_dataSet_mon, LV_CB_STYLE_BG, &stylePageCb_reaptSet);
 	lv_cb_set_style(objCb_dataSet_tues, LV_CB_STYLE_BG, &stylePageCb_reaptSet);
 	lv_cb_set_style(objCb_dataSet_wed, LV_CB_STYLE_BG, &stylePageCb_reaptSet);
@@ -532,10 +626,14 @@ static void lvGui_bMenuSet_B_pageReaptSet_creat(uint8_t currentWeekHoldBit){
 	lv_page_glue_obj(objpageBtn_confirm, true);
 	lv_obj_set_protect(objpageBtn_confirm, LV_PROTECT_FOLLOW);
 	lv_obj_set_protect(objpageBtn_confirm, LV_PROTECT_POS);
-	lv_obj_align(objpageBtn_confirm, objpage_reaptSet, LV_ALIGN_IN_BOTTOM_LEFT, 25, -1);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_align(objpageBtn_confirm, objpage_reaptSet, LV_ALIGN_IN_BOTTOM_LEFT, 45, -1)):
+		(lv_obj_align(objpageBtn_confirm, objpage_reaptSet, LV_ALIGN_IN_BOTTOM_LEFT, 25, -1));
 	lv_btn_set_action(objpageBtn_confirm, LV_BTN_ACTION_CLICK, funCb_btnActionPress_btnPage_timerDataReapt_confirm);
 	objpageBtn_cancel = lv_btn_create(objpage_reaptSet, objpageBtn_confirm);
-	lv_obj_align(objpageBtn_cancel, objpageBtn_confirm, LV_ALIGN_CENTER, 85, 0);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_align(objpageBtn_cancel, objpage_reaptSet, LV_ALIGN_IN_BOTTOM_RIGHT, -45, -1)):
+		(lv_obj_align(objpageBtn_cancel, objpageBtn_confirm, LV_ALIGN_CENTER, 85, 0));
 	lv_btn_set_action(objpageBtn_cancel, LV_BTN_ACTION_CLICK, funCb_btnActionPress_btnPage_timerDataReapt_cancel);
 
 	lv_style_copy(&stylePageBtn_reaptSet, &lv_style_plain);
@@ -547,6 +645,8 @@ static void lvGui_bMenuSet_B_pageReaptSet_creat(uint8_t currentWeekHoldBit){
 	objpageBtnLabel_cancel = lv_label_create(objpageBtn_cancel, objpageBtnLabel_confirm);
 	lv_obj_set_style(objpageBtnLabel_cancel, &stylePageBtn_reaptSet);
 	lv_label_set_text(objpageBtnLabel_cancel, "cancel");
+
+	usrApp_fullScreenRefresh_self(20, 80);
 }
 
 static void lvGui_businessMenu_timerSetPageA(lv_obj_t * obj_Parent){
@@ -591,39 +691,89 @@ static void lvGui_businessMenu_timerSetPageA(lv_obj_t * obj_Parent){
 
 	objText_menuCurrentTitle = lv_label_create(obj_Parent, NULL);
 	lv_label_set_text(objText_menuCurrentTitle, "timer set");
-	lv_obj_set_pos(objText_menuCurrentTitle, 40, 45);
+	lv_obj_align(objText_menuCurrentTitle, NULL, LV_ALIGN_IN_BOTTOM_MID, 0, -7);
 	lv_obj_set_style(objText_menuCurrentTitle, &styleText_menuLevel_A);
 
-	menuBtnChoIcon_fun_home = lv_btn_create(obj_Parent, NULL);
-	lv_obj_set_size(menuBtnChoIcon_fun_home, 80, 20);
-	lv_obj_set_pos(menuBtnChoIcon_fun_home, 160, 45);
-	lv_obj_set_top(menuBtnChoIcon_fun_home, true);
-	lv_obj_set_free_num(menuBtnChoIcon_fun_home, LV_OBJ_FREENUM_BTNNUM_DEF_MENUHOME);
-	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_REL, &styleBtn_timerSetPageA);
-	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_PR, &styleBtn_timerSetPageA);
-	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_TGL_REL, &styleBtn_timerSetPageA);
-	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_TGL_PR, &styleBtn_timerSetPageA);
+	menuBtnChoIcon_fun_home = lv_imgbtn_create(obj_Parent, NULL);
+	lv_obj_set_size(menuBtnChoIcon_fun_home, 100, 50);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_set_pos(menuBtnChoIcon_fun_home, 220, 23)):
+		(lv_obj_set_pos(menuBtnChoIcon_fun_home, 140, 23));
+	lv_imgbtn_set_src(menuBtnChoIcon_fun_home, LV_BTN_STATE_REL, &iconMenu_funBack_homePage);
+	lv_imgbtn_set_src(menuBtnChoIcon_fun_home, LV_BTN_STATE_PR, &iconMenu_funBack_homePage);
+	lv_imgbtn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STATE_PR, &styleImg_menuFun_btnFun);
 	lv_btn_set_action(menuBtnChoIcon_fun_home, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
-	lv_btn_set_action(menuBtnChoIcon_fun_home, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
-	imgMenuBtnChoIcon_fun_home = lv_img_create(obj_Parent, NULL);
-	lv_img_set_src(imgMenuBtnChoIcon_fun_home, &iconMenu_funBack_homePage);
-	lv_obj_set_protect(imgMenuBtnChoIcon_fun_home, LV_PROTECT_POS);
-	lv_obj_align(imgMenuBtnChoIcon_fun_home, menuBtnChoIcon_fun_home, LV_ALIGN_IN_RIGHT_MID, -5, 0);
-	lv_obj_set_top(menuBtnChoIcon_fun_home, true);
+	lv_obj_set_free_num(menuBtnChoIcon_fun_home, LV_OBJ_FREENUM_BTNNUM_DEF_MENUHOME);
 
-	menuBtnChoIcon_fun_back = lv_btn_create(obj_Parent, menuBtnChoIcon_fun_home);
-	lv_obj_set_pos(menuBtnChoIcon_fun_back, 0, 45);
-	lv_obj_set_free_num(menuBtnChoIcon_fun_back, LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK);
+	menuBtnChoIcon_fun_back = lv_imgbtn_create(obj_Parent, menuBtnChoIcon_fun_home);
+	lv_obj_set_pos(menuBtnChoIcon_fun_back, 0, 22);
+	lv_imgbtn_set_src(menuBtnChoIcon_fun_back, LV_BTN_STATE_REL, &iconMenu_funBack_arrowLeft);
+	lv_imgbtn_set_src(menuBtnChoIcon_fun_back, LV_BTN_STATE_PR, &iconMenu_funBack_arrowLeft);
 	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
-	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
-	imgMenuBtnChoIcon_fun_back = lv_img_create(obj_Parent, NULL);
-	lv_img_set_src(imgMenuBtnChoIcon_fun_back, &iconMenu_funBack_arrowLeft);
-	lv_obj_set_protect(imgMenuBtnChoIcon_fun_back, LV_PROTECT_POS);
-	lv_obj_align(imgMenuBtnChoIcon_fun_back, menuBtnChoIcon_fun_back, LV_ALIGN_IN_LEFT_MID, 5, 0);
-	lv_obj_set_top(menuBtnChoIcon_fun_back, true);
+	lv_obj_set_free_num(menuBtnChoIcon_fun_back, LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK);
+
+//	menuBtnChoIcon_fun_home = lv_btn_create(obj_Parent, NULL);
+//	lv_obj_set_size(menuBtnChoIcon_fun_home, 100, 50);
+//	(devStatusDispMethod_landscapeIf_get())?
+//		(lv_obj_set_pos(menuBtnChoIcon_fun_home, 240, 25)):
+//		(lv_obj_set_pos(menuBtnChoIcon_fun_home, 160, 25));
+//	lv_obj_set_top(menuBtnChoIcon_fun_home, true);
+//	lv_obj_set_free_num(menuBtnChoIcon_fun_home, LV_OBJ_FREENUM_BTNNUM_DEF_MENUHOME);
+//	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_REL, &styleBtn_timerSetPageA);
+//	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_PR, &styleBtn_timerSetPageA);
+//	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_TGL_REL, &styleBtn_timerSetPageA);
+//	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_TGL_PR, &styleBtn_timerSetPageA);
+//	lv_btn_set_action(menuBtnChoIcon_fun_home, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
+//	lv_btn_set_action(menuBtnChoIcon_fun_home, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
+//	imgMenuBtnChoIcon_fun_home = lv_img_create(obj_Parent, NULL);
+//	lv_img_set_src(imgMenuBtnChoIcon_fun_home, &iconMenu_funBack_homePage);
+//	lv_obj_set_protect(imgMenuBtnChoIcon_fun_home, LV_PROTECT_POS);
+//	lv_obj_align(imgMenuBtnChoIcon_fun_home, menuBtnChoIcon_fun_home, LV_ALIGN_IN_RIGHT_MID, -25, 4);
+//	lv_obj_set_top(menuBtnChoIcon_fun_home, true);
+
+//	menuBtnChoIcon_fun_back = lv_btn_create(obj_Parent, menuBtnChoIcon_fun_home);
+//	lv_obj_set_pos(menuBtnChoIcon_fun_back, 0, 25);
+//	lv_obj_set_free_num(menuBtnChoIcon_fun_back, LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK);
+//	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
+//	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
+//	imgMenuBtnChoIcon_fun_back = lv_img_create(obj_Parent, NULL);
+//	lv_img_set_src(imgMenuBtnChoIcon_fun_back, &iconMenu_funBack_arrowLeft);
+//	lv_obj_set_protect(imgMenuBtnChoIcon_fun_back, LV_PROTECT_POS);
+//	lv_obj_align(imgMenuBtnChoIcon_fun_back, menuBtnChoIcon_fun_back, LV_ALIGN_IN_LEFT_MID, 5, 4);
+//	lv_obj_set_top(menuBtnChoIcon_fun_back, true);
+
+//	menuBtnChoIcon_fun_home = lv_btn_create(obj_Parent, NULL);
+//	lv_obj_set_size(menuBtnChoIcon_fun_home, 100, 50);
+//	lv_obj_set_pos(menuBtnChoIcon_fun_home, 160, 25);
+//	lv_obj_set_top(menuBtnChoIcon_fun_home, true);
+//	lv_obj_set_free_num(menuBtnChoIcon_fun_home, LV_OBJ_FREENUM_BTNNUM_DEF_MENUHOME);
+//	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_REL, &styleBtn_timerSetPageA);
+//	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_PR, &styleBtn_timerSetPageA);
+//	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_TGL_REL, &styleBtn_timerSetPageA);
+//	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_TGL_PR, &styleBtn_timerSetPageA);
+//	lv_btn_set_action(menuBtnChoIcon_fun_home, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
+//	lv_btn_set_action(menuBtnChoIcon_fun_home, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
+//	imgMenuBtnChoIcon_fun_home = lv_img_create(obj_Parent, NULL);
+//	lv_img_set_src(imgMenuBtnChoIcon_fun_home, &iconMenu_funBack_homePage);
+//	lv_obj_set_protect(imgMenuBtnChoIcon_fun_home, LV_PROTECT_POS);
+//	lv_obj_align(imgMenuBtnChoIcon_fun_home, menuBtnChoIcon_fun_home, LV_ALIGN_IN_RIGHT_MID, -25, 4);
+//	lv_obj_set_top(menuBtnChoIcon_fun_home, true);
+
+//	menuBtnChoIcon_fun_back = lv_btn_create(obj_Parent, menuBtnChoIcon_fun_home);
+//	lv_obj_set_pos(menuBtnChoIcon_fun_back, 0, 25);
+//	lv_obj_set_free_num(menuBtnChoIcon_fun_back, LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK);
+//	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
+//	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
+//	imgMenuBtnChoIcon_fun_back = lv_img_create(obj_Parent, NULL);
+//	lv_img_set_src(imgMenuBtnChoIcon_fun_back, &iconMenu_funBack_arrowLeft);
+//	lv_obj_set_protect(imgMenuBtnChoIcon_fun_back, LV_PROTECT_POS);
+//	lv_obj_align(imgMenuBtnChoIcon_fun_back, menuBtnChoIcon_fun_back, LV_ALIGN_IN_LEFT_MID, 5, 4);
+//	lv_obj_set_top(menuBtnChoIcon_fun_back, true);
 
 	page_timerSetPageA = lv_page_create(lv_scr_act(), NULL);
-	lv_obj_set_size(page_timerSetPageA, 240, 260);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_set_size(page_timerSetPageA, 320, 180)):
+		(lv_obj_set_size(page_timerSetPageA, 240, 260));
 	lv_obj_set_pos(page_timerSetPageA, 0, 75);
 	lv_style_copy(&stylePage_timerSetPageA, &lv_style_plain);
 	stylePage_timerSetPageA.body.main_color = LV_COLOR_WHITE;
@@ -638,7 +788,9 @@ static void lvGui_businessMenu_timerSetPageA(lv_obj_t * obj_Parent){
 	for(uint8_t loop = 0; loop < USRAPP_VALDEFINE_TRIGTIMER_NUM; loop ++){
 
 		lineUnit_timerSetPageA[loop] = lv_obj_create(page_timerSetPageA, NULL);
-		lv_obj_set_size(lineUnit_timerSetPageA[loop] , 234, 1);
+		(devStatusDispMethod_landscapeIf_get())?
+			(lv_obj_set_size(lineUnit_timerSetPageA[loop] , 314, 1)):
+			(lv_obj_set_size(lineUnit_timerSetPageA[loop] , 234, 1));
 		lv_obj_set_protect(lineUnit_timerSetPageA[loop], LV_PROTECT_POS);
 		lv_obj_set_pos(lineUnit_timerSetPageA[loop], 3, 65 * loop);
 	}
@@ -649,7 +801,9 @@ static void lvGui_businessMenu_timerSetPageA(lv_obj_t * obj_Parent){
 		btnUnit_timerSetPageA[loop] = lv_btn_create(page_timerSetPageA, NULL);
 		lv_obj_set_free_num(btnUnit_timerSetPageA[loop], LV_OBJ_FREENUM_BASE_BTN_TIMESETPAGEA + loop);
 		lv_btn_set_action(btnUnit_timerSetPageA[loop], LV_BTN_ACTION_CLICK, funCb_btnActionClick_timerSetPageA);
-		lv_obj_set_size(btnUnit_timerSetPageA[loop], 160, 60);
+		(devStatusDispMethod_landscapeIf_get())?
+			(lv_obj_set_size(btnUnit_timerSetPageA[loop], 240, 60)):
+			(lv_obj_set_size(btnUnit_timerSetPageA[loop], 160, 60));
 		lv_page_glue_obj(btnUnit_timerSetPageA[loop], true);
 		lv_btn_set_style(btnUnit_timerSetPageA[loop], LV_BTN_STYLE_REL, &styleBtn_timerSetPageA);
 		lv_btn_set_style(btnUnit_timerSetPageA[loop], LV_BTN_STYLE_PR, &styleBtn_timerSetPageA);
@@ -692,7 +846,7 @@ static void lvGui_businessMenu_timerSetPageA(lv_obj_t * obj_Parent){
 		memset(strTemp, 0, 31);
 		if(!usrAppTimerParamInfo[loop].tmUp_weekBitHold){
 
-			sprintf(strTemp, "no reapt");
+			sprintf(strTemp, "no repeat");
 		}
 		else
 		{
@@ -711,9 +865,11 @@ static void lvGui_businessMenu_timerSetPageA(lv_obj_t * obj_Parent){
 		lv_obj_align(labelInfoUnit_timerSetPageA[loop], labelTimeUnit_timerSetPageA[loop], LV_ALIGN_OUT_BOTTOM_LEFT, 0, 5);
 	}
 
-	vTaskDelay(50 / portTICK_PERIOD_MS);
+	vTaskDelay(20 / portTICK_PERIOD_MS);
 	lv_obj_refresh_style(page_timerSetPageA);
 	lv_obj_refresh_style(obj_Parent);
+
+	usrApp_fullScreenRefresh_self(20, 80);
 }
 
 static void lvGui_businessMenu_timerSetUnitOpreat(lv_obj_t * obj_Parent, uint8_t timerUnit_num){
@@ -721,7 +877,11 @@ static void lvGui_businessMenu_timerSetUnitOpreat(lv_obj_t * obj_Parent, uint8_t
 	char strTemp[31] = {0};
 	usrApp_trigTimer timerSetInfoTemp_currentUnit = {0};
 
-	printf("usrApp timer:%d, set opreat.\n", timerUnit_num);
+//	printf("usrApp timer:%d, set opreat.\n", timerUnit_num);
+
+	(devStatusDispMethod_landscapeIf_get())?
+		(screenLandscapeCoordinate_objOffset = 40):
+		(screenLandscapeCoordinate_objOffset = 0);
 
 	usrAppActTrigTimer_paramUnitGet(&timerSetInfoTemp_currentUnit, timerUnit_num);
 	memcpy(&timerSetInfo_temp, &timerSetInfoTemp_currentUnit, sizeof(usrApp_trigTimer));
@@ -811,7 +971,9 @@ static void lvGui_businessMenu_timerSetUnitOpreat(lv_obj_t * obj_Parent, uint8_t
 	lv_obj_set_top(labelTitle_setInfo_cancel, true);
 	
 	bGround_obj = lv_page_create(lv_scr_act(), NULL);
-	lv_obj_set_size(bGround_obj, 240, 245);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_set_size(bGround_obj, 320, 165)):
+		(lv_obj_set_size(bGround_obj, 240, 245));
 	lv_obj_set_pos(bGround_obj, 0, 75);
 	lv_style_copy(&styleBk_objBground, &lv_style_plain); 
 	styleBk_objBground.body.main_color = LV_COLOR_WHITE;
@@ -820,12 +982,14 @@ static void lvGui_businessMenu_timerSetUnitOpreat(lv_obj_t * obj_Parent, uint8_t
 	lv_page_set_style(bGround_obj, LV_PAGE_STYLE_BG, &styleBk_objBground);
 	lv_page_set_sb_mode(bGround_obj, LV_SB_MODE_HIDE); 	
 	lv_page_set_scrl_fit(bGround_obj, false, true); //key opration
-	lv_page_set_scrl_height(bGround_obj, 300);
+	lv_page_set_scrl_height(bGround_obj, 410);
 	lv_page_set_scrl_layout(bGround_obj, LV_LAYOUT_PRETTY);
 
 	//设置类分割线绘制
 	objLine_timeSet_limit_A = lv_obj_create(bGround_obj, NULL);
-	lv_obj_set_size(objLine_timeSet_limit_A , 226, 1);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_set_size(objLine_timeSet_limit_A , 306, 1)):
+		(lv_obj_set_size(objLine_timeSet_limit_A , 226, 1));
 	lv_obj_set_protect(objLine_timeSet_limit_A, LV_PROTECT_POS);
 	lv_obj_align(objLine_timeSet_limit_A, bGround_obj, LV_ALIGN_IN_BOTTOM_LEFT, 0, 0);
 	objLine_timeSet_limit_B = lv_obj_create(bGround_obj, objLine_timeSet_limit_A);
@@ -845,7 +1009,7 @@ static void lvGui_businessMenu_timerSetUnitOpreat(lv_obj_t * obj_Parent, uint8_t
 	lv_obj_align(objLabel_setChoiceTitle_switchSet, objLine_timeSet_limit_A, LV_ALIGN_OUT_BOTTOM_LEFT, 10, 9);
 	objLabel_setChoiceTitle_reaptSet = lv_label_create(bGround_obj, NULL);
 	lv_obj_set_style(objLabel_setChoiceTitle_reaptSet, &styleText_menuSetChoiceTitle);
-	lv_label_set_text(objLabel_setChoiceTitle_reaptSet, "reapt setting:");
+	lv_label_set_text(objLabel_setChoiceTitle_reaptSet, "repeat setting:");
 	lv_obj_set_protect(objLabel_setChoiceTitle_reaptSet, LV_PROTECT_POS);
 	lv_obj_align(objLabel_setChoiceTitle_reaptSet, objLine_timeSet_limit_B, LV_ALIGN_OUT_BOTTOM_LEFT, 10, 9);
 	objLabel_setChoiceTitle_timeSet = lv_label_create(bGround_obj, NULL);
@@ -933,7 +1097,9 @@ static void lvGui_businessMenu_timerSetUnitOpreat(lv_obj_t * obj_Parent, uint8_t
     lv_btn_set_style(objBtn_reaptSet, LV_BTN_STYLE_TGL_REL, &styleBtn_specialTransparent_rel);
     lv_btn_set_style(objBtn_reaptSet, LV_BTN_STYLE_TGL_PR, &styleBtn_specialTransparent_pr);
 	lv_btn_set_fit(objBtn_reaptSet, false, false);
-	lv_obj_set_size(objBtn_reaptSet, 200, 55);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_set_size(objBtn_reaptSet, 260, 55)):
+		(lv_obj_set_size(objBtn_reaptSet, 200, 55));
 	lv_page_glue_obj(objBtn_reaptSet, true);
 	lv_obj_set_protect(objBtn_reaptSet, LV_PROTECT_FOLLOW);
 	lv_obj_set_protect(objBtn_reaptSet, LV_PROTECT_POS);
@@ -946,14 +1112,16 @@ static void lvGui_businessMenu_timerSetUnitOpreat(lv_obj_t * obj_Parent, uint8_t
 	styleText_menuReaptSet.text.color = LV_COLOR_MAKE(99, 94, 168);
 	objLabel_reaptSet = lv_label_create(objBtn_reaptSet, NULL);
 	lv_obj_set_style(objLabel_reaptSet, &styleText_menuReaptSet);
-	lv_label_set_text(objLabel_reaptSet, "reapt loop");
+	lv_label_set_text(objLabel_reaptSet, "repeat cycle");
 	lv_obj_set_protect(objLabel_reaptSet, LV_PROTECT_POS);
-	lv_obj_align(objLabel_reaptSet, objBtn_reaptSet, LV_ALIGN_IN_TOP_LEFT, 40, 10);
+	lv_obj_align(objLabel_reaptSet, objBtn_reaptSet, LV_ALIGN_IN_TOP_LEFT, 40 + screenLandscapeCoordinate_objOffset, 10);
 	objLabel_reaptSetT = lv_label_create(objBtn_reaptSet, NULL);
 	lv_obj_set_style(objLabel_reaptSetT, &styleText_menuReaptSet);
 	lv_label_set_text(objLabel_reaptSetT, ">");
 	lv_obj_set_protect(objLabel_reaptSetT, LV_PROTECT_POS);
-	lv_obj_align(objLabel_reaptSetT, objBtn_reaptSet, LV_ALIGN_IN_RIGHT_MID, 0, 0);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_align(objLabel_reaptSetT, objBtn_reaptSet, LV_ALIGN_IN_RIGHT_MID, -15, 0)):
+		(lv_obj_align(objLabel_reaptSetT, objBtn_reaptSet, LV_ALIGN_IN_RIGHT_MID, 0, 0));
 
 	lv_style_copy(&styleText_menuReaptRem, &lv_style_plain);
 	styleText_menuReaptRem.text.font = &lv_font_dejavu_15;
@@ -965,7 +1133,7 @@ static void lvGui_businessMenu_timerSetUnitOpreat(lv_obj_t * obj_Parent, uint8_t
 	memset(strTemp, 0, 31);
 	if(!timerSetInfoTemp_currentUnit.tmUp_weekBitHold){
 	
-		sprintf(strTemp, "no reapt");
+		sprintf(strTemp, "no repeat");
 	}
 	else
 	{
@@ -977,7 +1145,7 @@ static void lvGui_businessMenu_timerSetUnitOpreat(lv_obj_t * obj_Parent, uint8_t
 	}
 	lv_label_set_text(objLabel_reaptRem, strTemp);
 	lv_obj_set_protect(objLabel_reaptRem, LV_PROTECT_POS);
-	lv_obj_align(objLabel_reaptRem, objBtn_reaptSet, LV_ALIGN_IN_BOTTOM_LEFT, 40, 0);
+	lv_obj_align(objLabel_reaptRem, objBtn_reaptSet, LV_ALIGN_IN_BOTTOM_LEFT, 40 + screenLandscapeCoordinate_objOffset, 0);
 
 	lv_style_copy(&styleRoller_timeSet_bg, &lv_style_plain);
 	styleRoller_timeSet_bg.body.main_color = LV_COLOR_WHITE;
@@ -1000,7 +1168,7 @@ static void lvGui_businessMenu_timerSetUnitOpreat(lv_obj_t * obj_Parent, uint8_t
 	lv_obj_set_protect(objRoller_timeSet_hour, LV_PROTECT_POS);
 	lv_roller_set_hor_fit(objRoller_timeSet_hour, false);
 	lv_obj_set_width(objRoller_timeSet_hour, 40);
-	lv_obj_align(objRoller_timeSet_hour, objLine_timeSet_limit_C, LV_ALIGN_OUT_BOTTOM_LEFT, 40, 35);
+	lv_obj_align(objRoller_timeSet_hour, objLine_timeSet_limit_C, LV_ALIGN_OUT_BOTTOM_LEFT, 40 + screenLandscapeCoordinate_objOffset, 35);
 	lv_page_glue_obj(objRoller_timeSet_hour, true);
 	lv_roller_set_selected(objRoller_timeSet_hour, timerSetInfoTemp_currentUnit.tmUp_Hour, false);
 
@@ -1045,6 +1213,14 @@ static void lvGui_businessMenu_timerSetUnitOpreat(lv_obj_t * obj_Parent, uint8_t
 	lv_obj_set_protect(objLabel_timeSet_minute, LV_PROTECT_POS);
 	lv_obj_align(objLabel_timeSet_minute, objRoller_timeSet_minute, LV_ALIGN_CENTER, 35, 0);
 	lv_obj_set_style(objLabel_timeSet_minute, &styleText_menuTimeSet);
+
+	lv_page_focus(bGround_obj, objLabel_timeSet_minute, 500);
+
+	vTaskDelay(20 / portTICK_PERIOD_MS);
+	lv_obj_refresh_style(bGround_obj);
+	lv_obj_refresh_style(obj_Parent);
+
+	usrApp_fullScreenRefresh_self(20, 0);
 }
 
 void lvGui_businessMenu_timerSet(lv_obj_t * obj_Parent){

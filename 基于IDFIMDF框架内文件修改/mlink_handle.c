@@ -28,6 +28,11 @@
 #include "mupgrade.h"
 
 #include "devDriver_manage.h"
+#include "bussiness_timerSoft.h"
+#include "bussiness_timerHard.h"
+
+#include "dataTrans_meshUpgrade.h"
+
 
 #define MLINK_RESTART_DELAY_TIME_MS (5000)
 #define MLINK_HANDLES_MAX_SIZE      (64)
@@ -354,6 +359,7 @@ static mdf_err_t mlink_handle_get_status(mlink_handle_data_t *handle_data)
         char *tmp_str = NULL;
 
         switch (mlink_get_characteristics_format(cids[i])) {
+			
             case CHARACTERISTIC_FORMAT_INT:{
 
 				extern void lvGui_wifiConfig_bussiness_configComplete_tipsTrig(void);
@@ -385,7 +391,15 @@ static mdf_err_t mlink_handle_get_status(mlink_handle_data_t *handle_data)
 				mlink_json_pack(&tmp_str, "mac", (char *)mac_str);
 				mlink_json_pack(&tmp_str, "value", (int)devData_temp);
 
+#if(L8_DEVICE_TYPE_PANEL_DEF == DEV_TYPES_PANEL_DEF_INDEP_INFRARED)|\
+   (L8_DEVICE_TYPE_PANEL_DEF == DEV_TYPES_PANEL_DEF_INDEP_SOCKET)|\
+   (L8_DEVICE_TYPE_PANEL_DEF == DEV_TYPES_PANEL_DEF_INDEP_MOUDLE)
+											
+				devBeepTips_trig(4, 8, 100, 40, 2); //beeps提示
+#else
 				lvGui_wifiConfig_bussiness_configComplete_tipsTrig();
+#endif
+
 
 			}break;
 
@@ -556,7 +570,44 @@ static mdf_err_t mlink_handle_set_position(mlink_handle_data_t *handle_data)
     return MDF_OK;
 }
 
-static mdf_err_t mlink_handle_get_ota_progress(mlink_handle_data_t *handle_data)
+static mdf_err_t mlink_handle_get_ota_implement(mlink_handle_data_t *handle_data){
+
+	uint8_t implementVal = 0;
+	mdf_err_t ret = ESP_OK;
+
+	ret = mlink_json_parse(handle_data->req_data, "implement", &implementVal);
+	if(ret != ESP_OK){
+
+		printf("json ota_implement format err.\n");
+		return ESP_OK;
+	}
+
+	printf("json req ota_implement, val:%d.\n", implementVal);
+
+	if(1 == implementVal){
+
+		usrApp_firewareUpgrade_trig(currentDev_typeGet(), true);
+	}
+
+	return ESP_OK;
+}
+
+static mdf_err_t mlink_handle_get_ota_h_progress(mlink_handle_data_t *handle_data){
+
+	stt_statusParam_httpUpgrade rmOtaStatusParam_temp = {0};
+
+	usrApp_httpUpgradeProgress_paramGet(&rmOtaStatusParam_temp);
+
+    mlink_json_pack(&handle_data->resp_data, "downloading_now", (uint8_t)rmOtaStatusParam_temp.downloading_if);
+    mlink_json_pack(&handle_data->resp_data, "total_size", rmOtaStatusParam_temp.firwareTotal_size);
+    mlink_json_pack(&handle_data->resp_data, "written_size", rmOtaStatusParam_temp.firwareRecv_size);
+
+	handle_data->resp_size = strlen(handle_data->resp_data);
+
+	return MDF_OK;
+}
+
+static mdf_err_t mlink_handle_get_ota_s_progress(mlink_handle_data_t *handle_data)
 {
     mdf_err_t ret            = MDF_OK;
     mupgrade_status_t status = {0x0};
@@ -643,23 +694,103 @@ static mdf_err_t mlink_handle_set_config(mlink_handle_data_t *handle_data)
 
 static mdf_err_t mlink_handle_set_usrAppTrigTimer(mlink_handle_data_t *handle_data){
 
+
+
+	return ESP_OK;
+}
+
+static mdf_err_t mlink_handle_set_background(mlink_handle_data_t *handle_data){
+
+	
+
+	return ESP_OK;
+}
+
+static mdf_err_t mlink_handle_set_mqttIp(mlink_handle_data_t *handle_data){
+
+	mdf_err_t ret = ESP_OK;
+	stt_mqttCfgParam dtMqttParamTemp = {
+	
+		.ip_remote = MQTT_REMOTE_DATATRANS_PARAM_IP_DEF,
+		.port_remote = MQTT_REMOTE_DATATRANS_PARAM_PORT_DEF,
+	};
+	char 	 paramInfoTemp_ip[32] = {0};
+	uint32_t paramInfoTemp_port = 0;
+
+    ret = mlink_json_parse(handle_data->req_data, "ip", paramInfoTemp_ip);
+	if(ret != ESP_OK){
+
+		printf("json rm ip format err.\n");
+		return ESP_OK;
+	}
+	sscanf(paramInfoTemp_ip, "%d.%d.%d.%d", (int *)&dtMqttParamTemp.ip_remote[0],
+											(int *)&dtMqttParamTemp.ip_remote[1],
+											(int *)&dtMqttParamTemp.ip_remote[2],
+											(int *)&dtMqttParamTemp.ip_remote[3]);
+	
+	ret = mlink_json_parse(handle_data->req_data, "port", &paramInfoTemp_port);
+	if(ret != ESP_OK){
+
+		printf("json rm port format err.\n");
+		return ESP_OK;
+	}
+	dtMqttParamTemp.port_remote = paramInfoTemp_port;
+
+	mqttRemoteConnectCfg_paramSet(&dtMqttParamTemp, true);
+	printf("json req mqttIpSet, ip:%d.%d.%d.%d - port:%d.\n", dtMqttParamTemp.ip_remote[0],
+															  dtMqttParamTemp.ip_remote[1],
+															  dtMqttParamTemp.ip_remote[2],
+															  dtMqttParamTemp.ip_remote[3],
+															  dtMqttParamTemp.port_remote);
+	
+	return ESP_OK;
+}
+
+static mdf_err_t mlink_handle_set_timeZone(mlink_handle_data_t *handle_data){
+
+	stt_timeZone timeZoneParamTemp = {0};
+	mdf_err_t ret = ESP_OK;
+
+    ret = mlink_json_parse(handle_data->req_data, "tzHour", &timeZoneParamTemp.timeZone_H);
+	if(ret != ESP_OK){
+
+		printf("json time zone h format err.\n");
+		return ESP_OK;
+	}
+	
+	ret = mlink_json_parse(handle_data->req_data, "tzMinute", &timeZoneParamTemp.timeZone_M);
+	if(ret != ESP_OK){
+
+		printf("json time zone m port format err.\n");
+		return ESP_OK;
+	}
+
+	deviceParamSet_timeZone(&timeZoneParamTemp, true);
+	printf("json req timeZoneSet, tH:%d-tM:%d\n", timeZoneParamTemp.timeZone_H,
+												  timeZoneParamTemp.timeZone_M);
+	
 	return ESP_OK;
 }
 
 static mlink_handle_t g_handles_list[MLINK_HANDLES_MAX_SIZE] = {
-    {"reset",            mlink_handle_system_reset},
-    {"reboot",           mlink_handle_system_reboot},
-    {"get_device_info",  mlink_handle_get_info},
-    {"get_status",       mlink_handle_get_status},
-    {"set_status",       mlink_handle_set_status},
-    {"add_device",       mlink_handle_add_device},
-    {"rename_device",    mlink_handle_set_name},
-    {"set_position",     mlink_handle_set_position},
-    {"get_ota_progress", mlink_handle_get_ota_progress},
-    {"set_ota_fallback", mlink_handle_set_ota_fallback},
-    {"get_mesh_config",  mlink_handle_get_config},
-    {"set_mesh_config",  mlink_handle_set_config},
-    {"set_appTimer",  	 mlink_handle_set_usrAppTrigTimer},
+    {"reset",            	mlink_handle_system_reset},
+    {"reboot",           	mlink_handle_system_reboot},
+    {"get_device_info",  	mlink_handle_get_info},
+    {"get_status",       	mlink_handle_get_status},
+    {"set_status",       	mlink_handle_set_status},
+    {"add_device",       	mlink_handle_add_device},
+    {"rename_device",    	mlink_handle_set_name},
+    {"set_position",     	mlink_handle_set_position},
+    {"set_ota_implement",	mlink_handle_get_ota_implement},
+    {"get_ota_h_progress", 	mlink_handle_get_ota_h_progress},
+    {"get_ota_s_progress", 	mlink_handle_get_ota_s_progress},
+    {"set_ota_fallback", 	mlink_handle_set_ota_fallback},
+    {"get_mesh_config",  	mlink_handle_get_config},
+    {"set_mesh_config",  	mlink_handle_set_config},
+    {"set_appTimer",  	 	mlink_handle_set_usrAppTrigTimer},
+    {"set_backgroundPic",	mlink_handle_set_background},
+    {"set_mqttIp",		 	mlink_handle_set_mqttIp},	
+    {"set_timeZone",	 	mlink_handle_set_timeZone},
     {NULL,              NULL},
 };
 
@@ -711,6 +842,17 @@ mdf_err_t mlink_handle(const uint8_t *src_addr, const mlink_httpd_type_t *type,
 
     MDF_ERROR_GOTO(type->format != MLINK_HTTPD_FORMAT_JSON, EXIT,
                    "The current version only supports the json protocol");
+
+//	printf("dataRcv[Len:%d]:%02X %02X %02X %02X %02X %02X %02X %02X %02X.\n", handle_data.req_size,
+//																			  handle_data.req_data[0],
+//																			  handle_data.req_data[1],
+//																			  handle_data.req_data[2],
+//																			  handle_data.req_data[3],
+//																			  handle_data.req_data[4],
+//																			  handle_data.req_data[5],
+//																			  handle_data.req_data[6],
+//																			  handle_data.req_data[7],
+//																			  handle_data.req_data[8]);
 
     ret = mlink_json_parse(handle_data.req_data, "request", func_name);
     MDF_ERROR_GOTO(ret != MDF_OK, EXIT, "mlink_json_parse, ret: %d, key: %s, value: %.*s",

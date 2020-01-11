@@ -17,15 +17,24 @@
 #define DEVDRIVER_CURTAIN_GPIO_OUTPUT_IO_RLY1     	27
 #define DEVDRIVER_CURTAIN_GPIO_OUTPUT_IO_RLY2     	14
 #define DEVDRIVER_CURTAIN_GPIO_OUTPUT_IO_RLY3     	12
-#define DEVDRIVER_CURTAIN_ACTION_OPEN()				gpio_set_level(DEVDRIVER_CURTAIN_GPIO_OUTPUT_IO_RLY1, (uint32_t)0);\
+
+#if(DEVICE_DRIVER_DEFINITION == DEVICE_DRIVER_METHOD_BY_SLAVE_MCU)
+
+ #define DEVDRIVER_CURTAIN_ACTION_OPEN()			devDriverAppFromISR_statusExexuteBySlaveMcu(0x02)
+ #define DEVDRIVER_CURTAIN_ACTION_STOP()			devDriverAppFromISR_statusExexuteBySlaveMcu(0x00)
+ #define DEVDRIVER_CURTAIN_ACTION_CLOSE()			devDriverAppFromISR_statusExexuteBySlaveMcu(0x01)
+#else
+
+ #define DEVDRIVER_CURTAIN_ACTION_OPEN()			gpio_set_level(DEVDRIVER_CURTAIN_GPIO_OUTPUT_IO_RLY1, (uint32_t)0);\
 													gpio_set_level(DEVDRIVER_CURTAIN_GPIO_OUTPUT_IO_RLY2, (uint32_t)1);\
 													gpio_set_level(DEVDRIVER_CURTAIN_GPIO_OUTPUT_IO_RLY3, (uint32_t)0)
-#define DEVDRIVER_CURTAIN_ACTION_STOP()				gpio_set_level(DEVDRIVER_CURTAIN_GPIO_OUTPUT_IO_RLY1, (uint32_t)0);\
+ #define DEVDRIVER_CURTAIN_ACTION_STOP()			gpio_set_level(DEVDRIVER_CURTAIN_GPIO_OUTPUT_IO_RLY1, (uint32_t)0);\
 													gpio_set_level(DEVDRIVER_CURTAIN_GPIO_OUTPUT_IO_RLY2, (uint32_t)0);\
 													gpio_set_level(DEVDRIVER_CURTAIN_GPIO_OUTPUT_IO_RLY3, (uint32_t)0)
-#define DEVDRIVER_CURTAIN_ACTION_CLOSE()			gpio_set_level(DEVDRIVER_CURTAIN_GPIO_OUTPUT_IO_RLY1, (uint32_t)1);\
+ #define DEVDRIVER_CURTAIN_ACTION_CLOSE()			gpio_set_level(DEVDRIVER_CURTAIN_GPIO_OUTPUT_IO_RLY1, (uint32_t)0);\
 													gpio_set_level(DEVDRIVER_CURTAIN_GPIO_OUTPUT_IO_RLY2, (uint32_t)0);\
-													gpio_set_level(DEVDRIVER_CURTAIN_GPIO_OUTPUT_IO_RLY3, (uint32_t)0)
+													gpio_set_level(DEVDRIVER_CURTAIN_GPIO_OUTPUT_IO_RLY3, (uint32_t)1)
+#endif
 
 static bool devDriver_moudleInitialize_Flg = false;
 
@@ -77,7 +86,8 @@ void devDriverBussiness_curtainSwitch_periphInit(void){
 	devTypeDef_enum swCurrentDevType = currentDev_typeGet();
 	gpio_config_t io_conf = {0};
 
-	if(swCurrentDevType != devTypeDef_curtain)return;
+	if((swCurrentDevType != devTypeDef_curtain) &&
+		(swCurrentDevType != devTypeDef_moudleSwCurtain))return;
 	
 	//disable interrupt
 	io_conf.intr_type = GPIO_PIN_INTR_DISABLE;
@@ -106,21 +116,32 @@ void devDriverBussiness_curtainSwitch_moudleInit(void){
 
 	devTypeDef_enum swCurrentDevType = currentDev_typeGet();
 
-	if(swCurrentDevType != devTypeDef_curtain)return;
+	if((swCurrentDevType != devTypeDef_curtain) &&
+	   (swCurrentDevType != devTypeDef_moudleSwCurtain))return;
 	if(devDriver_moudleInitialize_Flg)return;
 
-	devDriverBussiness_curtainSwitch_periphInit();
+#if(DEVICE_DRIVER_DEFINITION == DEVICE_DRIVER_METHOD_BY_SLAVE_MCU)
+			
+#else
+
+	devDriverBussiness_curtainSwitch_periphInit();	
+#endif
 
 	msgQh_devCurtainDriver = xQueueCreate(1, sizeof(stt_msgDats_devCurtainDriver)); //队列长度为1，保证实时性
 
-	devDriver_moudleInitialize_Flg = true;
+	devDriver_moudleInitialize_Flg = true;	
 }
 
 void devDriverBussiness_curtainSwitch_moudleDeinit(void){
 
 	if(!devDriver_moudleInitialize_Flg)return;
 
+#if(DEVICE_DRIVER_DEFINITION == DEVICE_DRIVER_METHOD_BY_SLAVE_MCU)
+				
+#else
+
 	devDriverBussiness_curtainSwitch_periphDeinit();
+#endif
 
 	vQueueDelete(msgQh_devCurtainDriver);
 	msgQh_devCurtainDriver = NULL;
@@ -210,8 +231,17 @@ bool IRAM_ATTR devDriverBussiness_curtainSwitch_devRunningDetect(void){ //开关
 
 				if(devParam_curtain.devRunningParam.act_period){ //轨道时间不为零则返停
 
+					stt_devDataPonitTypedef devDataPoint = {0};
+
+					currentDev_dataPointGet(&devDataPoint);
+
 					devParam_curtain.devRunningParam.act_counter = 0;
 					devParam_curtain.act = curtainRunningStatus_cTact_stop;
+
+					devDataPoint.devType_curtain.devCurtain_actEnumVal = curtainRunningStatus_cTact_stop;
+					currentDev_dataPointRecovery(&devDataPoint);
+
+					deviceDatapointSynchronousReport_actionTrig(); //状态反向同步
 				}
 			}
 
@@ -224,10 +254,19 @@ bool IRAM_ATTR devDriverBussiness_curtainSwitch_devRunningDetect(void){ //开关
 			if(devParam_curtain.devRunningParam.act_counter < devParam_curtain.devRunningParam.act_period)devParam_curtain.devRunningParam.act_counter ++;
 			else{
 
-				if(devParam_curtain.devRunningParam.act_period){ //轨道时间不为零则返停
+				if(devParam_curtain.devRunningParam.act_period){ //轨道时间溢出返停
+
+					stt_devDataPonitTypedef devDataPoint = {0};
 					
+					currentDev_dataPointGet(&devDataPoint);
+				
 					devParam_curtain.devRunningParam.act_counter = devParam_curtain.devRunningParam.act_period;
 					devParam_curtain.act = curtainRunningStatus_cTact_stop;
+
+					devDataPoint.devType_curtain.devCurtain_actEnumVal = curtainRunningStatus_cTact_stop;
+					currentDev_dataPointRecovery(&devDataPoint);
+
+					deviceDatapointSynchronousReport_actionTrig(); //状态反向同步
 				}
 			}
 
@@ -271,7 +310,8 @@ static void devDriverBussiness_curtainSwitch_periphStatusRealesByBtn(stt_devData
 
 	devTypeDef_enum swCurrentDevType = currentDev_typeGet();
 
-	if(swCurrentDevType == devTypeDef_curtain){
+	if((swCurrentDevType == devTypeDef_curtain) ||
+	   (swCurrentDevType == devTypeDef_moudleSwCurtain)){
 
 		devParam_curtain.act = param->devType_curtain.devCurtain_actEnumVal;
 
@@ -295,7 +335,8 @@ static void devDriverBussiness_curtainSwitch_periphStatusRealesBySlide(stt_devDa
 
 	devTypeDef_enum swCurrentDevType = currentDev_typeGet();
 
-	if(swCurrentDevType == devTypeDef_curtain){
+	if((swCurrentDevType == devTypeDef_curtain) ||
+	   (swCurrentDevType == devTypeDef_moudleSwCurtain)){
 
 		devParam_curtain.act = curtainRunningStatus_cTact_custom;
 	

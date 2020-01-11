@@ -36,6 +36,9 @@ void lvGui_businessMenu_wifiConfig(lv_obj_t * obj_Parent);
 
 void lvGui_wifiConfig_bussiness_configComplete_tipsTrig(void);
 void lvGui_wifiConfig_bussiness_configComplete_tipsDetect(void);
+void lvGui_wifiConfig_bussiness_configFail_tipsTrig(uint8_t tipsTime, uint8_t err);
+
+void guiDispTimeOut_pageWifiCfg(void);
 
 #ifdef __cplusplus
 } /* extern "C" */

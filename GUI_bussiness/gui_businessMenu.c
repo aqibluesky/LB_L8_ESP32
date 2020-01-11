@@ -20,6 +20,10 @@
 #include "gui_businessMenu.h"
 #include "gui_businessHome.h"
 
+#include "dataTrans_remoteServer.h"
+
+#include "devDriver_manage.h"
+
 LV_FONT_DECLARE(lv_font_dejavu_15)
 
 LV_IMG_DECLARE(iconMenu_linkageConfig);
@@ -30,11 +34,14 @@ LV_IMG_DECLARE(iconMenu_other);
 LV_IMG_DECLARE(iconMenu_setting);
 LV_IMG_DECLARE(iconMenu_bkPR);
 LV_IMG_DECLARE(iconMenu_bkREL);
+LV_IMG_DECLARE(iconMenu_bkPRSl);
+LV_IMG_DECLARE(iconMenu_bkRELSl);
 LV_IMG_DECLARE(iconMenu_funBack);
 LV_IMG_DECLARE(imageBtn_feedBackNormal);
 
 static lv_style_t styleText_menuLevel_A;
 static lv_style_t styleText_menuLevel_B;
+static lv_style_t styleBtn_menuBack_press;
 
 static lv_res_t funCb_btnActionClick_menuBtn_funBack(lv_obj_t *btn){
 
@@ -45,8 +52,8 @@ static lv_res_t funCb_btnActionClick_menuBtn_funBack(lv_obj_t *btn){
 
 static lv_res_t funCb_btnActionPress_menuBtn_funBack(lv_obj_t *btn){
 
-	lv_obj_t *btnFeedBk = lv_img_create(btn, NULL);
-	lv_img_set_src(btnFeedBk, &imageBtn_feedBackNormal);
+//	lv_obj_t *btnFeedBk = lv_img_create(btn, NULL);
+//	lv_img_set_src(btnFeedBk, &imageBtn_feedBackNormal);
 
 	return LV_RES_OK;
 }
@@ -120,19 +127,33 @@ void lvGui_businessMenu(lv_obj_t * obj_Parent){
 	lv_obj_t * menuTextCho_setting;
 	lv_obj_t * menuTextCho_wifiConfig;
 
+	devFireware_upgradeReserveCheck_trigByEvent(); //每次进入菜单check一次upgrade
+
 	lv_style_copy(&styleText_menuLevel_A, &lv_style_plain);
 	styleText_menuLevel_A.text.font = &lv_font_dejavu_30;
 	styleText_menuLevel_A.text.color = LV_COLOR_WHITE;
 
+	lv_style_copy(&styleBtn_menuBack_press, &lv_style_plain);
+	styleBtn_menuBack_press.image.color = LV_COLOR_SILVER;
+	styleBtn_menuBack_press.image.intense = LV_OPA_50;
+
 	text_Title = lv_label_create(obj_Parent, NULL);
 	lv_label_set_text(text_Title, "Menu");
-	lv_obj_set_pos(text_Title, 90, 40);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_set_pos(text_Title, 135, 25)):
+		(lv_obj_set_pos(text_Title, 90, 40));
 	lv_obj_set_style(text_Title, &styleText_menuLevel_A);
 
 	menuBtnChoIcon_fun_back = lv_imgbtn_create(obj_Parent, NULL);
 	lv_imgbtn_set_src(menuBtnChoIcon_fun_back, LV_BTN_STATE_REL, &iconMenu_funBack);
 	lv_imgbtn_set_src(menuBtnChoIcon_fun_back, LV_BTN_STATE_PR, &iconMenu_funBack);
-	lv_obj_set_pos(menuBtnChoIcon_fun_back, 8, 35);
+
+	lv_imgbtn_set_style(menuBtnChoIcon_fun_back, LV_BTN_STATE_PR, &styleBtn_menuBack_press);
+//	lv_imgbtn_set_style(menuBtnChoIcon_fun_back, LV_BTN_STATE_PR, &styleBtn_devMulitSw_statusOn);
+	
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_set_pos(menuBtnChoIcon_fun_back, 8, 20)):
+		(lv_obj_set_pos(menuBtnChoIcon_fun_back, 8, 35));
 	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
 	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
 	lv_obj_set_click(menuBtnChoIcon_fun_back, false);
@@ -140,27 +161,40 @@ void lvGui_businessMenu(lv_obj_t * obj_Parent){
 	lv_obj_animate(text_Title, 		 		LV_ANIM_FLOAT_LEFT, 100,   0, NULL);
 	lv_obj_animate(menuBtnChoIcon_fun_back, LV_ANIM_FLOAT_LEFT, 100,  50, NULL);
 
-	menuBtnChoIcon_other = lv_imgbtn_create(obj_Parent, NULL);
-	lv_imgbtn_set_src(menuBtnChoIcon_other, LV_BTN_STATE_REL, &iconMenu_bkREL);
-	lv_imgbtn_set_src(menuBtnChoIcon_other, LV_BTN_STATE_PR, &iconMenu_bkPR);
-	lv_obj_set_pos(menuBtnChoIcon_other, 5, 74);
-	menuBtnChoIcon_delayer = lv_imgbtn_create(obj_Parent, menuBtnChoIcon_other);
-	lv_obj_set_pos(menuBtnChoIcon_other, 121, 74);
-	menuBtnChoIcon_timer = lv_imgbtn_create(obj_Parent, menuBtnChoIcon_other);
-	lv_obj_set_pos(menuBtnChoIcon_other, 5, 156);
-	menuBtnChoIcon_linkageConfig = lv_imgbtn_create(obj_Parent, menuBtnChoIcon_other);
-	lv_obj_set_pos(menuBtnChoIcon_other, 121, 156);
-	menuBtnChoIcon_setting = lv_imgbtn_create(obj_Parent, menuBtnChoIcon_other);
-	lv_obj_set_pos(menuBtnChoIcon_other, 5, 238);
-	menuBtnChoIcon_wifiConfig = lv_imgbtn_create(obj_Parent, menuBtnChoIcon_other);
-	lv_obj_set_pos(menuBtnChoIcon_other, 121, 238);
+	if(devStatusDispMethod_landscapeIf_get()){
 
-	lv_obj_animate(menuBtnChoIcon_delayer, 		 LV_ANIM_FLOAT_LEFT, 50,    0, NULL);
-	lv_obj_animate(menuBtnChoIcon_linkageConfig, LV_ANIM_FLOAT_LEFT, 50,   25, NULL);
-	lv_obj_animate(menuBtnChoIcon_wifiConfig, 	 LV_ANIM_FLOAT_LEFT, 50,   50, NULL);
-	lv_obj_animate(menuBtnChoIcon_timer, 		 LV_ANIM_FLOAT_LEFT, 100,  25, NULL);
-	lv_obj_animate(menuBtnChoIcon_setting, 		 LV_ANIM_FLOAT_LEFT, 100,  50, NULL);
-	lv_obj_animate(menuBtnChoIcon_other,		 LV_ANIM_FLOAT_LEFT, 100, 100, NULL);
+		menuBtnChoIcon_other = lv_imgbtn_create(obj_Parent, NULL);
+		lv_imgbtn_set_src(menuBtnChoIcon_other, LV_BTN_STATE_REL, &iconMenu_bkRELSl);
+		lv_imgbtn_set_src(menuBtnChoIcon_other, LV_BTN_STATE_PR, &iconMenu_bkPRSl);
+		lv_obj_set_pos(menuBtnChoIcon_other, 214, 150);
+		menuBtnChoIcon_delayer = lv_imgbtn_create(obj_Parent, menuBtnChoIcon_other);
+		lv_obj_set_pos(menuBtnChoIcon_delayer, 108, 60);
+		menuBtnChoIcon_timer = lv_imgbtn_create(obj_Parent, menuBtnChoIcon_other);
+		lv_obj_set_pos(menuBtnChoIcon_timer, 2, 60);
+		menuBtnChoIcon_linkageConfig = lv_imgbtn_create(obj_Parent, menuBtnChoIcon_other);
+		lv_obj_set_pos(menuBtnChoIcon_linkageConfig, 214, 60);
+		menuBtnChoIcon_setting = lv_imgbtn_create(obj_Parent, menuBtnChoIcon_other);
+		lv_obj_set_pos(menuBtnChoIcon_setting, 108, 150);
+		menuBtnChoIcon_wifiConfig = lv_imgbtn_create(obj_Parent, menuBtnChoIcon_other);
+		lv_obj_set_pos(menuBtnChoIcon_wifiConfig, 2, 150);
+	}
+	else
+	{
+		menuBtnChoIcon_other = lv_imgbtn_create(obj_Parent, NULL);
+		lv_imgbtn_set_src(menuBtnChoIcon_other, LV_BTN_STATE_REL, &iconMenu_bkREL);
+		lv_imgbtn_set_src(menuBtnChoIcon_other, LV_BTN_STATE_PR, &iconMenu_bkPR);
+		lv_obj_set_pos(menuBtnChoIcon_other, 121, 238);
+		menuBtnChoIcon_delayer = lv_imgbtn_create(obj_Parent, menuBtnChoIcon_other);
+		lv_obj_set_pos(menuBtnChoIcon_delayer, 121, 74);
+		menuBtnChoIcon_timer = lv_imgbtn_create(obj_Parent, menuBtnChoIcon_other);
+		lv_obj_set_pos(menuBtnChoIcon_timer, 5, 74);
+		menuBtnChoIcon_linkageConfig = lv_imgbtn_create(obj_Parent, menuBtnChoIcon_other);
+		lv_obj_set_pos(menuBtnChoIcon_linkageConfig, 5, 156);
+		menuBtnChoIcon_setting = lv_imgbtn_create(obj_Parent, menuBtnChoIcon_other);
+		lv_obj_set_pos(menuBtnChoIcon_setting, 121, 156);
+		menuBtnChoIcon_wifiConfig = lv_imgbtn_create(obj_Parent, menuBtnChoIcon_other);
+		lv_obj_set_pos(menuBtnChoIcon_wifiConfig, 5, 238);
+	}
 	
 	lv_btn_set_action(menuBtnChoIcon_other, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_other);
 	lv_btn_set_action(menuBtnChoIcon_delayer, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_delayer);
@@ -206,7 +240,7 @@ void lvGui_businessMenu(lv_obj_t * obj_Parent){
 	styleText_menuLevel_B.text.color = LV_COLOR_WHITE;
 	
 	menuTextCho_other = lv_label_create(menuBtnChoIcon_other, NULL);
-	lv_label_set_text(menuTextCho_other, "system\ninfo");
+	lv_label_set_text(menuTextCho_other, "System\ninfo");
 	lv_obj_set_style(menuTextCho_other, &styleText_menuLevel_B);
 	lv_obj_set_protect(menuTextCho_other, LV_PROTECT_POS);
 	lv_obj_align(menuTextCho_other, NULL, LV_ALIGN_IN_LEFT_MID, 55, 5);
@@ -240,6 +274,42 @@ void lvGui_businessMenu(lv_obj_t * obj_Parent){
 	lv_obj_set_style(menuTextCho_wifiConfig, &styleText_menuLevel_B);
 	lv_obj_set_protect(menuTextCho_wifiConfig, LV_PROTECT_POS);
 	lv_obj_align(menuTextCho_wifiConfig, NULL, LV_ALIGN_IN_LEFT_MID, 55, 5);
+
+	if(devStatusDispMethod_landscapeIf_get()){
+
+		lv_obj_align(menuIconCho_other, 		NULL, 	LV_ALIGN_CENTER, 0, -15);
+		lv_obj_align(menuIconCho_delayer, 		NULL, 	LV_ALIGN_CENTER, 0, -15);
+		lv_obj_align(menuIconCho_timer, 		NULL, 	LV_ALIGN_CENTER, 0, -15);
+		lv_obj_align(menuIconCho_linkageConfig, NULL, 	LV_ALIGN_CENTER, 0, -15);
+		lv_obj_align(menuIconCho_setting, 		NULL, 	LV_ALIGN_CENTER, 0, -15);
+		lv_obj_align(menuIconCho_wifiConfig, 	NULL, 	LV_ALIGN_CENTER, 0, -15);
+
+		lv_obj_align(menuTextCho_other, 		NULL, LV_ALIGN_IN_BOTTOM_MID, 0, 0);
+		lv_obj_align(menuTextCho_setting, 		NULL, LV_ALIGN_IN_BOTTOM_MID, 0, -10);
+		lv_obj_align(menuTextCho_linkageConfig, NULL, LV_ALIGN_IN_BOTTOM_MID, 0, 0);
+		lv_obj_align(menuTextCho_timer, 		NULL, LV_ALIGN_IN_BOTTOM_MID, 0, -10);
+		lv_obj_align(menuTextCho_delayer, 		NULL, LV_ALIGN_IN_BOTTOM_MID, 0, -10);
+		lv_obj_align(menuTextCho_wifiConfig, 	NULL, LV_ALIGN_IN_BOTTOM_MID, 0, 0);
+	}
+
+	if(devStatusDispMethod_landscapeIf_get()){
+
+		lv_obj_animate(menuBtnChoIcon_timer, 		 LV_ANIM_FLOAT_LEFT, 200,   0, NULL);
+		lv_obj_animate(menuBtnChoIcon_delayer, 		 LV_ANIM_FLOAT_LEFT, 200,  50, NULL);
+		lv_obj_animate(menuBtnChoIcon_linkageConfig, LV_ANIM_FLOAT_LEFT, 200, 100, NULL);
+		lv_obj_animate(menuBtnChoIcon_wifiConfig, 	 LV_ANIM_FLOAT_LEFT, 200,  50, NULL);
+		lv_obj_animate(menuBtnChoIcon_setting, 		 LV_ANIM_FLOAT_LEFT, 200, 100, NULL);
+		lv_obj_animate(menuBtnChoIcon_other, 		 LV_ANIM_FLOAT_LEFT, 200, 200, NULL);
+	}
+	else
+	{
+		lv_obj_animate(menuBtnChoIcon_timer,		 LV_ANIM_FLOAT_LEFT, 100,	0, NULL);
+		lv_obj_animate(menuBtnChoIcon_linkageConfig, LV_ANIM_FLOAT_LEFT, 100,  50, NULL);
+		lv_obj_animate(menuBtnChoIcon_wifiConfig,	 LV_ANIM_FLOAT_LEFT, 100, 100, NULL);
+		lv_obj_animate(menuBtnChoIcon_delayer,		 LV_ANIM_FLOAT_LEFT, 100,  50, NULL);
+		lv_obj_animate(menuBtnChoIcon_setting,		 LV_ANIM_FLOAT_LEFT, 100, 100, NULL);
+		lv_obj_animate(menuBtnChoIcon_other,		 LV_ANIM_FLOAT_LEFT, 100, 200, NULL);
+	}
 
 	vTaskDelay(100 / portTICK_PERIOD_MS);
 	lv_obj_refresh_style(obj_Parent);

@@ -10,11 +10,15 @@
 #include "freertos/timers.h"
 #include "freertos/event_groups.h"
 
-#include "devDriver_manage.h"
-
 #include "mlink.h"
 #include "mwifi.h"
 #include "mdf_common.h"
+
+#include "bussiness_timerSoft.h"
+
+#include "devDriver_manage.h"
+
+#include "tips_bussinessAcoustoOptic.h"
 
 #define DEVVAL_DEFAULT_HWTIMER_DIVIDER         16  //  Hardware timer clock divider
 #define DEVVAL_DEFAULT_HWTIMER_SCALE           (TIMER_BASE_CLK / DEVVAL_DEFAULT_HWTIMER_DIVIDER)  // convert counter value to seconds
@@ -23,7 +27,16 @@
 #define DEVVAL_DEFAULT_TMWITHOUT_RELOAD   	 	0       // testing will be done without auto reload
 #define DEVVAL_DEFAULT_TMWITH_RELOAD      	 	1       // testing will be done with auto reload
 
+#if(DEVICE_DRIVER_DEFINITION == DEVICE_DRIVER_METHOD_BY_SLAVE_MCU)
+ #if(DRVMETHOD_BY_SLAVE_MCU_RELAY_TEST == 1)
+
+	extern volatile stt_relayMagTestParam paramMagRelayTest;
+ #endif
+#endif
+
 extern uint16_t devSysTimeKeep_counter;
+
+extern EventGroupHandle_t xEventGp_tipsLoopTimer;
 
 static xQueueHandle queueHandle_hwTimer = NULL;
 static xQueueHandle queueDriver_hwTimer = NULL;
@@ -31,6 +44,15 @@ static xQueueHandle queueDriver_hwTimer = NULL;
 static stt_timerLoop_ext devTimeLoopper_devGreenMode = {0};
 static uint16_t devCounterParam_devDelayTrig = 0;
 static uint8_t devDelayTrig_status = 0;
+
+void usrAppParamClrReset_devGreenMode(void){
+
+	uint16_t devRunningFlg_temp = currentDevRunningFlg_paramGet();
+
+	devTimeLoopper_devGreenMode.loopPeriod = 0;
+	devSystemInfoLocalRecord_save(saveObj_infoTimer_greenMode, &(devTimeLoopper_devGreenMode.loopPeriod));
+	currentDevRunningFlg_paramSet(devRunningFlg_temp & (~DEV_RUNNING_FLG_BIT_GREENMODE), true);
+}
 
 void usrAppParamSet_devGreenMode(uint8_t paramCst[2], bool nvsRecord_IF){
 
@@ -60,6 +82,15 @@ void usrApp_GreenMode_trig(void){
 	devTimeLoopper_devGreenMode.loopCounter = 0;
 }
 
+void usrAppParamClrReset_devDelayTrig(void){
+
+	uint16_t devRunningFlg_temp = currentDevRunningFlg_paramGet();
+
+	devCounterParam_devDelayTrig = 0;
+	devDelayTrig_status = 0;
+	currentDevRunningFlg_paramSet(devRunningFlg_temp & (~DEV_RUNNING_FLG_BIT_DELAY), false);
+}
+
 void usrAppParamSet_devDelayTrig(uint8_t paramCst[3]){
 
 	uint16_t devRunningFlg_temp = currentDevRunningFlg_paramGet();
@@ -68,9 +99,9 @@ void usrAppParamSet_devDelayTrig(uint8_t paramCst[3]){
 	devDelayTrig_status = paramCst[2]; //延时响应值
 
 	if(devCounterParam_devDelayTrig)
-		currentDevRunningFlg_paramSet(devRunningFlg_temp | DEV_RUNNING_FLG_BIT_DELAY, true);
+		currentDevRunningFlg_paramSet(devRunningFlg_temp | DEV_RUNNING_FLG_BIT_DELAY, false);
 	else
-		currentDevRunningFlg_paramSet(devRunningFlg_temp & (~DEV_RUNNING_FLG_BIT_DELAY), true);
+		currentDevRunningFlg_paramSet(devRunningFlg_temp & (~DEV_RUNNING_FLG_BIT_DELAY), false);
 }
 
 void usrAppParamGet_devDelayTrig(uint8_t paramCst[3]){
@@ -97,7 +128,7 @@ static void IRAM_ATTR bussinessHwTimer_loop_1s(void){ //内部存储操作无法
 
 //			currentDevRunningFlg_paramSet(devRunningFlg_temp & (~DEV_RUNNING_FLG_BIT_DELAY), true);
 //			memcpy(&devStatusValSet_temp, (stt_devDataPonitTypedef *)&devDelayTrig_status, sizeof(stt_devDataPonitTypedef));
-//			currentDev_dataPointSet(&devStatusValSet_temp, true, true, true);
+//			currentDev_dataPointSet(&devStatusValSet_temp, true, true, true, false);
 
 			memcpy(&devStatusValSet_temp, (stt_devDataPonitTypedef *)&devDelayTrig_status, sizeof(stt_devDataPonitTypedef));
 
@@ -120,9 +151,26 @@ static void IRAM_ATTR bussinessHwTimer_loop_1s(void){ //内部存储操作无法
 		else{
 
 			stt_devDataPonitTypedef devStatus_current = {0};
-			const stt_devDataPonitTypedef devStatus_empty = {0};
+			stt_devDataPonitTypedef devStatus_empty = {0};
 
 			currentDev_dataPointGet(&devStatus_current);
+			switch(currentDev_typeGet()){
+				
+				case devTypeDef_curtain:
+				case devTypeDef_moudleSwCurtain:{ //窗帘静止时指定值
+
+					stt_devCurtain_runningParam curtainRunningParam = {0};
+
+					devCurtain_runningParamGet(&curtainRunningParam);
+					if(!curtainRunningParam.act_counter){
+
+						devStatus_empty.devType_curtain.devCurtain_actEnumVal = curtainRunningStatus_cTact_stop; //关
+					}
+					
+				}break;
+			
+				default:break;
+			}
 
 			if(memcmp(&devStatus_current, &devStatus_empty, sizeof(stt_devDataPonitTypedef))){ //非零触发执行
 
@@ -146,9 +194,15 @@ static void IRAM_ATTR bussinessHwTimer_devDriverWork(void){
 	stt_msgDriverHwTimer sptr_msgQ_hwTimer = {0};
 	static uint32_t loopCounter_debug = 0;
 	static uint32_t loopCounter_dimmerFdebug = 0;
+	const uint32_t loopPeriod_devBeepsRunning = (uint32_t)(DEVDRIVER_DEVBEEPS_REFRESH_PERIOD / DEVVAL_DEFAULT_HWTIMER_INTERVAL0_SEC);
+	static uint32_t loopCounter_devBeepsRunning = 0;
+	const uint32_t loopPeriod_devExTipsLedRunning = (uint32_t)(DEVDRIVER_EX_LEDTIPS_REFRESH_PERIOD / DEVVAL_DEFAULT_HWTIMER_INTERVAL0_SEC);
+	static uint32_t loopCounter_devExTipsLedRunning = 0;
 	const uint32_t loopPeriod_dimmerFdebug = (uint32_t)(1.0F / DEVVAL_DEFAULT_HWTIMER_INTERVAL0_SEC);
+	static uint32_t loopCounter_elecParamProcess = 0;
+	const uint32_t loopPeriod_elecParamProcess = (uint32_t)(DEVDRIVER_ELECMEASURE_PARAM_PROCESS_PERIOD / DEVVAL_DEFAULT_HWTIMER_INTERVAL0_SEC); //测量数据处理
 	static uint32_t loopCounter_elecFdetect = 0;
-	const uint32_t loopPeriod_elecFdetect = (uint32_t)(DEVDRIVER_ELECMEASURE_FDETECT_PERIOD / DEVVAL_DEFAULT_HWTIMER_INTERVAL0_SEC);
+	const uint32_t loopPeriod_elecFdetect = (uint32_t)(DEVDRIVER_ELECMEASURE_FDETECT_PERIOD / DEVVAL_DEFAULT_HWTIMER_INTERVAL0_SEC); //测量数据计算
 	static uint32_t loopCounter_tempTdetect = 0;
 	const uint32_t loopPeriod_tempTdetect = (uint32_t)(DEVDRIVER_TEMPERATUREDETECT_PERIODLOOP_TIME / DEVVAL_DEFAULT_HWTIMER_INTERVAL0_SEC);
 	static uint32_t loopCounter_infraActDetect = 0;
@@ -171,6 +225,11 @@ static void IRAM_ATTR bussinessHwTimer_devDriverWork(void){
 	static stt_timerLoop loopCounter_thermostatRunningDetect = {
 	
 		.loopPeriod = (const uint16_t)(DEVTHERMOSTAT_RUNNINGDETECT_PERIODLOOP_TIME / DEVVAL_DEFAULT_HWTIMER_INTERVAL0_SEC),
+		.loopCounter = 0,
+	};
+	static stt_timerLoop loopCounter_infraredRunningDetect = {
+	
+		.loopPeriod = (const uint16_t)(DEVINFRARED_RUNNINGDETECT_PERIODLOOP_TIME / DEVVAL_DEFAULT_HWTIMER_INTERVAL0_SEC),
 		.loopCounter = 0,
 	};
 	devTypeDef_enum swCurrentDevType = currentDev_typeGet();
@@ -216,7 +275,8 @@ static void IRAM_ATTR bussinessHwTimer_devDriverWork(void){
 			
 		}break;
 
-		case devTypeDef_curtain:{
+		case devTypeDef_curtain:
+		case devTypeDef_moudleSwCurtain:{
 
 			if(loopCounter_curtainRunningDetect.loopCounter < loopCounter_curtainRunningDetect.loopPeriod)loopCounter_curtainRunningDetect.loopCounter ++;
 			else{
@@ -245,7 +305,8 @@ static void IRAM_ATTR bussinessHwTimer_devDriverWork(void){
 		
 		}break;
 
-		case devTypeDef_thermostat:{
+		case devTypeDef_thermostat:
+		case devTypeDef_thermostatExtension:{
 
 			if(loopCounter_thermostatRunningDetect.loopCounter < loopCounter_thermostatRunningDetect.loopPeriod)loopCounter_thermostatRunningDetect.loopCounter ++;
 			else{
@@ -259,7 +320,76 @@ static void IRAM_ATTR bussinessHwTimer_devDriverWork(void){
 
 		}break;
 
+		case devTypeDef_infrared:{
+
+			static stt_timerLoop devInfrared_localDebugTimer = {
+			
+				.loopPeriod = (const uint16_t)(1.0F / DEVINFRARED_RUNNINGDETECT_PERIODLOOP_TIME),
+				.loopCounter = 0,
+			};
+
+			if(loopCounter_infraredRunningDetect.loopCounter < loopCounter_infraredRunningDetect.loopPeriod)loopCounter_infraredRunningDetect.loopCounter ++;
+			else{
+
+				uint8_t dataDebug_temp = 0;
+
+				loopCounter_infraredRunningDetect.loopCounter = 0;
+
+				dataDebug_temp = devDriverBussiness_infraredSwitch_runningDetectLoop();
+
+				/*调试业务*/
+				if(devInfrared_localDebugTimer.loopCounter < devInfrared_localDebugTimer.loopPeriod)devInfrared_localDebugTimer.loopCounter ++;
+				else{
+
+					devInfrared_localDebugTimer.loopCounter = 0;
+
+					sptr_msgQ_hwTimer.driverDataType_discrib = _driverDataType_infraredRunning;
+					sptr_msgQ_hwTimer.driverDats._infraredDriver_dats.debugPeriod_notice = 1;
+					sptr_msgQ_hwTimer.driverDats._infraredDriver_dats.debugData = dataDebug_temp;
+					xQueueSendFromISR(queueDriver_hwTimer, &sptr_msgQ_hwTimer, NULL);
+				}
+			}
+		}
+
 		default:break;
+	}
+
+	if(loopCounter_devBeepsRunning < loopPeriod_devBeepsRunning)loopCounter_devBeepsRunning ++;
+	else{
+
+		uint8_t statusCode = 0;
+		static uint8_t statusCodeRecord = 0;
+
+		loopCounter_devBeepsRunning = 0;
+
+		statusCode = devAcoustoOptic_beepBussinessRefresh();
+
+		if(statusCodeRecord != statusCode){
+
+			statusCodeRecord = statusCode;
+			
+			sptr_msgQ_hwTimer.driverDataType_discrib = _driverDataType_beepsParamDebug;
+			sptr_msgQ_hwTimer.driverDats._beepsDriver_dats.dataStatus = statusCode;
+			xQueueSendFromISR(queueDriver_hwTimer, &sptr_msgQ_hwTimer, NULL);
+		}
+	}
+
+	if(loopCounter_devExTipsLedRunning < loopPeriod_devExTipsLedRunning)loopCounter_devExTipsLedRunning ++;
+	else{
+
+		loopCounter_devExTipsLedRunning = 0;
+
+		devTipsByLed_driverReales();
+	}
+
+	if(loopCounter_elecParamProcess < loopPeriod_elecParamProcess)loopCounter_elecParamProcess ++;
+	else{
+
+		loopCounter_elecParamProcess = 0;
+
+		sptr_msgQ_hwTimer.driverDataType_discrib = _driverDataType_elecMeasure;
+		sptr_msgQ_hwTimer.driverDats._elecMeasure_dats.processPeriod_notice = 1;
+		xQueueSendFromISR(queueDriver_hwTimer, &sptr_msgQ_hwTimer, NULL);
 	}
 
 	if(loopCounter_elecFdetect < loopPeriod_elecFdetect)loopCounter_elecFdetect ++;
@@ -393,9 +523,63 @@ static void taskFunction_dataHandleFromHwTimer(void *arg){
 
 				case msgType_DevDelayTrig:{
 
-					currentDev_dataPointSet(&(rptr_msgQ_fromHwTimer.msgData.msgDataAbout_DevDelayTrig.devStatusValSet),
+					stt_devDataPonitTypedef devStatusValSet_temp = {0};
+
+					memcpy(&devStatusValSet_temp, &rptr_msgQ_fromHwTimer.msgData.msgDataAbout_DevDelayTrig.devStatusValSet, sizeof(stt_devDataPonitTypedef));
+					
+					switch(currentDev_typeGet()){
+						
+						case devTypeDef_curtain:
+						case devTypeDef_moudleSwCurtain:{
+					
+							devStatusValSet_temp.devType_curtain.devCurtain_actMethod = 1; //位置定时，用滑条方式
+						
+						}break;
+
+						case devTypeDef_thermostat:{
+
+							stt_devDataPonitTypedef devDataPointCurrent_temp = {0};
+
+							currentDev_dataPointGet(&devDataPointCurrent_temp); //只改运行使能参数，其他参数不变
+							devStatusValSet_temp.devType_thermostat.devThermostat_nightMode_en =\
+							devDataPointCurrent_temp.devType_thermostat.devThermostat_nightMode_en;
+							devStatusValSet_temp.devType_thermostat.devThermostat_tempratureTarget =\
+							devDataPointCurrent_temp.devType_thermostat.devThermostat_tempratureTarget;
+
+						}break;
+
+						case devTypeDef_thermostatExtension:{
+
+							stt_devDataPonitTypedef devDataPointCurrent_temp = {0};
+							uint8_t devThermostatExSwStatus_temp = 0;
+
+							memcpy(&devThermostatExSwStatus_temp, &devStatusValSet_temp, sizeof(uint8_t));
+							currentDev_dataPointGet(&devDataPointCurrent_temp); //只改运行使能参数，其他参数不变
+
+							/*bit0 -恒温器是否开启*/
+							(devThermostatExSwStatus_temp & (1 >> 0))?
+								(devStatusValSet_temp.devType_thermostat.devThermostat_running_en = 1):
+								(devStatusValSet_temp.devType_thermostat.devThermostat_running_en = 0);
+							devStatusValSet_temp.devType_thermostat.devThermostat_nightMode_en =\
+							devDataPointCurrent_temp.devType_thermostat.devThermostat_nightMode_en;
+							devStatusValSet_temp.devType_thermostat.devThermostat_tempratureTarget =\
+							devDataPointCurrent_temp.devType_thermostat.devThermostat_tempratureTarget;
+
+							/*bit2 -第二位开关值
+							  bit1 -第一位开关值*/
+							devThermostatExSwStatus_temp >>= 1;
+							devThermostatExSwStatus_temp &= 0x03;
+							devDriverBussiness_thermostatSwitch_exSwitchParamSet(devThermostatExSwStatus_temp);
+
+						}break;
+					
+						default:break;
+					}
+
+					currentDev_dataPointSet(&devStatusValSet_temp,
 											(bool)rptr_msgQ_fromHwTimer.msgData.msgDataAbout_DevDelayTrig.nvsRecord_IF,
 											(bool)rptr_msgQ_fromHwTimer.msgData.msgDataAbout_DevDelayTrig.mutualCtrlTrig_IF,
+											true,
 											true);
 
 					if(rptr_msgQ_fromHwTimer.msgData.msgDataAbout_DevDelayTrig.devRunningFlgReales_IF){
@@ -405,15 +589,59 @@ static void taskFunction_dataHandleFromHwTimer(void *arg){
 						currentDevRunningFlg_paramSet(devRunningFlg_temp & (~DEV_RUNNING_FLG_BIT_DELAY), true);
 					}
 
+					xEventGroupSetBits(xEventGp_tipsLoopTimer, LOOPTIMEREVENT_FLG_BITHOLD_DELAYUP);
+
 				}break;
 
 				case msgType_DevGreenMode:{
 
-					currentDev_dataPointSet(&(rptr_msgQ_fromHwTimer.msgData.msgDataAbout_DevGreenMode.devStatusValSet),
+					stt_devDataPonitTypedef devStatusValSet_temp = {0};
+
+					memcpy(&devStatusValSet_temp, &rptr_msgQ_fromHwTimer.msgData.msgDataAbout_DevGreenMode.devStatusValSet, sizeof(stt_devDataPonitTypedef));
+
+					switch(currentDev_typeGet()){
+						
+						case devTypeDef_curtain:
+						case devTypeDef_moudleSwCurtain:{
+
+							devStatusValSet_temp.devType_curtain.devCurtain_actEnumVal = curtainRunningStatus_cTact_close; //全关
+
+						}break;
+
+						case devTypeDef_thermostat:{
+
+							stt_devDataPonitTypedef devDataPointCurrent_temp = {0};
+
+							currentDev_dataPointGet(&devDataPointCurrent_temp); //只改运行使能参数，其他参数不变
+							devStatusValSet_temp.devType_thermostat.devThermostat_nightMode_en =\
+							devDataPointCurrent_temp.devType_thermostat.devThermostat_nightMode_en;
+							devStatusValSet_temp.devType_thermostat.devThermostat_tempratureTarget =\
+							devDataPointCurrent_temp.devType_thermostat.devThermostat_tempratureTarget;
+
+						}break;
+
+						case devTypeDef_thermostatExtension:{
+
+							stt_devDataPonitTypedef devDataPointCurrent_temp = {0};
+
+							devDriverBussiness_thermostatSwitch_exSwitchParamSet(0); //额外两个开关也关闭
+
+							currentDev_dataPointGet(&devDataPointCurrent_temp); //只改运行使能参数，其他参数不变
+							devStatusValSet_temp.devType_thermostat.devThermostat_nightMode_en =\
+							devDataPointCurrent_temp.devType_thermostat.devThermostat_nightMode_en;
+							devStatusValSet_temp.devType_thermostat.devThermostat_tempratureTarget =\
+							devDataPointCurrent_temp.devType_thermostat.devThermostat_tempratureTarget;
+
+						}break;
+
+						default:break;
+					}
+
+					currentDev_dataPointSet(&devStatusValSet_temp,
 											(bool)rptr_msgQ_fromHwTimer.msgData.msgDataAbout_DevGreenMode.nvsRecord_IF,
 											(bool)rptr_msgQ_fromHwTimer.msgData.msgDataAbout_DevGreenMode.mutualCtrlTrig_IF, 
+											true,
 											true);
-
 				}break;
 
 				default:break;
@@ -430,9 +658,22 @@ static void taskFunction_dataHandleFromHwTimer(void *arg){
 
 					devTypeDef_enum swCurrentDevType = currentDev_typeGet();
 
+					//磁保持继电器测试
+#if(DEVICE_DRIVER_DEFINITION == DEVICE_DRIVER_METHOD_BY_SLAVE_MCU)
+ #if(DRVMETHOD_BY_SLAVE_MCU_RELAY_TEST == 1)
+
+ 					if(paramMagRelayTest.relayTest_EN)
+						paramMagRelayTest.dataRcd.timeRecord ++;
+
+					if(0 == (paramMagRelayTest.dataRcd.timeRecord % 10)) //定时存储
+						debugTestMagRelay_paramSave();
+ #endif
+#endif
+
 					switch(swCurrentDevType){
 
-						case devTypeDef_curtain:{
+						case devTypeDef_curtain:
+						case devTypeDef_moudleSwCurtain:{
 
 							stt_devCurtain_runningParam devCurtainRunningParam = {0};
 
@@ -451,8 +692,8 @@ static void taskFunction_dataHandleFromHwTimer(void *arg){
 
 				case _driverDataType_dimer:{
 
-					printf("freqSource: %dbp, freqLoad: %dbp.\n", rptr_msgQ_driverHwTimer.driverDats._dimmer_dats.freqSource,
-																  rptr_msgQ_driverHwTimer.driverDats._dimmer_dats.freqLoad);
+//					printf("freqSource: %dbp, freqLoad: %dbp.\n", rptr_msgQ_driverHwTimer.driverDats._dimmer_dats.freqSource,
+//																  rptr_msgQ_driverHwTimer.driverDats._dimmer_dats.freqLoad);
 
 				}break;
 
@@ -467,13 +708,21 @@ static void taskFunction_dataHandleFromHwTimer(void *arg){
 
 				case _driverDataType_elecMeasure:{
 
-					float powerDetect_temp = devDriverBussiness_elecMeasure_powerCaculateReales();
-					static float powerDetect_record = 0.0F;
+					if(rptr_msgQ_driverHwTimer.driverDats._elecMeasure_dats.measurePeriod_notice){
 
-					if(powerDetect_record != powerDetect_temp){
+						float powerDetect_temp = devDriverBussiness_elecMeasure_powerCaculateReales();
+						static float powerDetect_record = 0.0F;
 
-						powerDetect_record = powerDetect_temp;
-						printf("devPower detectVal:%.3fW.\n", powerDetect_temp);
+						if(powerDetect_record != powerDetect_temp){
+
+							powerDetect_record = powerDetect_temp;
+//							printf("devPower detectVal:%.3fW.\n", powerDetect_temp);
+						}
+					}
+
+					if(rptr_msgQ_driverHwTimer.driverDats._elecMeasure_dats.processPeriod_notice){
+
+						devDriverBussiness_elecMeasure_paramProcess();				
 					}
 
 				}break;
@@ -486,14 +735,14 @@ static void taskFunction_dataHandleFromHwTimer(void *arg){
 					if(temperature_record != temperature_temp){
 
 						temperature_record = temperature_temp;
-						printf("devTemperature detectVal:%.02f.\n", temperature_temp);
+//						printf("devTemperature detectVal:%.02f.\n", temperature_temp);
 					}
 				
 				}break;
 
 				case _driverDataType_infraActDetect:{
 
-					bool val_infraActDetect = devDriverBussiness_infraActDetect_detectReales();
+//					bool val_infraActDetect = devDriverBussiness_infraActDetect_detectReales();
 					float freqDectect_temp = devDriverBussiness_infraActDetect_freqRcvGet();
 					static float freqDectect_record = 0.0F;
 
@@ -514,6 +763,21 @@ static void taskFunction_dataHandleFromHwTimer(void *arg){
 				case _driverDataType_thermostatDriving:{
 
 					devDriverBussiness_thermostatSwitch_runningDetectLoop();
+
+				}break;
+
+				case _driverDataType_infraredRunning:{
+
+					if(rptr_msgQ_driverHwTimer.driverDats._infraredDriver_dats.debugPeriod_notice){
+
+//						printf("infrared debug data:%d.\n", rptr_msgQ_driverHwTimer.driverDats._infraredDriver_dats.debugData);
+					}
+
+				}break;
+
+				case _driverDataType_beepsParamDebug:{
+
+//					printf("beepsStage:%d.\n", rptr_msgQ_driverHwTimer.driverDats._beepsDriver_dats.dataStatus);
 
 				}break;
 

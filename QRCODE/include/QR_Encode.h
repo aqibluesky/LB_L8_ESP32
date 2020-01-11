@@ -42,7 +42,7 @@
 #define MAX_ALLCODEWORD		400//3706//400// //P14,P35 数据容量[码字]* (E) (VER:40), 所有码字为8位
 #define MAX_DATACODEWORD	400//2956//400// //P27     最大信息码子(Ver：40-L)，所有码字为8位
 #define MAX_CODEBLOCK		153	//最大纠错码字 Ver：36.37.38_L_第二块
-#define MAX_MODULESIZE		21// 21:Version=1,最大字符=17(8.5个汉字)
+#define MAX_MODULESIZE		25// 21:Version=1,最大字符=17(8.5个汉字)
 								// 25:Version=2,最大字符=32(16个汉字)
 								// 29:Version=3,最大字符=49(24.5个汉字)
 								// 33:Version=4,最大字符=78(39个汉字)

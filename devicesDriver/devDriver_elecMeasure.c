@@ -21,6 +21,8 @@
 
 #include "devDriver_manage.h"
 
+#include "bussiness_timerSoft.h"
+
 #define DEVDRIVER_ELECMEASURE_PCNT_TEST_UNIT      PCNT_UNIT_2
 #define DEVDRIVER_ELECMEASURE_PCNT_H_LIM_VAL      20000
 #define DEVDRIVER_ELECMEASURE_PCNT_L_LIM_VAL     -10
@@ -31,37 +33,50 @@
 
 static stt_eleSocket_attrFreq devParam_ElecDetect = {0};
 
-static pcnt_isr_handle_t user_isr_handle = NULL;
+static void IRAM_ATTR pcnt_isr_handler(uint32_t evtStatus){
 
-static void IRAM_ATTR pcnt_isr_handler(void* arg){
+	if(evtStatus & PCNT_STATUS_H_LIM){
 
-	uint32_t intr_status = PCNT.int_st.val;
-	int	loop = 0;
+		
+	}
+}
 
-	for (loop = 0; loop < PCNT_UNIT_MAX; loop++){
+void devDriverBussiness_elecMeasure_paramProcess(void){ //调用周期:DEVDRIVER_ELECMEASURE_PARAM_PROCESS_PERIOD s
 
-		switch(intr_status & (BIT(loop))){
+	stt_localTime timeNow = {0};
+	const float processPeriod_paramTemp = DEVDRIVER_ELECMEASURE_PARAM_PROCESS_PERIOD;
+	static stt_timerLoop_ext paramElecSumSave = {(120 / (uint16_t)processPeriod_paramTemp), 0};
 
-			case PCNT_STATUS_H_LIM:{
+	usrAppDevCurrentSystemTime_paramGet(&timeNow);
 
-				
-			}break;
+	if(0 == timeNow.time_Minute){
 
-			default:break;
-		}
+		if(devParam_ElecDetect.ele_Consum > 1.0F)devParam_ElecDetect.ele_Consum = 0.0F;
+	}
 
-		if(intr_status & (BIT(loop)))
-			PCNT.int_clr.val = BIT(loop);
+	if(paramElecSumSave.loopCounter < paramElecSumSave.loopPeriod)paramElecSumSave.loopCounter ++;
+	else{
+
+		paramElecSumSave.loopCounter = 0;
+		
+		devDriverBussiness_elecMeasure_elecSumSave2Flash();
 	}
 }
 
 float devDriverBussiness_elecMeasure_powerCaculateReales(void){
 
 	int16_t freq_elecMeansure = 0;
+	float   elecSum_calcuTemp = 0.0F;
+
+#if(L8_DEVICE_TYPE_PANEL_DEF != DEV_TYPES_PANEL_DEF_INDEP_HEATER) //热水器电量功能暂隐
+#else
+
+	return 0.0F;
+#endif
 
 	pcnt_get_counter_value(DEVDRIVER_ELECMEASURE_PCNT_TEST_UNIT, &freq_elecMeansure);
 
-	printf("pcntCount:%d.\n", freq_elecMeansure);
+//	printf("pcntCount:%d.\n", freq_elecMeansure);
 
 	devParam_ElecDetect.eleParamFun_powerPulseCount = (float)freq_elecMeansure;
 
@@ -72,12 +87,33 @@ float devDriverBussiness_elecMeasure_powerCaculateReales(void){
 		(DEVDRIVER_ELECMEASURE_COEFFICIENT_POW - (DEVDRIVER_ELECMEASURE_COEFFICIENT_COMPENSATION_POW * devParam_ElecDetect.eleParamFun_powerFreqVal));
 
 	if(devParam_ElecDetect.eleParamFun_powerFreqVal < 0.00001F)devParam_ElecDetect.eleParamFun_powerFreqVal = 0.00001F;
-	devParam_ElecDetect.ele_Consum	+= 
-		1.00F * (devParam_ElecDetect.eleParamFun_powerPulseCount * devParam_ElecDetect.eleParam_power / (1000.00F * 3600.00F * devParam_ElecDetect.eleParamFun_powerFreqVal));
+
+	elecSum_calcuTemp = 1.00F * (devParam_ElecDetect.eleParamFun_powerPulseCount * devParam_ElecDetect.eleParam_power / (1000.00F * 3600.00F * devParam_ElecDetect.eleParamFun_powerFreqVal));
+	
+	devParam_ElecDetect.ele_Consum += elecSum_calcuTemp;
+	devParam_ElecDetect.ele_Consum_localRecord += elecSum_calcuTemp;
 
 	pcnt_counter_clear(DEVDRIVER_ELECMEASURE_PCNT_TEST_UNIT);
 		
 	return devParam_ElecDetect.eleParam_power;
+}
+
+void devDriverBussiness_elecMeasure_elecSumRealesFromFlash(uint32_t param){
+
+	devParam_ElecDetect.ele_Consum_localRecord = (float)param / DEVDRIVER_ELECMEASURE_TRANSFOR_PRECISION;
+}
+
+void devDriverBussiness_elecMeasure_elecSumSave2Flash(void){
+
+	uint32_t elecSum_temp = (uint32_t)(devParam_ElecDetect.ele_Consum_localRecord * DEVDRIVER_ELECMEASURE_TRANSFOR_PRECISION);
+	devSystemInfoLocalRecord_save(saveObj_devEelcSum, &elecSum_temp);	
+}
+
+void devDriverBussiness_elecMeasure_elecSumResetClear(void){
+
+	uint32_t elecSum_temp = 1;
+	devParam_ElecDetect.ele_Consum_localRecord = 0.0001F;
+	devSystemInfoLocalRecord_save(saveObj_devEelcSum, &elecSum_temp);	
 }
 
 float devDriverBussiness_elecMeasure_valElecPowerGet(void){
@@ -87,7 +123,7 @@ float devDriverBussiness_elecMeasure_valElecPowerGet(void){
 
 float devDriverBussiness_elecMeasure_valElecConsumGet(void){
 
-	return devParam_ElecDetect.ele_Consum;
+	return devParam_ElecDetect.ele_Consum_localRecord;
 }
 
 void devDriverBussiness_elecMeasure_valPowerGetByHex(stt_devPowerParam2Hex *param){
@@ -112,7 +148,6 @@ void devDriverBussiness_elecMeasure_valElecsumGetByHex(stt_devElecsumParam2Hex *
 	uint8_t dataDecimal_prt = (uint8_t)((devParam_ElecDetect.ele_Consum - (float)dataInteger_prt) * decimal_prtCoefficient);
 
 	//只可能为正数，不做负数处理
-
 	param->integer_h8bit = (uint8_t)((dataInteger_prt & 0xFF00) >> 8);
 	param->integer_l8bit = (uint8_t)((dataInteger_prt & 0x00FF) >> 0);
 	param->decimal_8bit = dataDecimal_prt;
@@ -169,7 +204,7 @@ static void devDriverBussiness_elecMeasure_pcntInit(void){
     pcnt_counter_clear(DEVDRIVER_ELECMEASURE_PCNT_TEST_UNIT);
 
     /* Register ISR handler and enable interrupts for PCNT unit */
-    pcnt_isr_register(pcnt_isr_handler, NULL, 0, &user_isr_handle);
+	isrHandleFuncPcntUnit_regster(pcnt_isr_handler, DEVDRIVER_ELECMEASURE_PCNT_TEST_UNIT); //pcnt应用处理函数注册，实际pcnt中断函数在devDriver_manage.c中
     pcnt_intr_enable(DEVDRIVER_ELECMEASURE_PCNT_TEST_UNIT);
 
     /* Everything is set up, now go to counting */

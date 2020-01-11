@@ -34,6 +34,9 @@ extern "C" {
 void lvGuiOther_devInfoRefresh(void);
 void lvGui_businessMenu_other(lv_obj_t * obj_Parent);
 
+void guiDispTimeOut_pageOther(void);
+
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

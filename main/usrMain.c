@@ -51,14 +51,15 @@
 
 #include "devDriver_manage.h"
 
-#include "devDriver_devSelfLight.h"
 #include "bussiness_timerHard.h"
 #include "bussiness_timerSoft.h"
 
 #include "gui_businessHome.h"
+#include "mechanical_bussinessOpreat.h"
 
 #include "dataTrans_remoteServer.h"
 #include "dataTrans_localHandler.h"
+#include "dataTrans_meshUpgrade.h"
 
 #define LIGHT_TID                     (1)
 #define LIGHT_RESTART_COUNT_RESET     (3)
@@ -68,12 +69,22 @@
 #define EVENT_GROUP_TRIGGER_HANDLE     BIT0
 #define EVENT_GROUP_TRIGGER_RECV       BIT1
 
+LV_IMG_DECLARE(lanbonSealPic_A);
+LV_IMG_DECLARE(lanbonSealPic_B);
+
 LV_IMG_DECLARE(testPic);
 LV_IMG_DECLARE(testPic_P);
 LV_IMG_DECLARE(ttA);
 LV_IMG_DECLARE(night_Sight);
 
 extern EventGroupHandle_t xEventGp_devApplication;
+
+extern stt_nodeDev_hbDataManage *listHead_nodeDevDataManage;
+
+TaskHandle_t taskHandle_communicateTrigBussiness  = NULL;
+
+uint16_t timeCounetr_mwifiReorganize = 0;
+bool funcTrigFlg_mwifiReorganize = false;
 
 static const unsigned int dataSaveLen_test = 1024;
 
@@ -150,7 +161,6 @@ static esp_err_t wifi_event_handler(void *ctx, system_event_t *event)
             break;
         case SYSTEM_EVENT_STA_GOT_IP:
             xEventGroupSetBits(wifi_event_group, CONNECTED_BIT);
-
             break;
         case SYSTEM_EVENT_STA_DISCONNECTED:
             esp_wifi_connect();
@@ -387,11 +397,14 @@ static void show_system_info_timercb(void *timer)
 	devMutualCtrlGroupInfo_groupInsertGet(mutualGroupInsert_temp);
 //	lv_mem_monitor(&lv_mon);
 
-    MDF_LOGI("System information, channel: %d, layer: %d, self mac: " MACSTR ", parent bssid: " MACSTR
-             ", parent rssi: %d, node num: %d, free heap: %u, mutualGroupInsert:[%d]-[%d]-[%d].\n", 
+    ESP_LOGI(TAG, 
+    		 "System information, channel: %d, layer: %d, self mac: " MACSTR ", parent bssid: " MACSTR
+             ", parent rssi: %d, mwifi connected(?):%d, node num: %d, nodeApp num: %d, free heap: %u, mutualGroupInsert:[%d]-[%d]-[%d].\n", 
              primary,
              esp_mesh_get_layer(), MAC2STR(sta_mac), MAC2STR(parent_bssid.addr),
-             mesh_assoc.rssi, esp_mesh_get_total_node_num(), esp_get_free_heap_size(),
+             mesh_assoc.rssi, mwifi_is_connected(), esp_mesh_get_total_node_num(), 
+             L8devHbDataManageList_nodeNumDetect(listHead_nodeDevDataManage), 
+             esp_get_free_heap_size(),
              mutualGroupInsert_temp[0], mutualGroupInsert_temp[1], mutualGroupInsert_temp[2]);
 
 //	MDF_LOGI("lv mem used:%6d(%3d%%), lv mem biggest free:%6d.\n",
@@ -399,9 +412,9 @@ static void show_system_info_timercb(void *timer)
 //			 lv_mon.used_pct,
 //			 (int)lv_mon.free_biggest_size);
 
-    for (int i = 0; i < wifi_sta_list.num; i++) {
-        MDF_LOGI("Child mac: " MACSTR, MAC2STR(wifi_sta_list.sta[i].mac));
-    }
+//    for (int i = 0; i < wifi_sta_list.num; i++) {
+//        MDF_LOGI("Child mac: " MACSTR, MAC2STR(wifi_sta_list.sta[i].mac));
+//    }
 
 #ifdef CONFIG_LIGHT_MEMORY_DEBUG
 
@@ -511,6 +524,9 @@ static mdf_err_t get_network_config(mwifi_init_config_t *init_config, mwifi_conf
     MDF_LOGI("BLE name: %s", blufi_config.name);
 
     MDF_ERROR_ASSERT(mconfig_blufi_init(&blufi_config));
+
+	lvGui_usrAppBussinessRunning_blockCancel();
+	
     MDF_ERROR_ASSERT(mconfig_queue_read(&mconfig_data, portMAX_DELAY));
     MDF_ERROR_ASSERT(mconfig_chain_slave_deinit());
     MDF_ERROR_ASSERT(mconfig_blufi_deinit());
@@ -560,7 +576,7 @@ static mdf_err_t mlink_set_value(uint16_t cid, void *arg)
 					dataVal_set.devType_mulitSwitch_threeBit.swVal_bit1 = (uint8_t)value >> 0;
 					dataVal_set.devType_mulitSwitch_threeBit.swVal_bit2 = (uint8_t)value >> 1;
 					dataVal_set.devType_mulitSwitch_threeBit.swVal_bit3 = (uint8_t)value >> 2;
-					currentDev_dataPointSet(&dataVal_set, true, true, true);
+					currentDev_dataPointSet(&dataVal_set, true, true, true, false);
 
 //					light_driver_set_switch(value);
 
@@ -737,7 +753,7 @@ static void root_write_task(void *arg)
     mwifi_data_type_t data_type      = {0};
 	mlink_httpd_type_t *httpd_type 	 = NULL;
 
-    MDF_LOGI("root_write_task is running");
+    MDF_LOGW("root_write_task is running");
 
     while (mwifi_is_connected() && esp_mesh_get_layer() == MESH_ROOT) {
         size = MWIFI_PAYLOAD_LEN * 4;
@@ -757,13 +773,14 @@ static void root_write_task(void *arg)
 
 			uint8_t *dataRcv_temp = (uint8_t *)data;
 
-			if(dataRcv_temp[0] == L8DEV_MESH_HEARTBEAT_REQ){ //心跳截留，非心跳转发
+			if((dataRcv_temp[0] == L8DEV_MESH_HEARTBEAT_REQ) || //心跳截留
+				dataRcv_temp[0] == L8DEV_MESH_FWARE_UPGRADE){ //远程升级通知截留
 
 				dataHandler_devNodeMeshData(src_addr, httpd_type, data, size);
 			}
-			else
+			else //非特定命令转发
 			{
-				mqtt_remoteDataTrans(dataRcv_temp[0], &dataRcv_temp[1], size - 1);
+				mqtt_remoteDataTrans(dataRcv_temp[0], &dataRcv_temp[1], size - 1); //下标0是cmd，后边都是数据
 			}
 
 			continue;
@@ -816,7 +833,7 @@ static void root_read_task(void *arg)
         .communicate = MWIFI_COMMUNICATE_MULTICAST,
     };
 
-    MDF_LOGI("root_read_task is running");
+    MDF_LOGW("root_read_task is running");
 
     while (mwifi_is_connected() && esp_mesh_get_layer() == MESH_ROOT) {
         if (httpd_data) {
@@ -873,8 +890,34 @@ void request_handle_task(void *arg)
             ret = mupgrade_handle(src_addr, data, size);
             MDF_ERROR_CONTINUE(ret != MDF_OK, "<%s> mupgrade_handle", mdf_err_to_name(ret));
 
+			datatransOpreation_heartbeatHold_auto(); //心跳挂起
+			tipsOpreatAutoSet_sysUpgrading();
+
             continue;
         }
+
+		if(!strcmp(L8_MESH_CONMUNICATE_UPGSTBY_NOTICE_STR, (const char*)data)){
+
+			if(esp_mesh_get_layer() != MESH_ROOT){
+
+				lvGui_tipsFullScreen_generateAutoTime("upgrade stand by. . .");
+			}
+
+			datatransOpreation_heartbeatHold_auto(); //心跳挂起
+			tipsOpreatAutoSet_sysUpgrading();
+		}
+		else
+		if(!strcmp(L8_MESH_CONMUNICATE_RESTART_NOTICE_STR, (const char*)data)){
+
+			stt_devStatusRecord devStatusRecordFlg_temp = {0};
+		
+			devStatusRecordIF_paramGet(&devStatusRecordFlg_temp);
+			devStatusRecordFlg_temp.devUpgradeFirstRunning_FLG = 0; //复位首次运行标志
+			devStatusRecordIF_paramSet(&devStatusRecordFlg_temp, true);
+
+			lvGui_tipsFullScreen_generate("upgrade finish", 2);
+			lvGui_systemRestartCountingDown_trig(3);
+		}
 
         MDF_LOGI("Node receive, addr: " MACSTR ", size: %d, data: %.*s", MAC2STR(src_addr), size, size, data);
 
@@ -896,6 +939,39 @@ void request_handle_task(void *arg)
             ret = mwifi_write(NULL, &data_type, "status", strlen("status"), true);
             MDF_ERROR_CONTINUE(ret != MDF_OK, "<%s> mlink_handle", mdf_err_to_name(ret));
         }
+
+		if(esp_mesh_get_layer() == MESH_ROOT){
+
+			if((esp_mesh_get_total_node_num() > 1) &&
+			   (L8devHbDataManageList_nodeNumDetect(listHead_nodeDevDataManage) == 1)){
+
+				if(false == funcTrigFlg_mwifiReorganize){
+
+					uint32_t heartbeatPeriodVal_dynamic = esp_mesh_get_total_node_num() / 2 * 1000;
+
+					funcTrigFlg_mwifiReorganize = true;
+					timeCounetr_mwifiReorganize = heartbeatPeriodVal_dynamic;
+
+					ESP_LOGW(TAG, "mwifi app abnormal, mwifi detect trig.\n");
+				}
+				else
+				{
+					if(0 == timeCounetr_mwifiReorganize){
+
+						funcTrigFlg_mwifiReorganize = false;
+
+						usrApplication_systemRestartTrig(3);
+
+						ESP_LOGW(TAG, "user application trig, mwifi reorganize, restart!\n");
+					}
+				}
+			}
+			else
+			{
+				funcTrigFlg_mwifiReorganize = false;
+				timeCounetr_mwifiReorganize = 0;
+			}
+		}
     }
 
     MDF_FREE(data);
@@ -912,6 +988,9 @@ void request_handle_task(void *arg)
  */
 static mdf_err_t event_loop_cb(mdf_event_loop_t event, void *ctx)
 {
+
+	extern void lvGui_wifiConfig_bussiness_configComplete_tipsTrig(void);
+
     MDF_LOGI("event_loop_cb, event: 0x%x", event);
     mdf_err_t ret = MDF_OK;
 
@@ -924,7 +1003,19 @@ static mdf_err_t event_loop_cb(mdf_event_loop_t event, void *ctx)
 
 			meshNetwork_connectReserve_IF_set(true);
 			flgSet_gotRouterOrMeshConnect(true);
-		
+			deviceDatapointSynchronousReport_actionTrig(); //远程上线通知
+
+#if(L8_DEVICE_TYPE_PANEL_DEF == DEV_TYPES_PANEL_DEF_INDEP_INFRARED)|\
+   (L8_DEVICE_TYPE_PANEL_DEF == DEV_TYPES_PANEL_DEF_INDEP_SOCKET)|\
+   (L8_DEVICE_TYPE_PANEL_DEF == DEV_TYPES_PANEL_DEF_INDEP_MOUDLE)
+
+			devBeepTips_trig(4, 8, 100, 40, 2); //beeps提示
+#else
+
+			lvGui_usrAppBussinessRunning_block(2, "\nwifi connected", 5);  //UI阻塞提示，wifi连接成功
+			lvGui_wifiConfig_bussiness_configComplete_tipsTrig();
+#endif 
+			
             MDF_LOGI("Parent is connected on station interface");
 //            light_driver_breath_stop();
             break;
@@ -960,7 +1051,7 @@ static mdf_err_t event_loop_cb(mdf_event_loop_t event, void *ctx)
             break;
         }
 
-        case MDF_EVENT_MWIFI_ROOT_GOT_IP: {
+        case MDF_EVENT_MWIFI_ROOT_GOT_IP:{
             MDF_LOGI("Root obtains the IP address");
 
 	        tcpip_adapter_ip_info_t ip_info;
@@ -995,6 +1086,12 @@ static mdf_err_t event_loop_cb(mdf_event_loop_t event, void *ctx)
             }
 
 			mqtt_app_start();
+
+//			//upgrade test
+//			const uint8_t targetDev_address[MWIFI_ADDR_LEN] = MWIFI_ADDR_ANY;
+//			esp_wifi_get_mac(ESP_IF_WIFI_STA, targetDev_address);
+//			usrAppUpgrade_targetDevaddrSet(targetDev_address);
+//			usrApp_firewareUpgrade_trig(true, (uint8_t)currentDev_typeGet());
 
             break;
         }
@@ -1034,6 +1131,11 @@ static mdf_err_t event_loop_cb(mdf_event_loop_t event, void *ctx)
             break;
 
         case MDF_EVENT_MUPGRADE_STATUS: {
+
+			char strTips[32] = {0};
+			sprintf(strTips, "upgrade progress %d%%", (int)ctx);
+			lvGui_tipsFullScreen_generate(strTips, 180);
+			
             MDF_LOGI("The upgrade progress is: %d%%", (int)ctx);
             mwifi_data_type_t data_type = {
                 .protocol = MLINK_PROTO_NOTICE,
@@ -1044,6 +1146,9 @@ static mdf_err_t event_loop_cb(mdf_event_loop_t event, void *ctx)
         }
 
         case MDF_EVENT_MUPGRADE_FINISH:
+
+			lvGui_tipsFullScreen_generateAutoTime("Upgrade completed \nwaiting for restart");
+			
             MDF_LOGI("Upgrade completed waiting for restart");
 //            light_driver_breath_start(0, 0, 255); /**< blue blink */
             break;
@@ -1053,6 +1158,7 @@ static mdf_err_t event_loop_cb(mdf_event_loop_t event, void *ctx)
 
             ret = mdf_info_erase(MDF_SPACE_NAME);
             MDF_ERROR_BREAK(ret != 0, "Erase the information");
+			devSystemInfoLocalRecord_allErase(); //信息清空
 
             esp_restart();
             break;
@@ -1142,39 +1248,73 @@ static void trigger_handle_task(void *arg)
 									 pdFALSE,
 									 2 / portTICK_RATE_MS);
 
-		if(uxBits & DEVAPPLICATION_FLG_BITHOLD_HEARTBEAT){
+		if(uxBits & DEVAPPLICATION_FLG_MQTT_LOGIN_NOTICE){ //mqtt通信触发：MQTT登录通知
 
-//			ESP_LOGI(TAG, "heartbeat trig.");
+//			ESP_LOGI(TAG, "mqtt login notice.\n");
+
+			mqtt_rootDevLoginConnectNotice_trig();
+			vTaskDelay(20 / portTICK_RATE_MS);
+		}
+
+		if(uxBits & DEVAPPLICATION_FLG_BITHOLD_HEARTBEAT){ //mqtt通信触发：心跳
+
+//			ESP_LOGI(TAG, "heartbeat trig.\n");
 
 			devHeartbeat_dataTrans_bussinessTrig();
 			vTaskDelay(20 / portTICK_RATE_MS);
 		}
 
-		if(uxBits & DEVAPPLICATION_FLG_BITHOLD_MUTUALTRIG){
+		if(uxBits & DEVAPPLICATION_FLG_BITHOLD_MUTUALTRIG){ //mesh内部通信触发：互控
 
-//			ESP_LOGI(TAG, "mutualCtrl trig.");
+//			ESP_LOGI(TAG, "mutualCtrl trig.\n");
 
 			funcation_usrAppMutualCtrlActionTrig(); 
 			vTaskDelay(20 / portTICK_RATE_MS);
 		}
 
-		if(uxBits & DEVAPPLICATION_FLG_BITHOLD_DEVEKECSUM_REPORT){
+		if(uxBits & DEVAPPLICATION_FLG_BITHOLD_DEVEKECSUM_REPORT){ //mqtt通信触发：电量上报
 
-//			ESP_LOGI(TAG, "decElecsum info report trig.");
+//			ESP_LOGI(TAG, "decElecsum info report trig.\n");
 
 			mqtt_rootDevRemoteDatatransLoop_elecSumReport();
 			vTaskDelay(20 / portTICK_RATE_MS);
 		}
 
-		if(uxBits & DEVAPPLICATION_FLG_BITHOLD_DEVDRV_SCENARIO){
+		if(uxBits & DEVAPPLICATION_FLG_BITHOLD_DEVDRV_SCENARIO){ //mqtt通信触发：场景
 
-			ESP_LOGI(TAG, "scenario driver action trig.");
+			ESP_LOGI(TAG, "scenario driver action trig.\n");
 
 			devDriverBussiness_scnarioSwitch_actionTrig();
 			vTaskDelay(20 / portTICK_RATE_MS);
 		}
 
-		vTaskDelay(2 / portTICK_RATE_MS);
+		if(uxBits & DEVAPPLICATION_FLG_BITHOLD_DEVSTATUS_SYNCHRO){ //mqtt通信触发：状态主动同步
+
+//			ESP_LOGI(TAG, "devStatus synchro trig.");
+			
+			usrApp_deviceStatusSynchronousInitiative();
+			vTaskDelay(20 / portTICK_RATE_MS);
+		}	
+
+		if(uxBits & DEVAPPLICATION_FLG_DEVNODE_UPGRADE_CHECK){ //mqtt通信触发：固件升级是否可用检查
+
+			devFireware_upgradeReserveCheck();
+			vTaskDelay(20 / portTICK_RATE_MS);
+		}
+
+		if(uxBits & DEVAPPLICATION_FLG_DEVNODE_UPGRADE_REQUEST){ //mdf内部通信触发：子设备固件升级请求通知
+
+			mwifiApp_firewareUpgrade_nodeNoticeToRoot();
+			vTaskDelay(20 / portTICK_RATE_MS);
+		}
+
+		if(uxBits & DEVAPPLICATION_FLG_HOST_UPGRATE_TASK_CREAT){
+
+			upgradeMeshOTA_taskCreatAction();
+			vTaskDelay(20 / portTICK_RATE_MS);
+		}
+
+		vTaskDelay(20 / portTICK_RATE_MS);
     }
 
     vTaskDelete(NULL);
@@ -1232,10 +1372,26 @@ static void developer_debugTask(void *arg){
 //		vTaskDelay(500 / portTICK_PERIOD_MS);
 //	}
 
-//	deviceHardwareLight_Init();
+//	deviceHardwareAcoustoOptic_Init();
 //	bussiness_devLight_testApp();
 
 	vTaskDelete(NULL);
+}
+
+static void usrApplication_logConfigInit(void){
+
+/**
+ * @brief Set the log level for serial port printing.
+ */
+// 	esp_log_level_set("*", ESP_LOG_INFO);
+	esp_log_level_set("*", ESP_LOG_WARN);
+//	esp_log_level_set("lanbon_L8 - timerSoft", ESP_LOG_DEBUG);
+//	esp_log_level_set(TAG, ESP_LOG_DEBUG);
+
+	esp_log_level_set("gpio", 			ESP_LOG_INFO);
+	esp_log_level_set("mupgrade_root", 	ESP_LOG_INFO);
+	esp_log_level_set("wifi", 			ESP_LOG_WARN);
+	esp_log_level_set("mesh", 			ESP_LOG_WARN);
 }
 
 void app_main()
@@ -1254,29 +1410,44 @@ void app_main()
 //        .blink_period_ms = CONFIG_LIGHT_BLINK_PERIOD_MS,
 //    };
 
+	/**
+	* @brief Log配置
+	*/
+	usrApplication_logConfigInit();
+
+#if(L8_DEVICE_TYPE_PANEL_DEF == DEV_TYPES_PANEL_DEF_INDEP_MOUDLE) //为了读取拨码数据，提前初始化驱动
+	devMechanicalOpreatPeriphInit();
+#endif
+
 //	devSystemInfoLocalRecord_preSaveTest();
 	devSystemInfoLocalRecord_initialize();
 
-	deviceHardwareLight_Init();
+	deviceHardwareAcoustoOptic_Init();
 	devDriverManageBussiness_initialition();
 	usrApp_bussinessHardTimer_Init();
 	usrApp_bussinessSoftTimer_Init();
 
-	/* Initialize LittlevGL GUI */
-	lvgl_init();
+    /**
+     * @brief Initialize LittlevGL GUI or led tips
+     */
+#if(L8_DEVICE_TYPE_PANEL_DEF == DEV_TYPES_PANEL_DEF_INDEP_INFRARED) ||\
+   (L8_DEVICE_TYPE_PANEL_DEF == DEV_TYPES_PANEL_DEF_INDEP_SOCKET) ||\
+   (L8_DEVICE_TYPE_PANEL_DEF == DEV_TYPES_PANEL_DEF_INDEP_MOUDLE)
 
+	devOpreation_bussinessInit();
+	vTaskDelay(100 / portTICK_PERIOD_MS);
+#else
+
+	lvgl_init();
+	vTaskDelay(100 / portTICK_PERIOD_MS);
 	littlevgl_usrTest();
+	vTaskDelay(5000 / portTICK_PERIOD_MS);
+#endif
 
     TimerHandle_t timer = xTimerCreate("show_system_info", 10000 / portTICK_RATE_MS,
                                        true, NULL, show_system_info_timercb);
 
     xTimerStart(timer, 0);
-
-    /**
-     * @brief Set the log level for serial port printing.
-     */
-    esp_log_level_set("*", ESP_LOG_INFO);
-    esp_log_level_set(TAG, ESP_LOG_DEBUG);
 
 //    nvs_flash_init();
 //    wifi_init_custom();
@@ -1307,22 +1478,25 @@ void app_main()
      */
     if (mdf_info_load("init_config", &init_config, sizeof(mwifi_init_config_t)) == MDF_OK
             && mdf_info_load("ap_config", &ap_config, sizeof(mwifi_config_t)) == MDF_OK) {
-            
+
+		MDF_LOGI("mconfig, ssid: %s, password: %s, mesh_id: " MACSTR,
+				 ap_config.router_ssid, ap_config.router_password,
+				 MAC2STR(ap_config.mesh_id));
+
         if (light_restart_is_exception()) {
 //            light_driver_breath_start(255, 0, 0); /**< red blink */
         } else {
 //            light_driver_set_switch(true);
         }
 
+		lvGui_usrAppBussinessRunning_block(0, "wifi\nreconnecting...", 30); //wifi重连，UI阻塞
+
 		meshNetwork_connectReserve_IF_set(true);
 		
     } else {
+	
 //        light_driver_breath_start(255, 255, 0); /**< yellow blink */
         MDF_ERROR_ASSERT(get_network_config(&init_config, &ap_config));
-        MDF_LOGI("mconfig, ssid: %s, password: %s, mesh_id: " MACSTR,
-                 ap_config.router_ssid, ap_config.router_password,
-                 MAC2STR(ap_config.mesh_id));
-
 		meshNetwork_connectReserve_IF_set(false);
     }
 
@@ -1350,7 +1524,7 @@ void app_main()
     MDF_ERROR_ASSERT(mlink_add_characteristic_handle(mlink_get_value, mlink_set_value));
 
     mlink_trigger_init();
-    xTaskCreate(trigger_handle_task, "trigger_handle", 1024 * 8,  NULL, 4, NULL);
+    xTaskCreate(trigger_handle_task, "trigger_handle", 1024 * 8,  NULL, 4, &taskHandle_communicateTrigBussiness);
 
     /**
      * @brief Initialize esp-mesh
@@ -1359,11 +1533,20 @@ void app_main()
     MDF_ERROR_ASSERT(mwifi_set_config(&ap_config));
     MDF_ERROR_ASSERT(mwifi_start());
 
-	xTaskCreate(developer_debugTask, "developer_debugTask", 1024 * 4, NULL, CONFIG_MDF_TASK_DEFAULT_PRIOTY, NULL);
+	xTaskCreate(developer_debugTask, 
+				"developer_debugTask", 
+				1024 * 4, 
+				NULL, 
+				CONFIG_MDF_TASK_DEFAULT_PRIOTY, 
+				NULL);
 
     /**
      * @brief Data transfer between wifi mesh devices
      */
-    xTaskCreate(request_handle_task, "request_handle", 8 * 1024,
-                NULL, CONFIG_MDF_TASK_DEFAULT_PRIOTY, NULL);
+    xTaskCreate(request_handle_task, 
+    			"request_handle", 
+    			1024 * 8,
+                NULL, 
+                CONFIG_MDF_TASK_DEFAULT_PRIOTY, 
+                NULL);
 }

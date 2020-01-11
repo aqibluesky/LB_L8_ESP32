@@ -16,11 +16,22 @@
 
 #define DEVDRIVER_HEATER_GPIO_OUTPUT_IO_RLY1     	27
 #define DEVDRIVER_HEATER_GPIO_OUTPUT_IO_RLY2     	14
+#define DEVDRIVER_HEATER_GPIO_OUTPUT_IO_RLY3     	12
 
-#define DEVDRIVER_HEATER_ACTION_POWERSTART()		gpio_set_level(DEVDRIVER_HEATER_GPIO_OUTPUT_IO_RLY1, (uint32_t)1)
-#define DEVDRIVER_HEATER_ACTION_POWERSYNCH()		gpio_set_level(DEVDRIVER_HEATER_GPIO_OUTPUT_IO_RLY2, (uint32_t)1)
-#define DEVDRIVER_HEATER_ACTION_POWEROFF()			gpio_set_level(DEVDRIVER_HEATER_GPIO_OUTPUT_IO_RLY1, (uint32_t)0);\
-													gpio_set_level(DEVDRIVER_HEATER_GPIO_OUTPUT_IO_RLY2, (uint32_t)0)
+#if(DEVICE_DRIVER_DEFINITION == DEVICE_DRIVER_METHOD_BY_SLAVE_MCU)
+
+ #define DEVDRIVER_HEATER_ACTION_POWERSTART()		devDriverApp_statusExexuteBySlaveMcu(0x01)
+ #define DEVDRIVER_HEATER_ACTION_POWERSYNCH()		devDriverApp_statusExexuteBySlaveMcu(0x07)
+ #define DEVDRIVER_HEATER_ACTION_POWEROFF()			devDriverApp_statusExexuteBySlaveMcu(0x00)
+#else
+
+ #define DEVDRIVER_HEATER_ACTION_POWERSTART()		gpio_set_level(DEVDRIVER_HEATER_GPIO_OUTPUT_IO_RLY1, (uint32_t)1)
+ #define DEVDRIVER_HEATER_ACTION_POWERSYNCH()		gpio_set_level(DEVDRIVER_HEATER_GPIO_OUTPUT_IO_RLY2, (uint32_t)1);\
+													gpio_set_level(DEVDRIVER_HEATER_GPIO_OUTPUT_IO_RLY3, (uint32_t)1)
+ #define DEVDRIVER_HEATER_ACTION_POWEROFF()			gpio_set_level(DEVDRIVER_HEATER_GPIO_OUTPUT_IO_RLY1, (uint32_t)0);\
+													gpio_set_level(DEVDRIVER_HEATER_GPIO_OUTPUT_IO_RLY2, (uint32_t)0);\
+													gpio_set_level(DEVDRIVER_HEATER_GPIO_OUTPUT_IO_RLY3, (uint32_t)0)
+#endif
 
 static bool devDriver_moudleInitialize_Flg = false;
 
@@ -48,7 +59,8 @@ static void devDriverBussiness_heaterSwitch_periphInit(void){
 	io_conf.mode = GPIO_MODE_OUTPUT;
 	//bit mask of the pins that you want to set
 	io_conf.pin_bit_mask = (1ULL << DEVDRIVER_HEATER_GPIO_OUTPUT_IO_RLY1) | 
-						   (1ULL << DEVDRIVER_HEATER_GPIO_OUTPUT_IO_RLY2);
+						   (1ULL << DEVDRIVER_HEATER_GPIO_OUTPUT_IO_RLY2) |
+						   (1ULL << DEVDRIVER_HEATER_GPIO_OUTPUT_IO_RLY3);
 	//disable pull-down mode
 	io_conf.pull_down_en = 0;
 	//disable pull-up mode
@@ -70,9 +82,14 @@ void devDriverBussiness_heaterSwitch_moudleInit(void){
 	if(swCurrentDevType != devTypeDef_heater)return;
 	if(devDriver_moudleInitialize_Flg)return;
 
-	msgQh_devHeaterDriver = xQueueCreate(1, sizeof(stt_msgDats_devHeaterDriver)); //队列长度为1，保证实时性
+#if(DEVICE_DRIVER_DEFINITION == DEVICE_DRIVER_METHOD_BY_SLAVE_MCU)
+				
+#else
+	
+	devDriverBussiness_heaterSwitch_periphInit();	
+#endif
 
-	devDriverBussiness_heaterSwitch_periphInit();
+	msgQh_devHeaterDriver = xQueueCreate(1, sizeof(stt_msgDats_devHeaterDriver)); //队列长度为1，保证实时性
 
 	devDriver_moudleInitialize_Flg = true;
 }
@@ -81,7 +98,12 @@ void devDriverBussiness_heaterSwitch_moudleDeinit(void){
 
 	if(!devDriver_moudleInitialize_Flg)return;
 
+#if(DEVICE_DRIVER_DEFINITION == DEVICE_DRIVER_METHOD_BY_SLAVE_MCU)
+							
+#else
+
 	devDriverBussiness_heaterSwitch_periphDeinit();
+#endif
 
 	vQueueDelete(msgQh_devHeaterDriver);
 	msgQh_devHeaterDriver = NULL;
@@ -167,6 +189,7 @@ void IRAM_ATTR devDriverBussiness_heaterSwitch_runningDetectLoop(void){
 void devDriverBussiness_heaterSwitch_periphStatusReales(stt_devDataPonitTypedef *param){
 
 	devTypeDef_enum swCurrentDevType = currentDev_typeGet();
+	static stt_devHeater_opratAct opreatAct_localRecord = heaterOpreatAct_close;
 
 	if(swCurrentDevType == devTypeDef_heater){
 
@@ -181,7 +204,7 @@ void devDriverBussiness_heaterSwitch_periphStatusReales(stt_devDataPonitTypedef 
 				devParam_heater.timeCountParam.timeCount_En = 0;
 				devParam_heater.timeCountParam.timeUp_counter = 0;
 
-				DEVDRIVER_HEATER_ACTION_POWEROFF();
+				if(opreatAct_localRecord != heaterOpreatAct_close)DEVDRIVER_HEATER_ACTION_POWEROFF(); //动作放入运行监测业务逻辑内执行
 
 			}break;
 			
@@ -191,7 +214,7 @@ void devDriverBussiness_heaterSwitch_periphStatusReales(stt_devDataPonitTypedef 
 				devParam_heater.timeCountParam.timeCount_En = 0;
 				devParam_heater.timeCountParam.timeUp_counter = 0;
 
-				DEVDRIVER_HEATER_ACTION_POWERSTART();
+				if(opreatAct_localRecord == heaterOpreatAct_close)DEVDRIVER_HEATER_ACTION_POWERSTART(); //非关闭状态下，不进行重复操作
 
 			}break;
 			
@@ -202,7 +225,7 @@ void devDriverBussiness_heaterSwitch_periphStatusReales(stt_devDataPonitTypedef 
 				devParam_heater.timeCountParam.timeUp_period = 30 * 60 * DEVHEATER_COEFFICIENT_TIME_SECOND;
 				devParam_heater.timeCountParam.timeUp_counter = 0;
 
-				DEVDRIVER_HEATER_ACTION_POWERSTART();
+				if(opreatAct_localRecord == heaterOpreatAct_close)DEVDRIVER_HEATER_ACTION_POWERSTART(); //非关闭状态下，不进行重复操作
 
 			}break;
 			
@@ -213,7 +236,7 @@ void devDriverBussiness_heaterSwitch_periphStatusReales(stt_devDataPonitTypedef 
 				devParam_heater.timeCountParam.timeUp_period = 60 * 60 * DEVHEATER_COEFFICIENT_TIME_SECOND;
 				devParam_heater.timeCountParam.timeUp_counter = 0;
 
-				DEVDRIVER_HEATER_ACTION_POWERSTART();
+				if(opreatAct_localRecord == heaterOpreatAct_close)DEVDRIVER_HEATER_ACTION_POWERSTART(); //非关闭状态下，不进行重复操作
 
 			}break;
 			
@@ -224,12 +247,14 @@ void devDriverBussiness_heaterSwitch_periphStatusReales(stt_devDataPonitTypedef 
 				devParam_heater.timeCountParam.timeUp_period = devParam_heater.timeCountParam.timeUp_period_customSet;
 				devParam_heater.timeCountParam.timeUp_counter = 0;
 
-				DEVDRIVER_HEATER_ACTION_POWERSTART();
+				if(opreatAct_localRecord == heaterOpreatAct_close)DEVDRIVER_HEATER_ACTION_POWERSTART(); //非关闭状态下，不进行重复操作
 
 			}break;
 
 			default:break;
 		}
+
+		opreatAct_localRecord = devParam_heater.opreatAct;
 	}
 }
 

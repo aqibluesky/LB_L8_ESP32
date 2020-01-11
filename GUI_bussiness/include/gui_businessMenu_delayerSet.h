@@ -29,6 +29,8 @@ extern "C" {
 
 void lvGui_businessMenu_delayerSet(lv_obj_t * obj_Parent);
 
+void guiDispTimeOut_pageDelayerSet(void);
+
 /**
  * Create a test screen with a lot objects and apply the given theme on them
  * @param th pointer to a theme

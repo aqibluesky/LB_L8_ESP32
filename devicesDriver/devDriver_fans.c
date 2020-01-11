@@ -17,18 +17,28 @@
 #define DEVDRIVER_FANS_GPIO_OUTPUT_IO_RLY1     	27
 #define DEVDRIVER_FANS_GPIO_OUTPUT_IO_RLY2     	14
 #define DEVDRIVER_FANS_GPIO_OUTPUT_IO_RLY3     	12
-#define DEVDRIVER_FANS_ACTION_STOP()				gpio_set_level(DEVDRIVER_FANS_GPIO_OUTPUT_IO_RLY1, (uint32_t)0);\
+
+#if(DEVICE_DRIVER_DEFINITION == DEVICE_DRIVER_METHOD_BY_SLAVE_MCU)
+
+ #define DEVDRIVER_FANS_ACTION_STOP()						devDriverApp_statusExexuteBySlaveMcu(0x00)
+ #define DEVDRIVER_FANS_ACTION_GEAR1()						devDriverApp_statusExexuteBySlaveMcu(0x01)
+ #define DEVDRIVER_FANS_ACTION_GEAR2()						devDriverApp_statusExexuteBySlaveMcu(0x02)
+ #define DEVDRIVER_FANS_ACTION_GEAR3()						devDriverApp_statusExexuteBySlaveMcu(0x04)
+#else
+
+ #define DEVDRIVER_FANS_ACTION_STOP()				gpio_set_level(DEVDRIVER_FANS_GPIO_OUTPUT_IO_RLY1, (uint32_t)0);\
 													gpio_set_level(DEVDRIVER_FANS_GPIO_OUTPUT_IO_RLY2, (uint32_t)0);\
 													gpio_set_level(DEVDRIVER_FANS_GPIO_OUTPUT_IO_RLY3, (uint32_t)0)
-#define DEVDRIVER_FANS_ACTION_GEAR1()				gpio_set_level(DEVDRIVER_FANS_GPIO_OUTPUT_IO_RLY1, (uint32_t)1);\
+ #define DEVDRIVER_FANS_ACTION_GEAR1()				gpio_set_level(DEVDRIVER_FANS_GPIO_OUTPUT_IO_RLY1, (uint32_t)1);\
 													gpio_set_level(DEVDRIVER_FANS_GPIO_OUTPUT_IO_RLY2, (uint32_t)0);\
 													gpio_set_level(DEVDRIVER_FANS_GPIO_OUTPUT_IO_RLY3, (uint32_t)0)
-#define DEVDRIVER_FANS_ACTION_GEAR2()				gpio_set_level(DEVDRIVER_FANS_GPIO_OUTPUT_IO_RLY1, (uint32_t)0);\
+ #define DEVDRIVER_FANS_ACTION_GEAR2()				gpio_set_level(DEVDRIVER_FANS_GPIO_OUTPUT_IO_RLY1, (uint32_t)0);\
 													gpio_set_level(DEVDRIVER_FANS_GPIO_OUTPUT_IO_RLY2, (uint32_t)1);\
 													gpio_set_level(DEVDRIVER_FANS_GPIO_OUTPUT_IO_RLY3, (uint32_t)0)
-#define DEVDRIVER_FANS_ACTION_GEAR3()				gpio_set_level(DEVDRIVER_FANS_GPIO_OUTPUT_IO_RLY1, (uint32_t)0);\
+ #define DEVDRIVER_FANS_ACTION_GEAR3()				gpio_set_level(DEVDRIVER_FANS_GPIO_OUTPUT_IO_RLY1, (uint32_t)0);\
 													gpio_set_level(DEVDRIVER_FANS_GPIO_OUTPUT_IO_RLY2, (uint32_t)0);\
 													gpio_set_level(DEVDRIVER_FANS_GPIO_OUTPUT_IO_RLY3, (uint32_t)1)
+#endif
 
 static bool devDriver_moudleInitialize_Flg = false;
 
@@ -71,16 +81,26 @@ void devDriverBussiness_fansSwitch_moudleInit(void){
 	if(swCurrentDevType != devTypeDef_fans)return;
 	if(devDriver_moudleInitialize_Flg)return;
 
-	devDriverBussiness_fansSwitch_periphInit();
+#if(DEVICE_DRIVER_DEFINITION == DEVICE_DRIVER_METHOD_BY_SLAVE_MCU)
+		
+#else
 
-	devDriver_moudleInitialize_Flg = true;
+	devDriverBussiness_fansSwitch_periphInit();
+#endif
+
+	devDriver_moudleInitialize_Flg = true;	
 }
 
 void devDriverBussiness_fansSwitch_moudleDeinit(void){
 
 	if(!devDriver_moudleInitialize_Flg)return;
 
+#if(DEVICE_DRIVER_DEFINITION == DEVICE_DRIVER_METHOD_BY_SLAVE_MCU)
+						
+#else
+
 	devDriverBussiness_fansSwitch_periphDeinit();
+#endif
 	
 	devDriver_moudleInitialize_Flg = false;
 }

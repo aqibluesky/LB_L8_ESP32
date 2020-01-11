@@ -26,8 +26,11 @@ extern "C" {
 /**********************
  * GLOBAL PROTOTYPES
  **********************/
+void appUiElementSet_upgradeAvailable(bool val);
 
 void lvGui_businessMenu_settingSet(lv_obj_t * obj_Parent);
+
+void guiDispTimeOut_pageSettingSet(void);
 
 /**
  * Create a test screen with a lot objects and apply the given theme on them

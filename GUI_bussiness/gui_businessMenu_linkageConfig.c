@@ -22,6 +22,8 @@
 
 #include "gui_businessReuse_reactionObjPage.h"
 
+#include "devDriver_manage.h"
+
 #define PAGEREACTION_REUSE_LINKAGETEMPRATURE_THRESHOLDADJ_FNUM		(PAGEREACTION_REUSE_BUSSINESS_RESERVE_MAX + 1)
 
 LV_FONT_DECLARE(lv_font_dejavu_15);
@@ -40,6 +42,7 @@ static lv_style_t styleText_menuLevel_A;
 static lv_style_t styleText_menuLevel_B;
 static lv_style_t styleText_menuLevel_C;
 static lv_style_t styleCb_proximityDetection_screenLight;
+static lv_style_t styleCb_proximityDetection_switchTrigEn;
 static lv_style_t styleBtn_specialTransparent;
 static lv_style_t styleTextBtn_linkageDetailSetting;
 static lv_style_t styleTextTitle_linkageDetailSetting;
@@ -63,6 +66,7 @@ static lv_obj_t	*cbProximityDetection_screenLight = NULL;
 static lv_obj_t	*btnProximityDetection_switchTrig = NULL;
 static lv_obj_t	*textBtnProximityDetection_switchTrig = NULL;
 static lv_obj_t	*pageBtnProximityDetection_switchTrig = NULL;
+static lv_obj_t	*cbProximityDetection_switchTrig_en = NULL;
 
 static lv_obj_t	*btnTempratureDetection_tempThresholdAdj = NULL;
 static lv_obj_t	*textBtnTempratureDetection_tempThresholdAdj = NULL;
@@ -84,6 +88,8 @@ static char strTemp_textBtnTempratureDetection_tempThresholdAdj[60] = {0};
 static uint8_t cfgDataTemp_linkageCondition_temprature = 0;
 static bool cfgDataScrLight_linkageReaction_proximity = false;
 
+static uint8_t screenLandscapeCoordinate_objOffset = 0;
+
 static void lvGuiLinkageConfig_childOptionObjCreat_proximityDetection(void);
 static void lvGuiLinkageConfig_childOptionObjDelete_proximityDetection(void);
 static void lvGuiLinkageConfig_childOptionObjCreat_tempratureDetection(void);
@@ -91,7 +97,20 @@ static void lvGuiLinkageConfig_childOptionObjDelete_tempratureDetection(void);
 
 static void currentGui_elementClear(void){
 
+	if(pageLinkage_detailSetting){
+
+		lv_obj_del(pageLinkage_detailSetting);
+		pageLinkage_detailSetting = NULL;
+	}
+
 	lv_obj_del(page_funSetOption);
+}
+
+void guiDispTimeOut_pageLinkageCfg(void){
+
+	lvGui_usrSwitch(bussinessType_Home);
+
+	currentGui_elementClear();
 }
 
 static lv_res_t funCb_btnActionClick_menuBtn_funBack(lv_obj_t *btn){
@@ -107,7 +126,7 @@ static lv_res_t funCb_btnActionClick_menuBtn_funBack(lv_obj_t *btn){
 
 		break;
 
-		case LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK	:
+		case LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK:
 		default:
 
 			guiChg_temp = bussinessType_Menu;
@@ -281,8 +300,12 @@ static lv_obj_t *lvGui_pageFunctionDetailSet_creat(const char * pageTitleName, u
 	if(pageLinkage_detailSetting == NULL)
 		pageLinkage_detailSetting = lv_page_create(lv_scr_act(), NULL);
 
-	lv_obj_set_size(pageLinkage_detailSetting, 200, 240);
-	lv_obj_set_pos(pageLinkage_detailSetting, 20, 60);					
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_set_size(pageLinkage_detailSetting, 280, 200)):
+		(lv_obj_set_size(pageLinkage_detailSetting, 200, 240));
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_set_pos(pageLinkage_detailSetting, 20, 20)):
+		(lv_obj_set_pos(pageLinkage_detailSetting, 20, 60));		
 	lv_page_set_style(pageLinkage_detailSetting, LV_PAGE_STYLE_SB, &stylePage_linkageDetailSetting);
 	lv_page_set_style(pageLinkage_detailSetting, LV_PAGE_STYLE_BG, &stylePage_linkageDetailSetting);
 	lv_page_set_sb_mode(pageLinkage_detailSetting, LV_SB_MODE_HIDE);	
@@ -306,11 +329,15 @@ static lv_obj_t *lvGui_pageFunctionDetailSet_creat(const char * pageTitleName, u
 	lv_page_glue_obj(btnConfirm_pageLinkageDetailSetting, true);
 	lv_obj_set_protect(btnConfirm_pageLinkageDetailSetting, LV_PROTECT_FOLLOW);
 	lv_obj_set_protect(btnConfirm_pageLinkageDetailSetting, LV_PROTECT_POS);
-	lv_obj_align(btnConfirm_pageLinkageDetailSetting, pageLinkage_detailSetting, LV_ALIGN_IN_BOTTOM_LEFT, 25, -1);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_align(btnConfirm_pageLinkageDetailSetting, pageLinkage_detailSetting, LV_ALIGN_IN_BOTTOM_LEFT, 45, -1)):
+		(lv_obj_align(btnConfirm_pageLinkageDetailSetting, pageLinkage_detailSetting, LV_ALIGN_IN_BOTTOM_LEFT, 25, -1));
 	lv_btn_set_action(btnConfirm_pageLinkageDetailSetting, LV_BTN_ACTION_CLICK, funCb_btnActionClickDetailSet_pageChoiceSelect_confirm);
 	lv_obj_set_free_num(btnConfirm_pageLinkageDetailSetting, pageObjIst);
 	btnCancel_pageLinkageDetailSetting = lv_btn_create(pageLinkage_detailSetting, btnConfirm_pageLinkageDetailSetting);
-	lv_obj_align(btnCancel_pageLinkageDetailSetting, btnConfirm_pageLinkageDetailSetting, LV_ALIGN_CENTER, 85, 0);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_align(btnCancel_pageLinkageDetailSetting, pageLinkage_detailSetting, LV_ALIGN_IN_BOTTOM_RIGHT, -45, -1)):
+		(lv_obj_align(btnCancel_pageLinkageDetailSetting, btnConfirm_pageLinkageDetailSetting, LV_ALIGN_CENTER, 85, 0));
 	lv_btn_set_action(btnCancel_pageLinkageDetailSetting, LV_BTN_ACTION_CLICK, funCb_btnActionClickDetailSet_pageChoiceSelect_cancel);
 	lv_obj_set_free_num(btnCancel_pageLinkageDetailSetting, pageObjIst);
 
@@ -324,11 +351,29 @@ static lv_obj_t *lvGui_pageFunctionDetailSet_creat(const char * pageTitleName, u
 	return pageLinkage_detailSetting;
 }
 
+static lv_res_t funCb_cbActionCheckDetailSet_swTrigEnable_proximity(lv_obj_t *cb){
+
+	bool opVal_get = lv_cb_is_checked(cb);
+	stt_paramLinkageConfig linkageConfigParamSet_temp = {0};
+	
+	devSystemOpration_linkageConfig_paramGet(&linkageConfigParamSet_temp);
+	
+	linkageConfigParamSet_temp.linkageReaction_proxmity_trigEn = opVal_get;
+	devSystemOpration_linkageConfig_paramSet(&linkageConfigParamSet_temp, true);
+
+	return LV_RES_OK;
+}
+
 static lv_res_t funCb_cbActionCheckDetailSet_trigScrLight_proximity(lv_obj_t *cb){
 
 	bool opVal_get = lv_cb_is_checked(cb);
+	stt_paramLinkageConfig linkageConfigParamSet_temp = {0};
+	
+	devSystemOpration_linkageConfig_paramGet(&linkageConfigParamSet_temp);
 
 	cfgDataScrLight_linkageReaction_proximity = opVal_get;
+	linkageConfigParamSet_temp.linkageReaction_proxmity_scrLightTrigIf = opVal_get;
+	devSystemOpration_linkageConfig_paramSet(&linkageConfigParamSet_temp, true);
 
 	return LV_RES_OK;
 }
@@ -336,11 +381,28 @@ static lv_res_t funCb_cbActionCheckDetailSet_trigScrLight_proximity(lv_obj_t *cb
 static lv_res_t funCb_btnActionClickDetailSet_switchTrigSet_proximity(lv_obj_t *btn){
 
 	stt_paramLinkageConfig devLinkageCfg_dataTemp = {0};
-	lv_obj_t *pageDetailSet = lvGui_pageFunctionDetailSet_creat("switch set", PAGEREACTION_REUSE_BUSSINESS_LINKAGESET_PROX);
+	lv_coord_t cy_base = 0;
 
 	devSystemOpration_linkageConfig_paramGet(&devLinkageCfg_dataTemp);
+	
+	lv_obj_t *pageDetailSet = lvGui_pageFunctionDetailSet_creat("switch set", PAGEREACTION_REUSE_BUSSINESS_LINKAGESET_PROX);
 
-	lvGui_businessReuse_reactionObjPageElement_creat(pageDetailSet, PAGEREACTION_REUSE_BUSSINESS_LINKAGESET_PROX, 80, &(devLinkageCfg_dataTemp.linkageReaction_proxmity_swVal));
+	cbProximityDetection_switchTrig_en = lv_cb_create(pageDetailSet, NULL);
+	lv_cb_set_action(cbProximityDetection_switchTrig_en, funCb_cbActionCheckDetailSet_swTrigEnable_proximity);
+	lv_obj_set_protect(cbProximityDetection_switchTrig_en, LV_PROTECT_POS);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_set_pos(cbProximityDetection_switchTrig_en, 50, 120)):
+		(lv_obj_set_pos(cbProximityDetection_switchTrig_en, 40, 165));
+	lv_obj_set_width(cbProximityDetection_switchTrig_en, 130);
+	lv_cb_set_style(cbProximityDetection_switchTrig_en, LV_CB_STYLE_BG, &styleCb_proximityDetection_switchTrigEn);
+	lv_cb_set_text(cbProximityDetection_switchTrig_en, " trig enable");
+	lv_cb_set_checked(cbProximityDetection_switchTrig_en, devLinkageCfg_dataTemp.linkageReaction_proxmity_trigEn);
+
+	(devStatusDispMethod_landscapeIf_get())?
+		(cy_base = 30):
+		(cy_base = 60);
+
+	lvGui_businessReuse_reactionObjPageElement_creat(pageDetailSet, PAGEREACTION_REUSE_BUSSINESS_LINKAGESET_PROX, cy_base, &(devLinkageCfg_dataTemp.linkageReaction_proxmity_swVal));
 
 	return LV_RES_OK;
 }
@@ -394,10 +456,15 @@ static lv_res_t funCb_btnActionClickDetailSet_switchTrigSet_temprature(lv_obj_t 
 
 	stt_paramLinkageConfig devLinkageCfg_dataTemp = {0};
 	lv_obj_t *pageDetailSet = lvGui_pageFunctionDetailSet_creat("switch set", PAGEREACTION_REUSE_BUSSINESS_LINKAGESET_TEMP);
+	uint8_t cy_base = 0;
 
 	devSystemOpration_linkageConfig_paramGet(&devLinkageCfg_dataTemp);
 
-	lvGui_businessReuse_reactionObjPageElement_creat(pageDetailSet, PAGEREACTION_REUSE_BUSSINESS_LINKAGESET_TEMP, 80, &(devLinkageCfg_dataTemp.linkageReaction_temprature_swVal));
+	(devStatusDispMethod_landscapeIf_get())?
+		(cy_base = 45):
+		(cy_base = 80);
+
+	lvGui_businessReuse_reactionObjPageElement_creat(pageDetailSet, PAGEREACTION_REUSE_BUSSINESS_LINKAGESET_TEMP, cy_base, &(devLinkageCfg_dataTemp.linkageReaction_temprature_swVal));
 
 	return LV_RES_OK;
 }
@@ -447,6 +514,10 @@ static void lvGuiLinkageConfig_objStyle_Init(void){
 	styleCb_proximityDetection_screenLight.body.padding.inner = 0;	
 	styleCb_proximityDetection_screenLight.text.color = LV_COLOR_MAKE(0xB5, 0xE6, 0x1D);
 	styleCb_proximityDetection_screenLight.text.font = &lv_font_consola_16;
+	
+	lv_style_copy(&styleCb_proximityDetection_switchTrigEn, &styleCb_proximityDetection_screenLight);
+	styleCb_proximityDetection_switchTrigEn.body.empty = 1;
+	styleCb_proximityDetection_switchTrigEn.text.color = LV_COLOR_BLACK;
 
     lv_style_copy(&styleBtn_specialTransparent, &lv_style_btn_rel);
 	styleBtn_specialTransparent.body.main_color = LV_COLOR_TRANSP;
@@ -531,7 +602,7 @@ static void lvGuiLinkageConfig_childOptionObjCreat_proximityDetection(void){
 	cbProximityDetection_screenLight = lv_cb_create(page_funSetOption, NULL);
 	lv_cb_set_action(cbProximityDetection_screenLight, funCb_cbActionCheckDetailSet_trigScrLight_proximity);
 	lv_obj_set_protect(cbProximityDetection_screenLight, LV_PROTECT_POS);
-	lv_obj_align(cbProximityDetection_screenLight, textSettingA_proximityDetection, LV_ALIGN_OUT_BOTTOM_LEFT, 17, 15);
+	lv_obj_align(cbProximityDetection_screenLight, textSettingA_proximityDetection, LV_ALIGN_OUT_BOTTOM_LEFT, screenLandscapeCoordinate_objOffset + 17, 15);
 	lv_obj_set_width(cbProximityDetection_screenLight, 175);
 	lv_cb_set_style(cbProximityDetection_screenLight, LV_CB_STYLE_BG, &styleCb_proximityDetection_screenLight);
 	lv_cb_set_text(cbProximityDetection_screenLight, " light the screen");
@@ -541,7 +612,7 @@ static void lvGuiLinkageConfig_childOptionObjCreat_proximityDetection(void){
 	lv_obj_set_size(btnProximityDetection_switchTrig, 200, 20);
 	lv_obj_set_protect(btnProximityDetection_switchTrig, LV_PROTECT_POS);
 	lv_btn_set_action(btnProximityDetection_switchTrig, LV_BTN_ACTION_CLICK, funCb_btnActionClickDetailSet_switchTrigSet_proximity);
-	lv_obj_align(btnProximityDetection_switchTrig, textSettingA_proximityDetection, LV_ALIGN_OUT_BOTTOM_LEFT, -8, 50);
+	lv_obj_align(btnProximityDetection_switchTrig, textSettingA_proximityDetection, LV_ALIGN_OUT_BOTTOM_LEFT, screenLandscapeCoordinate_objOffset + (-8), 50);
 	lv_btn_set_style(btnProximityDetection_switchTrig, LV_BTN_STYLE_REL, &styleBtn_specialTransparent);
 	lv_btn_set_style(btnProximityDetection_switchTrig, LV_BTN_STYLE_PR, &styleBtn_specialTransparent);
 	lv_btn_set_style(btnProximityDetection_switchTrig, LV_BTN_STYLE_TGL_REL, &styleBtn_specialTransparent);
@@ -562,8 +633,6 @@ static void lvGuiLinkageConfig_childOptionObjCreat_proximityDetection(void){
 }
 
 static void lvGuiLinkageConfig_childOptionObjDelete_proximityDetection(void){
-
-	lv_anim_t a,b,c,d;	
 
 	lv_obj_del(cbProximityDetection_screenLight);
 	cbProximityDetection_screenLight = NULL;
@@ -607,7 +676,7 @@ static void lvGuiLinkageConfig_childOptionObjCreat_tempratureDetection(void){
 	lv_obj_set_size(btnTempratureDetection_tempThresholdAdj, 200, 20);
 	lv_obj_set_protect(btnTempratureDetection_tempThresholdAdj, LV_PROTECT_POS);
 	lv_btn_set_action(btnTempratureDetection_tempThresholdAdj, LV_BTN_ACTION_CLICK, funCb_btnActionClickDetailSet_valThresholdAdj_temprature);
-	lv_obj_align(btnTempratureDetection_tempThresholdAdj, textSettingA_tempratureDetection, LV_ALIGN_OUT_BOTTOM_LEFT, 16, 15);
+	lv_obj_align(btnTempratureDetection_tempThresholdAdj, textSettingA_tempratureDetection, LV_ALIGN_OUT_BOTTOM_LEFT, screenLandscapeCoordinate_objOffset + 16, 15);
 	lv_btn_set_style(btnTempratureDetection_tempThresholdAdj, LV_BTN_STYLE_REL, &styleBtn_specialTransparent);
 	lv_btn_set_style(btnTempratureDetection_tempThresholdAdj, LV_BTN_STYLE_PR, &styleBtn_specialTransparent);
 	lv_btn_set_style(btnTempratureDetection_tempThresholdAdj, LV_BTN_STYLE_TGL_REL, &styleBtn_specialTransparent);
@@ -626,7 +695,7 @@ static void lvGuiLinkageConfig_childOptionObjCreat_tempratureDetection(void){
 	lv_obj_set_size(btnTempratureDetection_switchTrig, 200, 20);
 	lv_obj_set_protect(btnTempratureDetection_switchTrig, LV_PROTECT_POS);
 	lv_btn_set_action(btnTempratureDetection_switchTrig, LV_BTN_ACTION_CLICK, funCb_btnActionClickDetailSet_switchTrigSet_temprature);
-	lv_obj_align(btnTempratureDetection_switchTrig, textSettingA_tempratureDetection, LV_ALIGN_OUT_BOTTOM_LEFT, -8, 50);
+	lv_obj_align(btnTempratureDetection_switchTrig, textSettingA_tempratureDetection, LV_ALIGN_OUT_BOTTOM_LEFT, screenLandscapeCoordinate_objOffset + (-8), 50);
 	lv_btn_set_style(btnTempratureDetection_switchTrig, LV_BTN_STYLE_REL, &styleBtn_specialTransparent);
 	lv_btn_set_style(btnTempratureDetection_switchTrig, LV_BTN_STYLE_PR, &styleBtn_specialTransparent);
 	lv_btn_set_style(btnTempratureDetection_switchTrig, LV_BTN_STYLE_TGL_REL, &styleBtn_specialTransparent);
@@ -660,94 +729,135 @@ void lvGui_businessMenu_linkageConfig(lv_obj_t * obj_Parent){
 
 	lvGuiLinkageConfig_objStyle_Init();
 
+	(devStatusDispMethod_landscapeIf_get())?
+		(screenLandscapeCoordinate_objOffset = 35):
+		(screenLandscapeCoordinate_objOffset = 0);
+
 	text_Title = lv_label_create(obj_Parent, NULL);
 	lv_label_set_text(text_Title, "linkage config");
-	lv_obj_set_pos(text_Title, 40, 45); 
+	lv_obj_align(text_Title, NULL, LV_ALIGN_IN_BOTTOM_MID, 0, -7);
 	lv_obj_set_style(text_Title, &styleText_menuLevel_A);
 
-	menuBtnChoIcon_fun_home = lv_btn_create(obj_Parent, NULL);
-	lv_obj_set_size(menuBtnChoIcon_fun_home, 80, 20);
-	lv_obj_set_pos(menuBtnChoIcon_fun_home, 160, 45);
-	lv_obj_set_top(menuBtnChoIcon_fun_home, true);
-	lv_obj_set_free_num(menuBtnChoIcon_fun_home, LV_OBJ_FREENUM_BTNNUM_DEF_MENUHOME);
-	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_REL, &styleBtn_specialTransparent);
-	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_PR, &styleBtn_specialTransparent);
-	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_TGL_REL, &styleBtn_specialTransparent);
-	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_TGL_PR, &styleBtn_specialTransparent);
+	menuBtnChoIcon_fun_home = lv_imgbtn_create(obj_Parent, NULL);
+	lv_obj_set_size(menuBtnChoIcon_fun_home, 100, 50);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_set_pos(menuBtnChoIcon_fun_home, 220, 23)):
+		(lv_obj_set_pos(menuBtnChoIcon_fun_home, 140, 23));
+	lv_imgbtn_set_src(menuBtnChoIcon_fun_home, LV_BTN_STATE_REL, &iconMenu_funBack_homePage);
+	lv_imgbtn_set_src(menuBtnChoIcon_fun_home, LV_BTN_STATE_PR, &iconMenu_funBack_homePage);
+	lv_imgbtn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STATE_PR, &styleImg_menuFun_btnFun);
 	lv_btn_set_action(menuBtnChoIcon_fun_home, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
-	lv_btn_set_action(menuBtnChoIcon_fun_home, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
-	imgMenuBtnChoIcon_fun_home = lv_img_create(obj_Parent, NULL);
-	lv_img_set_src(imgMenuBtnChoIcon_fun_home, &iconMenu_funBack_homePage);
-	lv_obj_set_protect(imgMenuBtnChoIcon_fun_home, LV_PROTECT_POS);
-	lv_obj_align(imgMenuBtnChoIcon_fun_home, menuBtnChoIcon_fun_home, LV_ALIGN_IN_RIGHT_MID, -5, 0);
-	lv_obj_set_top(menuBtnChoIcon_fun_home, true);
+	lv_obj_set_free_num(menuBtnChoIcon_fun_home, LV_OBJ_FREENUM_BTNNUM_DEF_MENUHOME);
 
-	menuBtnChoIcon_fun_back = lv_btn_create(obj_Parent, menuBtnChoIcon_fun_home);
-	lv_obj_set_pos(menuBtnChoIcon_fun_back, 0, 45);
-	lv_obj_set_free_num(menuBtnChoIcon_fun_back, LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK);
+	menuBtnChoIcon_fun_back = lv_imgbtn_create(obj_Parent, menuBtnChoIcon_fun_home);
+	lv_obj_set_pos(menuBtnChoIcon_fun_back, 0, 20);
+	lv_imgbtn_set_src(menuBtnChoIcon_fun_back, LV_BTN_STATE_REL, &iconMenu_funBack_arrowLeft);
+	lv_imgbtn_set_src(menuBtnChoIcon_fun_back, LV_BTN_STATE_PR, &iconMenu_funBack_arrowLeft);
 	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
-	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
-	imgMenuBtnChoIcon_fun_back = lv_img_create(obj_Parent, NULL);
-	lv_img_set_src(imgMenuBtnChoIcon_fun_back, &iconMenu_funBack_arrowLeft);
-	lv_obj_set_protect(imgMenuBtnChoIcon_fun_back, LV_PROTECT_POS);
-	lv_obj_align(imgMenuBtnChoIcon_fun_back, menuBtnChoIcon_fun_back, LV_ALIGN_IN_LEFT_MID, 5, 0);
-	lv_obj_set_top(menuBtnChoIcon_fun_back, true);
+	lv_obj_set_free_num(menuBtnChoIcon_fun_back, LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK);
+
+//	menuBtnChoIcon_fun_home = lv_btn_create(obj_Parent, NULL);
+//	lv_obj_set_size(menuBtnChoIcon_fun_home, 100, 50);
+//	(devStatusDispMethod_landscapeIf_get())?
+//		(lv_obj_set_pos(menuBtnChoIcon_fun_home, 240, 25)):
+//		(lv_obj_set_pos(menuBtnChoIcon_fun_home, 160, 25));
+//	lv_obj_set_top(menuBtnChoIcon_fun_home, true);
+//	lv_obj_set_free_num(menuBtnChoIcon_fun_home, LV_OBJ_FREENUM_BTNNUM_DEF_MENUHOME);
+//	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_REL, &styleBtn_specialTransparent);
+//	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_PR, &styleBtn_specialTransparent);
+//	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_TGL_REL, &styleBtn_specialTransparent);
+//	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_TGL_PR, &styleBtn_specialTransparent);
+//	lv_btn_set_action(menuBtnChoIcon_fun_home, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
+//	lv_btn_set_action(menuBtnChoIcon_fun_home, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
+//	imgMenuBtnChoIcon_fun_home = lv_img_create(obj_Parent, NULL);
+//	lv_img_set_src(imgMenuBtnChoIcon_fun_home, &iconMenu_funBack_homePage);
+//	lv_obj_set_protect(imgMenuBtnChoIcon_fun_home, LV_PROTECT_POS);
+//	lv_obj_align(imgMenuBtnChoIcon_fun_home, menuBtnChoIcon_fun_home, LV_ALIGN_IN_RIGHT_MID, -25, 4);
+//	lv_obj_set_top(menuBtnChoIcon_fun_home, true);
+
+//	menuBtnChoIcon_fun_back = lv_btn_create(obj_Parent, menuBtnChoIcon_fun_home);
+//	lv_obj_set_pos(menuBtnChoIcon_fun_back, 0, 25);
+//	lv_obj_set_free_num(menuBtnChoIcon_fun_back, LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK);
+//	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
+//	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
+//	imgMenuBtnChoIcon_fun_back = lv_img_create(obj_Parent, NULL);
+//	lv_img_set_src(imgMenuBtnChoIcon_fun_back, &iconMenu_funBack_arrowLeft);
+//	lv_obj_set_protect(imgMenuBtnChoIcon_fun_back, LV_PROTECT_POS);
+//	lv_obj_align(imgMenuBtnChoIcon_fun_back, menuBtnChoIcon_fun_back, LV_ALIGN_IN_LEFT_MID, 5, 4);
+//	lv_obj_set_top(menuBtnChoIcon_fun_back, true);
 
 	page_funSetOption = lv_page_create(lv_scr_act(), NULL);
-	lv_obj_set_size(page_funSetOption, 240, 320);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_set_size(page_funSetOption, 320, 165)):
+		(lv_obj_set_size(page_funSetOption, 240, 245));
 	lv_obj_set_pos(page_funSetOption, 0, 75);
 	lv_page_set_style(page_funSetOption, LV_PAGE_STYLE_SB, &stylePage_funSetOption);
 	lv_page_set_style(page_funSetOption, LV_PAGE_STYLE_BG, &stylePage_funSetOption);
 	lv_page_set_sb_mode(page_funSetOption, LV_SB_MODE_HIDE);
 	lv_page_set_scrl_fit(page_funSetOption, false, false); //key opration
-	lv_page_set_scrl_width(page_funSetOption, 230);
-	lv_page_set_scrl_height(page_funSetOption, 310);
+	if(devStatusDispMethod_landscapeIf_get()){
+
+		lv_page_set_scrl_width(page_funSetOption, 310);
+		lv_page_set_scrl_height(page_funSetOption, 280);
+	}
+	else
+	{
+		lv_page_set_scrl_width(page_funSetOption, 230);
+		lv_page_set_scrl_height(page_funSetOption, 235);
+	}
 	lv_page_set_scrl_layout(page_funSetOption, LV_LAYOUT_CENTER);
 
-	textSettingA_proximityDetection = lv_label_create(page_funSetOption, NULL);
-	lv_label_set_recolor(textSettingA_proximityDetection, true);
-	lv_label_set_text(textSettingA_proximityDetection, "#FFFFFF proximity detection#:");
-	lv_obj_set_style(textSettingA_proximityDetection, &styleText_menuLevel_B);
-	lv_obj_set_protect(textSettingA_proximityDetection, LV_PROTECT_POS);
-	lv_obj_align(textSettingA_proximityDetection, NULL, LV_ALIGN_IN_TOP_LEFT, 5, 20);
+	lv_obj_t *label_funcNoSuppert = lv_label_create(page_funSetOption, NULL);
+	lv_label_set_recolor(label_funcNoSuppert, true);
+	lv_label_set_text(label_funcNoSuppert, "#FFFFFF Function unsupported#");
+	lv_obj_set_style(label_funcNoSuppert, &styleText_menuLevel_B);
+	lv_obj_set_protect(label_funcNoSuppert, LV_PROTECT_POS);
+	lv_obj_align(label_funcNoSuppert, NULL, LV_ALIGN_CENTER, 0, 0);
 
-	swReserveSet_proximityDetection = lv_sw_create(page_funSetOption, NULL);
-	lv_sw_set_action(swReserveSet_proximityDetection, funCb_swOpreat_proximityDetection_reserveEn);
-	lv_obj_set_size(swReserveSet_proximityDetection, 45, 15);
-	lv_obj_set_protect(swReserveSet_proximityDetection, LV_PROTECT_POS);
-	lv_obj_align(swReserveSet_proximityDetection, textSettingA_proximityDetection, LV_ALIGN_OUT_RIGHT_MID, 20, 0);
+//	textSettingA_proximityDetection = lv_label_create(page_funSetOption, NULL);
+//	lv_label_set_recolor(textSettingA_proximityDetection, true);
+//	lv_label_set_text(textSettingA_proximityDetection, "#FFFFFF proximity detection#:");
+//	lv_obj_set_style(textSettingA_proximityDetection, &styleText_menuLevel_B);
+//	lv_obj_set_protect(textSettingA_proximityDetection, LV_PROTECT_POS);
+//	lv_obj_align(textSettingA_proximityDetection, NULL, LV_ALIGN_IN_TOP_LEFT, 5, 20);
 
-	textSettingA_tempratureDetection = lv_label_create(page_funSetOption, NULL);
-	lv_label_set_recolor(textSettingA_tempratureDetection, true);
-	lv_label_set_text(textSettingA_tempratureDetection, "#FFFFFF temprature detection#:");
-	lv_obj_set_style(textSettingA_tempratureDetection, &styleText_menuLevel_B);
-	lv_obj_set_protect(textSettingA_tempratureDetection, LV_PROTECT_POS);
-	lv_obj_align(textSettingA_tempratureDetection, textSettingA_proximityDetection, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 30);
+//	swReserveSet_proximityDetection = lv_sw_create(page_funSetOption, NULL);
+//	lv_sw_set_action(swReserveSet_proximityDetection, funCb_swOpreat_proximityDetection_reserveEn);
+//	lv_obj_set_size(swReserveSet_proximityDetection, 45, 15);
+//	lv_obj_set_protect(swReserveSet_proximityDetection, LV_PROTECT_POS);
+//	lv_obj_align(swReserveSet_proximityDetection, textSettingA_proximityDetection, LV_ALIGN_OUT_RIGHT_MID, 20, 0);
 
-	swReserveSet_tempratureDetection = lv_sw_create(page_funSetOption, NULL);
-	lv_sw_set_action(swReserveSet_tempratureDetection, funCb_swOpreat_tempratureDetection_reserveEn);
-	lv_obj_set_size(swReserveSet_tempratureDetection, 45, 15);
-	lv_obj_set_protect(swReserveSet_tempratureDetection, LV_PROTECT_POS);
-	lv_obj_align(swReserveSet_tempratureDetection, swReserveSet_proximityDetection, LV_ALIGN_OUT_BOTTOM_MID, 0, 30);
+//	textSettingA_tempratureDetection = lv_label_create(page_funSetOption, NULL);
+//	lv_label_set_recolor(textSettingA_tempratureDetection, true);
+//	lv_label_set_text(textSettingA_tempratureDetection, "#FFFFFF temprature detection#:");
+//	lv_obj_set_style(textSettingA_tempratureDetection, &styleText_menuLevel_B);
+//	lv_obj_set_protect(textSettingA_tempratureDetection, LV_PROTECT_POS);
+//	lv_obj_align(textSettingA_tempratureDetection, textSettingA_proximityDetection, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 30);
 
-	if(linkageConfigParamSet_temp.linkageRunning_temprature_en){
+//	swReserveSet_tempratureDetection = lv_sw_create(page_funSetOption, NULL);
+//	lv_sw_set_action(swReserveSet_tempratureDetection, funCb_swOpreat_tempratureDetection_reserveEn);
+//	lv_obj_set_size(swReserveSet_tempratureDetection, 45, 15);
+//	lv_obj_set_protect(swReserveSet_tempratureDetection, LV_PROTECT_POS);
+//	lv_obj_align(swReserveSet_tempratureDetection, swReserveSet_proximityDetection, LV_ALIGN_OUT_BOTTOM_MID, 0, 30);
 
-		lv_sw_on(swReserveSet_tempratureDetection);
-		lvGuiLinkageConfig_childOptionObjCreat_tempratureDetection();
-	}
+//	if(linkageConfigParamSet_temp.linkageRunning_temprature_en){
 
-	if(linkageConfigParamSet_temp.linkageRunning_proxmity_en){
+//		lv_sw_on(swReserveSet_tempratureDetection);
+//		lvGuiLinkageConfig_childOptionObjCreat_tempratureDetection();
+//	}
 
-		lv_sw_on(swReserveSet_proximityDetection);
-		lvGuiLinkageConfig_childOptionObjCreat_proximityDetection();
-	}
+//	if(linkageConfigParamSet_temp.linkageRunning_proxmity_en){
 
-	lv_obj_animate(textSettingA_proximityDetection,  LV_ANIM_FLOAT_RIGHT, 200,	  0,	NULL);
-	lv_obj_animate(swReserveSet_proximityDetection,  LV_ANIM_FLOAT_RIGHT, 200,	100,	NULL);
-	lv_obj_animate(textSettingA_tempratureDetection, LV_ANIM_FLOAT_RIGHT, 200,	200,	NULL);
-	lv_obj_animate(swReserveSet_tempratureDetection, LV_ANIM_FLOAT_RIGHT, 200,	300,	NULL);
+//		lv_sw_on(swReserveSet_proximityDetection);
+//		lvGuiLinkageConfig_childOptionObjCreat_proximityDetection();
+//	}
 
-	vTaskDelay(50 / portTICK_PERIOD_MS);
+//	lv_obj_animate(textSettingA_proximityDetection,  LV_ANIM_FLOAT_RIGHT, 200,	  0,	NULL);
+//	lv_obj_animate(swReserveSet_proximityDetection,  LV_ANIM_FLOAT_RIGHT, 200,	100,	NULL);
+//	lv_obj_animate(textSettingA_tempratureDetection, LV_ANIM_FLOAT_RIGHT, 200,	200,	NULL);
+//	lv_obj_animate(swReserveSet_tempratureDetection, LV_ANIM_FLOAT_RIGHT, 200,	300,	NULL);
+
+	vTaskDelay(20 / portTICK_PERIOD_MS);
 	lv_obj_refresh_style(page_funSetOption);
 	lv_obj_refresh_style(obj_Parent);
 }

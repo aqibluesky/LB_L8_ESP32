@@ -19,66 +19,68 @@
 #include "mwifi.h"
 #include "mdf_common.h"
 
-#define DEVDRIVER_DIMMER_GPIO_IO_OUTP     	 12
+#define DEVDRIVER_DIMMER_GPIO_IO_OUTP     	 27
 
 #define DEVDRIVER_DIMMER_PCNT_TEST_UNIT      PCNT_UNIT_1
 #define DEVDRIVER_DIMMER_PCNT_H_LIM_VAL      1
 #define DEVDRIVER_DIMMER_PCNT_L_LIM_VAL     -10
 #define DEVDRIVER_DIMMER_PCNT_THRESH1_VAL    5
 #define DEVDRIVER_DIMMER_PCNT_THRESH0_VAL   -5
-#define DEVDRIVER_DIMMER_PCNT_INPUT_SIG_IO   27  // Pulse Input GPIO
+#define DEVDRIVER_DIMMER_PCNT_INPUT_SIG_IO   12  // Pulse Input GPIO
 #define DEVDRIVER_DIMMER_PCNT_INPUT_CTRL_IO  36  // Control GPIO HIGH=count up, LOW=count down
 
 static bool devDriver_moudleInitialize_Flg = false;
 
+static uint8_t brightnessLastRecord = DEVICE_DIMMER_BRIGHTNESS_MAX_VAL;
 static stt_Dimmer_attrFreq devParam_dimmer = {0};
 static struct _paramDynamic_dimmerAdj{
 
 	uint16_t valBrightness_target;
 
 }paramDynamic_dimmerAdj = {0};
-static pcnt_isr_handle_t user_isr_handle = NULL;
 
-static void IRAM_ATTR pcnt_isr_handler(void* arg){
-	
-	uint32_t intr_status = PCNT.int_st.val;
-	int	loop = 0;
+static void IRAM_ATTR pcnt_isr_handler(uint32_t evtStatus){
 
-	for (loop = 0; loop < PCNT_UNIT_MAX; loop++){
+	if(evtStatus & PCNT_STATUS_L_LIM){
 
-		switch(intr_status & (BIT(loop))){
+//		devParam_dimmer.periodBeat_cfm = devParam_dimmer.periodBeat_counter;
+//		devParam_dimmer.periodBeat_counter = 0;
 
-			case PCNT_STATUS_H_LIM:{
-
-//				devParam_dimmer.periodBeat_cfm = devParam_dimmer.periodBeat_counter;
-//				devParam_dimmer.periodBeat_counter = 0;
-
-//				devParam_dimmer.pwm_actEN = 1;
-				
-			}break;
-
-			default:break;
-		}
-
-		if(intr_status & (BIT(loop)))
-			PCNT.int_clr.val = BIT(loop);
+//		devParam_dimmer.pwm_actEN = 1;
 	}
 	
 	devParam_dimmer.periodBeat_cfm = devParam_dimmer.periodBeat_counter;
 	devParam_dimmer.periodBeat_counter = 0;
 	
 	devParam_dimmer.pwm_actEN = 1;
-	
-//	/*debug code*/
-//	devParam_dimmer.couterSoureFreq_Debug ++;
+
+	/*debug code*/
+	devParam_dimmer.couterSoureFreq_Debug ++;
 }
 
 void IRAM_ATTR devDriverBussiness_dimmerSwitch_debug(void){
 
-	pcnt_get_counter_value(DEVDRIVER_DIMMER_PCNT_TEST_UNIT, (int16_t *)&(devParam_dimmer.periodSoureFreq_Debug));
+#if(DEVICE_DRIVER_DEFINITION == DEVICE_DRIVER_METHOD_BY_SLAVE_MCU)
+
+	return;
+
+#else
+
+//	pcnt_get_counter_value(DEVDRIVER_DIMMER_PCNT_TEST_UNIT, (int16_t *)&(devParam_dimmer.periodSoureFreq_Debug));
+//	pcnt_counter_clear(DEVDRIVER_DIMMER_PCNT_TEST_UNIT);
+
+	devParam_dimmer.periodSoureFreq_Debug = devParam_dimmer.couterSoureFreq_Debug;
+	devParam_dimmer.couterSoureFreq_Debug = 0;
+#endif
 }
 
 void IRAM_ATTR devDriverBussiness_dimmerSwitch_decCounterReales(void){ 
+
+#if(DEVICE_DRIVER_DEFINITION == DEVICE_DRIVER_METHOD_BY_SLAVE_MCU)
+	
+	return;
+	
+#else
 
 	devTypeDef_enum swCurrentDevType = currentDev_typeGet();
 	static uint32_t gpio_out_put_status = 0;
@@ -120,11 +122,17 @@ void IRAM_ATTR devDriverBussiness_dimmerSwitch_decCounterReales(void){
 			gpio_out_put_status = 0;
 		}
 	}
+#endif
 }
 
 void IRAM_ATTR devDriverBussiness_dimmerSwitch_currentParamGet(stt_Dimmer_attrFreq *param){
 
 	memcpy(param, &devParam_dimmer, sizeof(stt_Dimmer_attrFreq));
+}
+
+uint8_t devDriverBussiness_dimmerSwitch_brightnessLastGet(void){
+
+	return brightnessLastRecord;
 }
 
 static void devDriverBussiness_dimmerSwitch_loadInit(void){
@@ -173,7 +181,7 @@ static void devDriverBussiness_dimmerSwitch_pcntInit(void){
     pcnt_unit_config(&pcnt_config);
 
     /* Configure and enable the input filter */
-    pcnt_set_filter_value(DEVDRIVER_DIMMER_PCNT_TEST_UNIT, 300);
+    pcnt_set_filter_value(DEVDRIVER_DIMMER_PCNT_TEST_UNIT, 768);
     pcnt_filter_enable(DEVDRIVER_DIMMER_PCNT_TEST_UNIT);
 
     /* Set threshold 0 and 1 values and enable events to watch */
@@ -201,7 +209,7 @@ static void devDriverBussiness_dimmerSwitch_pcntInit(void){
     pcnt_counter_clear(DEVDRIVER_DIMMER_PCNT_TEST_UNIT);
 
     /* Register ISR handler and enable interrupts for PCNT unit */
-    pcnt_isr_register(pcnt_isr_handler, NULL, 0, &user_isr_handle);
+	isrHandleFuncPcntUnit_regster(pcnt_isr_handler, DEVDRIVER_DIMMER_PCNT_TEST_UNIT); //pcnt应用处理函数注册，实际pcnt中断函数在devDriver_manage.c中
     pcnt_intr_enable(DEVDRIVER_DIMMER_PCNT_TEST_UNIT);
 
     /* Everything is set up, now go to counting */
@@ -210,7 +218,14 @@ static void devDriverBussiness_dimmerSwitch_pcntInit(void){
 
 static void devDriverBussiness_dimmerSwitch_pcntDeinit(void){
 
-	pcnt_isr_handler_remove(DEVDRIVER_DIMMER_PCNT_TEST_UNIT);
+    pcnt_counter_pause(DEVDRIVER_DIMMER_PCNT_TEST_UNIT);
+    pcnt_counter_clear(DEVDRIVER_DIMMER_PCNT_TEST_UNIT);
+
+	pcnt_filter_disable(DEVDRIVER_DIMMER_PCNT_TEST_UNIT);
+	pcnt_event_disable(DEVDRIVER_DIMMER_PCNT_TEST_UNIT, PCNT_EVT_H_LIM);
+	pcnt_intr_disable(DEVDRIVER_DIMMER_PCNT_TEST_UNIT);
+
+//	pcnt_isr_handler_remove(DEVDRIVER_DIMMER_PCNT_TEST_UNIT);
 }
 
 static void devDriverBussiness_dimmerSwitch_periphInit(void){
@@ -231,8 +246,13 @@ void devDriverBussiness_dimmerSwitch_moudleInit(void){
 
 	if(swCurrentDevType != devTypeDef_dimmer)return;
 	if(devDriver_moudleInitialize_Flg)return;
+	
+#if(DEVICE_DRIVER_DEFINITION == DEVICE_DRIVER_METHOD_BY_SLAVE_MCU)
+	
+#else
 
 	devDriverBussiness_dimmerSwitch_periphInit();
+#endif
 
 	devDriver_moudleInitialize_Flg = true;
 }
@@ -241,7 +261,12 @@ void devDriverBussiness_dimmerSwitch_moudleDeinit(void){
 
 	if(!devDriver_moudleInitialize_Flg)return;
 
+#if(DEVICE_DRIVER_DEFINITION == DEVICE_DRIVER_METHOD_BY_SLAVE_MCU)
+					
+#else
+
 	devDriverBussiness_dimmerSwitch_periphDeinit();
+#endif
 
 	devDriver_moudleInitialize_Flg = false;
 }
@@ -260,17 +285,35 @@ void devDriverBussiness_dimmerSwitch_periphStatusReales(stt_devDataPonitTypedef 
 
 	if(swCurrentDevType == devTypeDef_dimmer){
 
-		paramDynamic_dimmerAdj.valBrightness_target = (devParam_dimmer.periodBeat_cfm / 100) * param->devType_dimmer.devDimmer_brightnessVal;
+		if(param->devType_dimmer.devDimmer_brightnessVal)
+			brightnessLastRecord = param->devType_dimmer.devDimmer_brightnessVal;
 
-//		if(devParam_dimmer.periodBeat_cfm > 500){ //过零检测单周期过长，则进行低亮度补偿
+#if(DEVICE_DRIVER_DEFINITION == DEVICE_DRIVER_METHOD_BY_SLAVE_MCU)
 
-//			uint16_t brightnessCompensation = devParam_dimmer.periodBeat_cfm / 100 * 12; //12%亮度补偿
+		uint8_t statusTemp = 0;
 
-//			(param->devType_dimmer.devDimmer_brightnessVal > 0)?
-//				(paramDynamic_dimmerAdj.valBrightness_target = (brightnessCompensation + (devParam_dimmer.periodBeat_cfm - brightnessCompensation) / 100) * param->devType_dimmer.devDimmer_brightnessVal):
-//				(paramDynamic_dimmerAdj.valBrightness_target = 0);
-//		}
-//		devParam_dimmer.pwm_actPeriod = (devParam_dimmer.periodBeat_cfm / 100) * param->devType_dimmer.devDimmer_brightnessVal;
+		memcpy(&statusTemp, param, sizeof(uint8_t));
+
+		devDriverApp_statusExexuteBySlaveMcu(statusTemp);
+#else
+
+		const uint16_t brightnessCook_compensationPercent = 30;
+			  uint16_t brightnessCook_unit				  = ((devParam_dimmer.periodBeat_cfm / 100) - 2); //调光单位等份额减小一点，增强稳定性
+			  uint16_t brightnessCook_opreatBase		  = brightnessCook_unit * brightnessCook_compensationPercent;
+			  uint16_t brightnessCook_opreatUnit		  = brightnessCook_unit * (100 - brightnessCook_compensationPercent) / 100;
+
+		paramDynamic_dimmerAdj.valBrightness_target = brightnessCook_unit * param->devType_dimmer.devDimmer_brightnessVal; 
+
+		if(0 == param->devType_dimmer.devDimmer_brightnessVal){
+
+			paramDynamic_dimmerAdj.valBrightness_target = 0;
+		}
+		else
+		{
+			paramDynamic_dimmerAdj.valBrightness_target = brightnessCook_opreatBase + brightnessCook_opreatUnit * param->devType_dimmer.devDimmer_brightnessVal;
+		}
+#endif
+
 	}
 } 
 

@@ -20,6 +20,7 @@
 #include "sdkconfig.h"
 
 #include "devDataManage.h"
+#include "devDriver_manage.h"
 
 /* lvgl includes */
 #include "iot_lvgl.h"
@@ -30,9 +31,9 @@
 #include "lcd_adapter.h"
 #include "QR_Encode.h"
 
-#define QR_BASIC_POSITION_X				37
-#define QR_BASIC_POSITION_Y				117
-#define QR_PIXEL_SIZE					8
+#define QR_BASIC_POSITION_X				45
+#define QR_BASIC_POSITION_Y				120
+#define QR_PIXEL_SIZE					7
 
 #define LV_GUI_WIFICFG_APLIST_MAX_NUM	25
 
@@ -41,24 +42,35 @@
 
 LV_FONT_DECLARE(lv_font_dejavu_15);
 LV_FONT_DECLARE(lv_font_dejavu_20);
+LV_FONT_DECLARE(lv_font_consola_13);
+LV_FONT_DECLARE(lv_font_consola_16);
 LV_FONT_DECLARE(lv_font_consola_17);
 LV_FONT_DECLARE(lv_font_consola_19);
 
 LV_IMG_DECLARE(iconMenu_wifiConfig);
 LV_IMG_DECLARE(iconMenu_funBack);
-LV_IMG_DECLARE(imageBtn_feedBackNormal);
 LV_IMG_DECLARE(iconHeader_wifi_A);
 LV_IMG_DECLARE(iconHeader_wifi_B);
 LV_IMG_DECLARE(iconHeader_wifi_C);
 LV_IMG_DECLARE(iconHeader_wifi_D);
 
+LV_IMG_DECLARE(iconMenu_funBack_arrowLeft);
+LV_IMG_DECLARE(iconMenu_funBack_homePage);
+LV_IMG_DECLARE(imageBtn_feedBackNormal);
+
 extern xQueueHandle msgQh_wifiConfigCompleteTips;
 
 uint8_t wifiConfigComplete_tipsStartCounter = COUNTER_DISENABLE_MASK_SPECIALVAL_U8;
+uint8_t wifiConfigOpreat_scanningTimeCounter = COUNTER_DISENABLE_MASK_SPECIALVAL_U8;
+uint8_t wifiConfigOpreat_comfigFailCounter = COUNTER_DISENABLE_MASK_SPECIALVAL_U8;
 
 static const char *mbox_btnm_textTab[] ={"Yes", "No", ""};
 
 static lv_obj_t *menuBtnChoIcon_fun_back = NULL;
+static lv_obj_t *menuBtnChoIcon_fun_home = NULL;
+static lv_obj_t *imgMenuBtnChoIcon_fun_home = NULL;
+static lv_obj_t *imgMenuBtnChoIcon_fun_back = NULL;
+
 static lv_obj_t *menuText_opTips = NULL;
 static lv_obj_t *menuText_devMac = NULL;
 static lv_obj_t *pageTips_wifiConfigComplete = NULL;
@@ -68,6 +80,7 @@ static lv_obj_t *labelRef_wifiCfg_methodSel_wifiInfo = NULL;
 static lv_obj_t *labelRef_wifiCfg_methodSel = NULL;
 static lv_obj_t *labelRef_wifiCfg_methodQr_btRef = NULL;
 static lv_obj_t *labelRef_wifiCfg_methodKb_btRef = NULL;
+static lv_obj_t *labelRef_wifiCfg_methodLab_underline = NULL;
 static lv_obj_t *btn_wifiCfg_methodQr = NULL;
 static lv_obj_t *btn_wifiCfg_methodKb = NULL;
 
@@ -96,9 +109,13 @@ static lv_style_t styleImage_wifiConfigComplete;
 static lv_style_t styleLabelRef_wifiConfigComplete;
 static lv_style_t styleLabelRef_wifiCfg_methodSel_info;
 static lv_style_t styleLabelRef_wifiCfg_methodSel_btnRef;
+static lv_style_t styleLabelRef_wifiCfg_methodSel_btnMore;
+
 static lv_style_t styleMbox_bg;
 static lv_style_t styleMbox_btn_pr;
 static lv_style_t styleMbox_btn_rel;
+static lv_style_t styleImg_menuFun_btnFun;
+static lv_style_t styleBtn_specialTransparent;
 
 static lv_style_t styleEmpty;
 static lv_style_t stylePageUsrFun_wifiApListShowUp;
@@ -118,11 +135,12 @@ static lv_style_t stylepageUsrFun_KbWifiConfig;
 static lv_style_t styleLabelUsrFun_wifiConfig_psdTips;
 static lv_style_t styleLabelUsrFun_wifiConfig_kbMoveTips;
 
+static volatile bool wifiScanning_Flg = false;
 static volatile bool keyboardCreat_Flg = false;
 static volatile uint8_t QrCodeCreat_flg = VALDEF_BOOL_FALSE;
 static volatile uint8_t QrCodeCreat_trig = VALDEF_BOOL_FALSE;
 
-static char strTemp_wifiCfg_currentWifiStatusInfo[64] = {0};
+static char strTemp_wifiCfg_currentWifiStatusInfo[128] = {0};
 
 static char wifiApList_infoTemp[LV_GUI_WIFICFG_APLIST_MAX_NUM][33] = {0};
 static uint8_t wifiApSsidList_infoTemp[LV_GUI_WIFICFG_APLIST_MAX_NUM][6] = {0};
@@ -134,41 +152,116 @@ static void lvGui_businessMenu_wifiConfig_methodByKeyboard(lv_obj_t * obj_Parent
 static void lvGui_businessMenu_wifiConfig_unitKeyboard(lv_obj_t * obj_Parent, char *ssidIpt);
 static void lvGui_businessMenu_wifiConfig_keyboardCreat(lv_obj_t * obj_Parent);
 
+static void lvGui_businessMenu_wifiConfig_wifiScanningStart(void);
+static void lvGui_businessMenu_wifiConfig_wifiScanningComplete(void);
+
 static void currentGui_elementClear(void){
+	
+	if(pageUsrFun_KbWifiConfig){
 
-	if(menuText_devMac)lv_obj_del(menuText_devMac);
-	if(labelRef_wifiCfg_methodSel_wifiInfo)lv_obj_del(labelRef_wifiCfg_methodSel_wifiInfo);
-	if(mboxBtnKbCall_restart != NULL)lv_obj_del(mboxBtnKbCall_restart);
-	menuText_devMac						= NULL;
-	labelRef_wifiCfg_methodSel_wifiInfo	= NULL;
+		lv_obj_del(pageUsrFun_KbWifiConfig);
+		pageUsrFun_KbWifiConfig = NULL;
+	}
 
-	if(labelRef_wifiCfg_methodSel)lv_obj_del(labelRef_wifiCfg_methodSel);
-	if(btn_wifiCfg_methodQr)lv_obj_del(btn_wifiCfg_methodQr);
-	if(btn_wifiCfg_methodKb)lv_obj_del(btn_wifiCfg_methodKb);
-	if(labelRef_wifiCfg_methodQr_btRef)lv_obj_del(labelRef_wifiCfg_methodQr_btRef);
-	if(labelRef_wifiCfg_methodKb_btRef)lv_obj_del(labelRef_wifiCfg_methodKb_btRef);
-	labelRef_wifiCfg_methodSel			= NULL;
-	btn_wifiCfg_methodQr				= NULL;
-	btn_wifiCfg_methodKb				= NULL;
-	labelRef_wifiCfg_methodQr_btRef		= NULL;
-	labelRef_wifiCfg_methodKb_btRef		= NULL;
+	if(pageUsrFun_wifiApListShowUp){
+
+		lv_obj_del(pageUsrFun_wifiApListShowUp);
+		pageUsrFun_wifiApListShowUp = NULL;
+	}
+
+	if(keyboardCreat_Flg)keyboardCreat_Flg = false;
+		
+	if(menuText_devMac){
+		lv_obj_del(menuText_devMac);
+		menuText_devMac = NULL;
+	}
+	if(labelRef_wifiCfg_methodSel_wifiInfo){
+		lv_obj_del(labelRef_wifiCfg_methodSel_wifiInfo);
+		labelRef_wifiCfg_methodSel_wifiInfo = NULL;
+	}
+	if(mboxBtnKbCall_restart){
+		lv_obj_del(mboxBtnKbCall_restart);
+		mboxBtnKbCall_restart = NULL;
+	}
+	if(labelRef_wifiCfg_methodSel){
+		lv_obj_del(labelRef_wifiCfg_methodSel);
+		labelRef_wifiCfg_methodSel = NULL;
+	}
+	if(btn_wifiCfg_methodQr){
+		lv_obj_del(btn_wifiCfg_methodQr);
+		btn_wifiCfg_methodQr = NULL;
+	}
+	if(btn_wifiCfg_methodKb){
+		lv_obj_del(btn_wifiCfg_methodKb);
+		btn_wifiCfg_methodKb = NULL;
+	}
+}
+
+void guiDispTimeOut_pageWifiCfg(void){
+
+	lvGui_usrSwitch(bussinessType_Home);
+
+	currentGui_elementClear();
 }
 
 static lv_res_t funCb_btnActionClick_menuBtn_funBack(lv_obj_t *btn){
 
-	lvGui_usrSwitch(bussinessType_Menu);
+	LV_OBJ_FREE_NUM_TYPE btnFreeNum = lv_obj_get_free_num(btn);
+	usrGuiBussiness_type guiChg_temp = bussinessType_Menu;
 
-	QrCodeCreat_flg = VALDEF_BOOL_FALSE;
+	switch(btnFreeNum){
+
+		case LV_OBJ_FREENUM_BTNNUM_DEF_MENUHOME:
+
+			guiChg_temp = bussinessType_Home;
+
+		break;
+
+		case LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK:
+		default:
+
+			guiChg_temp = bussinessType_Menu;
+
+		break;
+	}
+
+	lvGui_usrSwitch(guiChg_temp);
 
 	currentGui_elementClear();
 
 	return LV_RES_OK;
 }
 
+static lv_res_t funCb_btnAction_null(lv_obj_t *btn){
+
+	
+
+	return LV_RES_OK;
+}
+
 static lv_res_t funCb_btnActionPress_menuBtn_funBack(lv_obj_t *btn){
 
-	lv_obj_t *btnFeedBk = lv_img_create(btn, NULL);
-	lv_img_set_src(btnFeedBk, &imageBtn_feedBackNormal);
+	LV_OBJ_FREE_NUM_TYPE btnFreeNum = lv_obj_get_free_num(btn);
+	lv_obj_t *objImg_colorChg = NULL;
+
+	switch(btnFreeNum){
+
+		case LV_OBJ_FREENUM_BTNNUM_DEF_MENUHOME:
+
+			objImg_colorChg = imgMenuBtnChoIcon_fun_home;
+
+		break;
+
+		case LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK	:
+		default:
+
+			objImg_colorChg = imgMenuBtnChoIcon_fun_back;
+
+		break;
+	}
+
+	lv_img_set_style(objImg_colorChg, &styleImg_menuFun_btnFun);
+	lv_obj_refresh_style(objImg_colorChg);
 
 	return LV_RES_OK;
 }
@@ -177,15 +270,11 @@ static lv_res_t funCb_btnActionPress_menuBtn_wifiCfg_btnByQr(lv_obj_t *btn){
 
 	lv_obj_del(labelRef_wifiCfg_methodSel_wifiInfo);
 	lv_obj_del(labelRef_wifiCfg_methodSel);
-	if(btn_wifiCfg_methodKb)
-		lv_obj_del(btn_wifiCfg_methodKb);
-	if(btn_wifiCfg_methodQr)
-		lv_obj_del(btn_wifiCfg_methodQr);
+	lv_obj_del(btn_wifiCfg_methodKb);
+	lv_obj_del(btn_wifiCfg_methodQr);
 	
 	labelRef_wifiCfg_methodSel_wifiInfo = NULL;
 	labelRef_wifiCfg_methodSel = NULL;
-	labelRef_wifiCfg_methodQr_btRef = NULL;
-	labelRef_wifiCfg_methodKb_btRef = NULL;
 	btn_wifiCfg_methodQr = NULL;
 	btn_wifiCfg_methodKb = NULL;
 
@@ -224,7 +313,6 @@ static lv_res_t funCb_mboxBtnActionClick_btnKbCallRestart(lv_obj_t * mbox, const
 		}
 			
 		loop ++;
-	
 	}while(mbox_btnm_textTab[loop]);
 
 	lv_obj_set_click(btn_wifiCfg_methodQr, true);
@@ -258,8 +346,12 @@ static lv_res_t funCb_btnActionPress_menuBtn_wifiCfg_btnByKb(lv_obj_t *btn){
 
 		mboxBtnKbCall_restart = lv_mbox_create(lv_scr_act(), NULL);
 		lv_obj_set_protect(mboxBtnKbCall_restart, LV_PROTECT_POS);
-		lv_obj_align(mboxBtnKbCall_restart, NULL, LV_ALIGN_CENTER, -55, -80);
-		lv_obj_set_width(mboxBtnKbCall_restart, 230);
+		(devStatusDispMethod_landscapeIf_get())?
+			(lv_obj_align(mboxBtnKbCall_restart, NULL, LV_ALIGN_CENTER, -70, -75)):
+			(lv_obj_align(mboxBtnKbCall_restart, NULL, LV_ALIGN_CENTER, -35, -85));
+		(devStatusDispMethod_landscapeIf_get())?
+			(lv_obj_set_width(mboxBtnKbCall_restart, 300)):
+			(lv_obj_set_width(mboxBtnKbCall_restart, 230));
 		lv_mbox_set_text(mboxBtnKbCall_restart, "The current function needs to be effective without wifi configuration, Would you like to delete the current wifi configuration and restart the switch?");
 		lv_mbox_add_btns(mboxBtnKbCall_restart, mbox_btnm_textTab, NULL);
 		lv_mbox_set_style(mboxBtnKbCall_restart, LV_MBOX_STYLE_BG, &styleMbox_bg);
@@ -270,6 +362,7 @@ static lv_res_t funCb_btnActionPress_menuBtn_wifiCfg_btnByKb(lv_obj_t *btn){
 	}
 	else
 	{
+		lv_obj_set_click(btn_wifiCfg_methodKb, false);
 		lvGui_businessMenu_wifiConfig_methodByKeyboard(lv_scr_act());
 	}
 
@@ -282,14 +375,10 @@ static lv_res_t funCb_btnActionClick_wifiApListSel(lv_obj_t *btn){
 
 	printf("aplist apist:%d click.\n", objFreeNum);
 
-	lvGui_businessMenu_wifiConfig_unitKeyboard(lv_scr_act(), wifiApList_infoTemp[objFreeNum]);
+	lvGui_businessMenu_wifiConfig_unitKeyboard(lv_layer_top(), wifiApList_infoTemp[objFreeNum]);
 	memcpy(wifiApSsidSel_temp, wifiApSsidList_infoTemp[objFreeNum], sizeof(uint8_t) * 6);
 
-	if(pageUsrFun_wifiApListShowUp){
-
-		lv_obj_del(pageUsrFun_wifiApListShowUp);
-		pageUsrFun_wifiApListShowUp = NULL;
-	}
+//	lv_obj_del(pageUsrFun_wifiApListShowUp);
 
 	return LV_RES_OK;
 }
@@ -341,7 +430,19 @@ static lv_res_t funCb_kbActionClick_wifiSelCfgOk(lv_obj_t *kb){
 	lv_obj_set_click(btn_wifiCfg_methodQr, true);
 	lv_obj_set_click(btn_wifiCfg_methodKb, true);
 
-	lv_obj_del(pageUsrFun_KbWifiConfig);
+	if(pageUsrFun_wifiApListShowUp){
+
+		lv_obj_del(pageUsrFun_wifiApListShowUp);
+		pageUsrFun_wifiApListShowUp = NULL;
+	}
+
+	usrApp_fullScreenRefresh_self(50, 0); //刷新
+
+	if(pageUsrFun_KbWifiConfig){
+
+		lv_obj_del(pageUsrFun_KbWifiConfig);
+		pageUsrFun_KbWifiConfig = NULL;
+	}
 
 	return LV_RES_OK;
 }
@@ -353,7 +454,17 @@ static lv_res_t funCb_kbActionClick_wifiSelCfgHidden(lv_obj_t *kb){
 
 	keyboardCreat_Flg = false;
 
-	lv_obj_del(pageUsrFun_KbWifiConfig);
+	if(pageUsrFun_wifiApListShowUp){
+
+		lv_obj_del(pageUsrFun_wifiApListShowUp);
+		pageUsrFun_wifiApListShowUp = NULL;
+	}
+
+	if(pageUsrFun_KbWifiConfig){
+
+		lv_obj_del(pageUsrFun_KbWifiConfig);
+		pageUsrFun_KbWifiConfig = NULL;
+	}
 
 	return LV_RES_OK;
 }
@@ -399,27 +510,36 @@ static void lvGui_businessMenu_wifiConfig_apListPage_showUp(lv_obj_t * obj_Paren
 
 	pageUsrFun_wifiApListShowUp = lv_page_create(obj_Parent, NULL);
 	lv_obj_set_top(pageUsrFun_wifiApListShowUp, true);
-	lv_obj_set_size(pageUsrFun_wifiApListShowUp, 220, 275);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_set_size(pageUsrFun_wifiApListShowUp, 300, 205)):
+		(lv_obj_set_size(pageUsrFun_wifiApListShowUp, 220, 275));
 	lv_obj_set_pos(pageUsrFun_wifiApListShowUp, 10, 30);
 	lv_page_set_style(pageUsrFun_wifiApListShowUp, LV_PAGE_STYLE_SB, &stylePageUsrFun_wifiApListShowUp);
 	lv_page_set_style(pageUsrFun_wifiApListShowUp, LV_PAGE_STYLE_BG, &stylePageUsrFun_wifiApListShowUp);
 	lv_page_set_sb_mode(pageUsrFun_wifiApListShowUp, LV_SB_MODE_HIDE);
 	lv_page_set_scrl_fit(pageUsrFun_wifiApListShowUp, false, false); //key opration
-	lv_page_set_scrl_width(pageUsrFun_wifiApListShowUp, 220); //scrl尺寸必须大于set size尺寸 才可以进行拖拽
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_page_set_scrl_width(pageUsrFun_wifiApListShowUp, 300)):
+		(lv_page_set_scrl_width(pageUsrFun_wifiApListShowUp, 220)); //scrl尺寸必须大于set size尺寸 才可以进行拖拽
 	lv_page_set_scrl_height(pageUsrFun_wifiApListShowUp, separateArea_high * (APNum + 1)); //scrl尺寸必须大于set size尺寸 才可以进行拖拽
 	lv_page_set_scrl_layout(pageUsrFun_wifiApListShowUp, LV_LAYOUT_CENTER);
 
+	if(APNum > LV_GUI_WIFICFG_APLIST_MAX_NUM)APNum = LV_GUI_WIFICFG_APLIST_MAX_NUM;
 	for(loop = 0; loop < APNum; loop ++){
 
 		lineObjSeparate_wifiApList[loop] = lv_obj_create(pageUsrFun_wifiApListShowUp, NULL);
-		lv_obj_set_size(lineObjSeparate_wifiApList[loop] , 210, 1);
+		(devStatusDispMethod_landscapeIf_get())?
+			(lv_obj_set_size(lineObjSeparate_wifiApList[loop] , 290, 1)):
+			(lv_obj_set_size(lineObjSeparate_wifiApList[loop] , 210, 1));
 		lv_obj_set_protect(lineObjSeparate_wifiApList[loop], LV_PROTECT_POS);
 		lv_obj_set_pos(lineObjSeparate_wifiApList[loop], 5, separateArea_high * (loop + 1));
 
 		btnSsidSel_wifiApList[loop] = lv_btn_create(pageUsrFun_wifiApListShowUp, NULL);
 		lv_obj_set_free_num(btnSsidSel_wifiApList[loop], loop);
 		lv_btn_set_action(btnSsidSel_wifiApList[loop], LV_BTN_ACTION_CLICK, funCb_btnActionClick_wifiApListSel);
-		lv_obj_set_size(btnSsidSel_wifiApList[loop], 200, separateArea_high - 5);
+		(devStatusDispMethod_landscapeIf_get())?
+			(lv_obj_set_size(btnSsidSel_wifiApList[loop], 280, separateArea_high - 5)):
+			(lv_obj_set_size(btnSsidSel_wifiApList[loop], 200, separateArea_high - 5));
 		lv_page_glue_obj(btnSsidSel_wifiApList[loop], true);
 		lv_btn_set_style(btnSsidSel_wifiApList[loop], LV_BTN_STYLE_REL, &styleBtnUsrFun_wifiApListShowUp);
 		lv_btn_set_style(btnSsidSel_wifiApList[loop], LV_BTN_STYLE_PR, &styleBtnUsrFun_wifiApListShowUp);
@@ -437,15 +557,23 @@ static void lvGui_businessMenu_wifiConfig_apListPage_showUp(lv_obj_t * obj_Paren
 		labelSsidText_wifiApList[loop] = lv_label_create(btnSsidSel_wifiApList[loop], NULL);
 		lv_obj_set_style(labelSsidText_wifiApList[loop], &styleLabelUsrFun_wifiApSsid);
 		lv_obj_set_protect(labelSsidText_wifiApList[loop], LV_PROTECT_POS);
-		lv_obj_set_width(labelSsidText_wifiApList[loop], 150);
+		(devStatusDispMethod_landscapeIf_get())?
+			(lv_obj_set_width(labelSsidText_wifiApList[loop], 230)):
+			(lv_obj_set_width(labelSsidText_wifiApList[loop], 150));
 		lv_obj_align(labelSsidText_wifiApList[loop], imgWifiSig_wifiApList[loop], LV_ALIGN_OUT_RIGHT_MID, 5, 0);
 		lv_label_set_text(labelSsidText_wifiApList[loop], (const char*)wifiList_info[loop].ssid);
+		lv_label_set_long_mode(labelSsidText_wifiApList[loop], LV_LABEL_LONG_DOT);
 		lv_label_set_align(labelSsidText_wifiApList[loop], LV_LABEL_ALIGN_LEFT);
 		lv_label_set_long_mode(labelSsidText_wifiApList[loop], LV_LABEL_LONG_DOT);
+
+		memset(wifiApList_infoTemp[loop], 0, sizeof(uint8_t) * 33);
+		memset(wifiApSsidList_infoTemp[loop], 0, sizeof(uint8_t) * 33);
 
 		memcpy(wifiApList_infoTemp[loop], &(wifiList_info[loop].ssid), sizeof(char) * 33);
 		memcpy(wifiApSsidList_infoTemp[loop], &(wifiList_info[loop].bssid), sizeof(uint8_t) * 6);
 	}
+
+	usrApp_fullScreenRefresh_self(50, 80);
 }
 
 static void lv_usrKeyboardTestUnit_styleInit(void){
@@ -523,22 +651,34 @@ static void lvGui_businessMenu_wifiConfig_keyboardCreat(lv_obj_t * obj_Parent){
 	if(!keyboardCreat_Flg){
 
 		pageKbArea_KbWifiConfig = lv_page_create(obj_Parent, NULL);
-		lv_obj_set_size(pageKbArea_KbWifiConfig, 240, 200);
+		(devStatusDispMethod_landscapeIf_get())?
+			(lv_obj_set_size(pageKbArea_KbWifiConfig, 320, 180)):
+			(lv_obj_set_size(pageKbArea_KbWifiConfig, 240, 200));
 		lv_obj_set_protect(pageKbArea_KbWifiConfig, LV_PROTECT_POS);
-		lv_obj_set_pos(pageKbArea_KbWifiConfig, 0, 115);
+		(devStatusDispMethod_landscapeIf_get())?
+			(lv_obj_set_pos(pageKbArea_KbWifiConfig, -10, 70)):
+			(lv_obj_set_pos(pageKbArea_KbWifiConfig, 0, 115));
 		lv_page_set_style(pageKbArea_KbWifiConfig, LV_PAGE_STYLE_SB, &stylepageKbArea_KbWifiConfig);
 		lv_page_set_style(pageKbArea_KbWifiConfig, LV_PAGE_STYLE_BG, &stylepageKbArea_KbWifiConfig);
 		lv_page_set_sb_mode(pageKbArea_KbWifiConfig, LV_SB_MODE_HIDE);
 		lv_page_set_scrl_fit(pageKbArea_KbWifiConfig, false, false); //key opration
-		lv_page_set_scrl_width(pageKbArea_KbWifiConfig, 460); //scrl尺寸必须大于set size尺寸 才可以进行拖拽
-		lv_page_set_scrl_height(pageKbArea_KbWifiConfig, 180); //scrl尺寸必须大于set size尺寸 才可以进行拖拽
+		(devStatusDispMethod_landscapeIf_get())?
+			(lv_page_set_scrl_width(pageKbArea_KbWifiConfig, 300)):
+			(lv_page_set_scrl_width(pageKbArea_KbWifiConfig, 460)); //scrl尺寸必须大于set size尺寸 才可以进行拖拽
+		(devStatusDispMethod_landscapeIf_get())?
+			(lv_page_set_scrl_height(pageKbArea_KbWifiConfig, 160)):
+			(lv_page_set_scrl_height(pageKbArea_KbWifiConfig, 180)); //scrl尺寸必须大于set size尺寸 才可以进行拖拽
 		lv_page_set_scrl_layout(pageKbArea_KbWifiConfig, LV_LAYOUT_CENTER);
 
 	    /*Create a keyboard and apply the styles*/
 		kbUsrFun_wifiConfig = lv_kb_create(pageKbArea_KbWifiConfig, NULL);
-		lv_obj_set_size(kbUsrFun_wifiConfig, 420, 150);
+		(devStatusDispMethod_landscapeIf_get())?
+			(lv_obj_set_size(kbUsrFun_wifiConfig, 310, 140)):
+			(lv_obj_set_size(kbUsrFun_wifiConfig, 420, 150));
 		lv_obj_set_protect(kbUsrFun_wifiConfig, LV_PROTECT_POS);
-		lv_obj_set_pos(kbUsrFun_wifiConfig, 10, 15);
+		(devStatusDispMethod_landscapeIf_get())?
+			(lv_obj_set_pos(kbUsrFun_wifiConfig, 0, 0)):
+			(lv_obj_set_pos(kbUsrFun_wifiConfig, 10, 15));
 	    lv_kb_set_cursor_manage(kbUsrFun_wifiConfig, true);
 		lv_kb_set_style(kbUsrFun_wifiConfig, LV_BTNM_STYLE_BG, &styleKb_usrFun_wifiCfg_btnBg);
 		lv_kb_set_style(kbUsrFun_wifiConfig, LV_BTNM_STYLE_BTN_REL, &styleKb_usrFun_wifiCfg_btnRel);
@@ -549,37 +689,54 @@ static void lvGui_businessMenu_wifiConfig_keyboardCreat(lv_obj_t * obj_Parent){
 		lv_kb_set_ok_action(kbUsrFun_wifiConfig, funCb_kbActionClick_wifiSelCfgOk);
 		lv_kb_set_hide_action(kbUsrFun_wifiConfig, funCb_kbActionClick_wifiSelCfgHidden);
 
-		labelUsrFun_wifiConfig_kbMoveTips = lv_label_create(pageKbArea_KbWifiConfig, NULL);
-		lv_obj_set_protect(labelUsrFun_wifiConfig_kbMoveTips, LV_PROTECT_POS);
-		lv_obj_align(labelUsrFun_wifiConfig_kbMoveTips, kbUsrFun_wifiConfig, LV_ALIGN_OUT_TOP_LEFT, -5, 0);
-		lv_label_set_style(labelUsrFun_wifiConfig_kbMoveTips, &styleLabelUsrFun_wifiConfig_kbMoveTips);
-		lv_label_set_text(labelUsrFun_wifiConfig_kbMoveTips, "     |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |");
+		if(!devStatusDispMethod_landscapeIf_get()){
+
+			labelUsrFun_wifiConfig_kbMoveTips = lv_label_create(pageKbArea_KbWifiConfig, NULL);
+			lv_obj_set_protect(labelUsrFun_wifiConfig_kbMoveTips, LV_PROTECT_POS);
+			lv_obj_align(labelUsrFun_wifiConfig_kbMoveTips, kbUsrFun_wifiConfig, LV_ALIGN_OUT_TOP_LEFT, -5, 0);
+			lv_label_set_style(labelUsrFun_wifiConfig_kbMoveTips, &styleLabelUsrFun_wifiConfig_kbMoveTips);
+			lv_label_set_text(labelUsrFun_wifiConfig_kbMoveTips, "     |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |");
+		}
 	}
 
 	keyboardCreat_Flg = true;
+
+	usrApp_fullScreenRefresh_self(50, 80);
 }
 
 static void lvGui_businessMenu_wifiConfig_unitKeyboard_detail(lv_obj_t * obj_Parent, char *ssidIpt){
 
 	labelUsrFun_wifiConfig_psdTips = lv_label_create(obj_Parent, NULL);
 	lv_obj_set_protect(labelUsrFun_wifiConfig_psdTips, LV_PROTECT_POS);
-	lv_obj_set_pos(labelUsrFun_wifiConfig_psdTips, 20, 0);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_set_pos(labelUsrFun_wifiConfig_psdTips, 2, 15)):
+		(lv_obj_set_pos(labelUsrFun_wifiConfig_psdTips, 20, 0));
 	lv_label_set_style(labelUsrFun_wifiConfig_psdTips, &styleLabelUsrFun_wifiConfig_psdTips);
-	lv_label_set_text(labelUsrFun_wifiConfig_psdTips, "ssid:");
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_label_set_text(labelUsrFun_wifiConfig_psdTips, "      ssid:")):
+		(lv_label_set_text(labelUsrFun_wifiConfig_psdTips, "ssid:"));
 	labelUsrFun_wifiConfig_ssidTips = lv_label_create(obj_Parent, labelUsrFun_wifiConfig_psdTips);
-	lv_obj_align(labelUsrFun_wifiConfig_ssidTips, labelUsrFun_wifiConfig_psdTips, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 40);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_align(labelUsrFun_wifiConfig_ssidTips, labelUsrFun_wifiConfig_psdTips, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 18)):
+		(lv_obj_align(labelUsrFun_wifiConfig_ssidTips, labelUsrFun_wifiConfig_psdTips, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 40));
 	lv_label_set_text(labelUsrFun_wifiConfig_ssidTips, "password:");
 
     /*Create a text area. The keyboard will write here*/
     taUsrFun_wifiConfig_ssid = lv_ta_create(obj_Parent, NULL);
 	lv_obj_set_top(taUsrFun_wifiConfig_ssid, true);
-    lv_obj_set_width(taUsrFun_wifiConfig_ssid, 200);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_set_size(taUsrFun_wifiConfig_ssid, 180, 25)):
+		(lv_obj_set_size(taUsrFun_wifiConfig_ssid, 200, 25));
 	lv_obj_set_protect(taUsrFun_wifiConfig_ssid, LV_PROTECT_POS);
-	lv_obj_align(taUsrFun_wifiConfig_ssid, labelUsrFun_wifiConfig_psdTips, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_align(taUsrFun_wifiConfig_ssid, labelUsrFun_wifiConfig_psdTips, LV_ALIGN_OUT_RIGHT_BOTTOM, 0, -15)):
+		(lv_obj_align(taUsrFun_wifiConfig_ssid, labelUsrFun_wifiConfig_psdTips, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0));
     lv_ta_set_one_line(taUsrFun_wifiConfig_ssid, true);
     lv_ta_set_text(taUsrFun_wifiConfig_ssid, ssidIpt);
     taUsrFun_wifiConfig_psd = lv_ta_create(obj_Parent, taUsrFun_wifiConfig_ssid);
-    lv_obj_align(taUsrFun_wifiConfig_psd, labelUsrFun_wifiConfig_ssidTips, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_align(taUsrFun_wifiConfig_psd, labelUsrFun_wifiConfig_ssidTips, LV_ALIGN_OUT_RIGHT_BOTTOM, 0, 5)):
+		(lv_obj_align(taUsrFun_wifiConfig_psd, labelUsrFun_wifiConfig_ssidTips, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0));
     lv_ta_set_text(taUsrFun_wifiConfig_psd, "");
 	
 	lv_obj_set_free_num(taUsrFun_wifiConfig_ssid, 0);
@@ -600,14 +757,20 @@ static void lvGui_businessMenu_wifiConfig_unitKeyboard(lv_obj_t * obj_Parent, ch
 	lv_usrKeyboardTestUnit_styleInit();
 
 	pageUsrFun_KbWifiConfig = lv_page_create(obj_Parent, NULL);
-	lv_obj_set_size(pageUsrFun_KbWifiConfig, 236, 300);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_set_size(pageUsrFun_KbWifiConfig, 316, 220)):
+		(lv_obj_set_size(pageUsrFun_KbWifiConfig, 236, 300));
 	lv_obj_set_pos(pageUsrFun_KbWifiConfig, 2, 20);
 	lv_page_set_style(pageUsrFun_KbWifiConfig, LV_PAGE_STYLE_SB, &stylepageUsrFun_KbWifiConfig);
 	lv_page_set_style(pageUsrFun_KbWifiConfig, LV_PAGE_STYLE_BG, &stylepageUsrFun_KbWifiConfig);
 	lv_page_set_sb_mode(pageUsrFun_KbWifiConfig, LV_SB_MODE_HIDE);
 	lv_page_set_scrl_fit(pageUsrFun_KbWifiConfig, false, false); //key opration
-	lv_page_set_scrl_width(pageUsrFun_KbWifiConfig, 220); //scrl尺寸必须大于set size尺寸 才可以进行拖拽
-	lv_page_set_scrl_height(pageUsrFun_KbWifiConfig, 300); //scrl尺寸必须大于set size尺寸 才可以进行拖拽
+	(devStatusDispMethod_landscapeIf_get())? //scrl尺寸必须大于set size尺寸 才可以进行拖拽
+		(lv_page_set_scrl_width(pageUsrFun_KbWifiConfig, 300)):
+		(lv_page_set_scrl_width(pageUsrFun_KbWifiConfig, 220));
+	(devStatusDispMethod_landscapeIf_get())? //scrl尺寸必须大于set size尺寸 才可以进行拖拽
+		(lv_page_set_scrl_height(pageUsrFun_KbWifiConfig, 240)):
+		(lv_page_set_scrl_height(pageUsrFun_KbWifiConfig, 300));
 	lv_page_set_scrl_layout(pageUsrFun_KbWifiConfig, LV_LAYOUT_COL_L);
 
 	lvGui_businessMenu_wifiConfig_unitKeyboard_detail(pageUsrFun_KbWifiConfig, ssidIpt);
@@ -618,20 +781,47 @@ static void lvGui_businessMenu_wifiConfig_qrCode_refresh(void){
 	uint8_t	qrCode_devMacBuff[6] = {0};
 	char str_devMacBuff[30] = {0};
 
+	int32_t posCoord_x = 0,
+			posCoord_y = 0,
+			qrCode_cellSize = 0;
+
 	if(QrCodeCreat_flg != VALDEF_BOOL_TRUE)return;
+
+	if(devStatusDispMethod_landscapeIf_get()){
+
+		posCoord_x = 99;
+		posCoord_y = 92;
+		qrCode_cellSize = 6;
+	}
+	else
+	{
+		posCoord_x = QR_BASIC_POSITION_X;
+		posCoord_y = QR_BASIC_POSITION_Y;
+		qrCode_cellSize = QR_PIXEL_SIZE;
+	}
 
 //	printf("QrCodeCreat_flg:%d, QrCodeCreat_trig:%d.\n", QrCodeCreat_flg,
 //														 QrCodeCreat_trig);
 
 	esp_wifi_get_mac(ESP_IF_WIFI_STA, qrCode_devMacBuff);
 
-	sprintf(str_devMacBuff, "%02X%02X%02X%02X%02X%02X,%d", qrCode_devMacBuff[0],
-														   qrCode_devMacBuff[1],
-														   qrCode_devMacBuff[2],
-														   qrCode_devMacBuff[3],
-														   qrCode_devMacBuff[4],
-														   qrCode_devMacBuff[5],
-														   (int)meshNetwork_connectReserve_IF_get());
+//	sprintf(str_devMacBuff, "%02X%02X%02X%02X%02X%02X,%d", qrCode_devMacBuff[0],
+//														   qrCode_devMacBuff[1],
+//														   qrCode_devMacBuff[2],
+//														   qrCode_devMacBuff[3],
+//														   qrCode_devMacBuff[4],
+//														   qrCode_devMacBuff[5],
+//														   (int)meshNetwork_connectReserve_IF_get());
+
+	sprintf(str_devMacBuff, "%02X%02X%02X%02X%02X%02X,%d,%d", qrCode_devMacBuff[0],
+															  qrCode_devMacBuff[1],
+															  qrCode_devMacBuff[2],
+															  qrCode_devMacBuff[3],
+															  qrCode_devMacBuff[4],
+															  qrCode_devMacBuff[5],
+															  (int)meshNetwork_connectReserve_IF_get(),
+															  L8_DEVICE_TYPE_PANEL_DEF);
+	
 	printf("Qr code creat res:%d.\n", EncodeData(str_devMacBuff));
 //	printf("Qr code creat res:%d.\n", EncodeData("hellow, Lanbon!"));
 
@@ -641,8 +831,8 @@ static void lvGui_businessMenu_wifiConfig_qrCode_refresh(void){
 		for(uint8_t loopb = 0; loopb < MAX_MODULESIZE; loopb ++){
 
 			(m_byModuleData[loopa][loopb])?
-				(externSocket_ex_disp_fill(QR_BASIC_POSITION_X + loopa * QR_PIXEL_SIZE, QR_BASIC_POSITION_Y + loopb * QR_PIXEL_SIZE, QR_BASIC_POSITION_X + QR_PIXEL_SIZE + loopa * QR_PIXEL_SIZE, QR_BASIC_POSITION_Y + QR_PIXEL_SIZE + loopb * QR_PIXEL_SIZE, LV_COLOR_BLACK)):
-				(externSocket_ex_disp_fill(QR_BASIC_POSITION_X + loopa * QR_PIXEL_SIZE, QR_BASIC_POSITION_Y + loopb * QR_PIXEL_SIZE, QR_BASIC_POSITION_X + QR_PIXEL_SIZE + loopa * QR_PIXEL_SIZE, QR_BASIC_POSITION_Y + QR_PIXEL_SIZE + loopb * QR_PIXEL_SIZE, LV_COLOR_WHITE));
+				(externSocket_ex_disp_fill(posCoord_x + loopa * qrCode_cellSize, posCoord_y + loopb * qrCode_cellSize, posCoord_x + qrCode_cellSize + loopa * qrCode_cellSize, posCoord_y + qrCode_cellSize + loopb * qrCode_cellSize, LV_COLOR_BLACK)):
+				(externSocket_ex_disp_fill(posCoord_x + loopa * qrCode_cellSize, posCoord_y + loopb * qrCode_cellSize, posCoord_x + qrCode_cellSize + loopa * qrCode_cellSize, posCoord_y + qrCode_cellSize + loopb * qrCode_cellSize, LV_COLOR_WHITE));
 		}
 	}
 }
@@ -656,85 +846,94 @@ static void lvGui_businessMenu_wifiConfig_methodByQrCode(lv_obj_t * obj_Parent){
 
 	QrCodeCreat_flg = VALDEF_BOOL_TRUE;
 
-	menuText_devMac = lv_label_create(lv_scr_act(), NULL);
-	sprintf(str_devMacBuff, "devMac: %02X %02X %02X %02X %02X %02X", qrCode_devMacBuff[0],
-																	 qrCode_devMacBuff[1],
-																	 qrCode_devMacBuff[2],
-																	 qrCode_devMacBuff[3],
-																	 qrCode_devMacBuff[4],
-																	 qrCode_devMacBuff[5]);
-	lv_label_set_text(menuText_devMac, (const char *)str_devMacBuff);
-	lv_obj_set_style(menuText_devMac, &styleText_menuLevel_B_infoMac);
-	lv_obj_set_pos(menuText_devMac, 20, 300);
+	/*MAC地址文字保留不显示*/
+//	menuText_devMac = lv_label_create(lv_scr_act(), NULL);
+//	sprintf(str_devMacBuff, "devMac: %02X %02X %02X %02X %02X %02X", qrCode_devMacBuff[0],
+//																	 qrCode_devMacBuff[1],
+//																	 qrCode_devMacBuff[2],
+//																	 qrCode_devMacBuff[3],
+//																	 qrCode_devMacBuff[4],
+//																	 qrCode_devMacBuff[5]);
+//	lv_label_set_text(menuText_devMac, (const char *)str_devMacBuff);
+//	lv_obj_set_style(menuText_devMac, &styleText_menuLevel_B_infoMac);
+//	lv_obj_set_pos(menuText_devMac, 20, 300);
+
+//	vTaskDelay(1000 / portTICK_PERIOD_MS);
 
 	lvGui_businessMenu_wifiConfig_qrCode_refresh();
 }
 
 void lvGui_businessMenu_wifiConfig_methodByKeyboard(lv_obj_t * obj_Parent){
 
-	static const wifi_ap_record_t apList_infoTemp[10] = {
-	
-		[0].ssid = "ap ssid Aahsfiaohio",
-		[1].ssid = "ap ssid B",
-		[2].ssid = "ap ssid C",
-		[3].ssid = "ap ssid D",
-		[4].ssid = "ap ssid E",
-		[5].ssid = "ap ssid F",
-		[7].ssid = "ahfaoahfaoahfaoahfaoahfaoahfao",
-	};
+	lvGui_businessMenu_wifiConfig_wifiScanningStart();
+}
+
+static void lvGui_businessMenu_wifiConfig_wifiScanningStart(void){
+
+	lvGui_usrAppBussinessRunning_block(0, "   wifi\n   scanning...", 8); //wifi扫描，UI阻塞
+	wifiScanning_Flg = true;
+	wifiConfigOpreat_scanningTimeCounter = 5;
+}
+
+static void lvGui_businessMenu_wifiConfig_wifiScanningComplete(void){
 
 	uint16_t loop = 0;
 	uint16_t apCount = 0;
 	wifi_ap_record_t *ap_list = NULL;
-	wifi_scan_config_t scanConf = {
-		.ssid = NULL,
-		.bssid = NULL,
-		.channel = 0,
-		.show_hidden = false
-	};
 
-	ESP_ERROR_CHECK(esp_wifi_disconnect());
-	ESP_ERROR_CHECK(esp_wifi_scan_start(&scanConf, false));
-	vTaskDelay(1500);
 	esp_wifi_scan_get_ap_num(&apCount);
 	ap_list = (wifi_ap_record_t *)malloc(sizeof(wifi_ap_record_t) * apCount);
 	ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&apCount, ap_list));
 	esp_wifi_scan_stop();
 
-	for(loop = 0; loop < apCount; loop ++){
+	lvGui_usrAppBussinessRunning_blockCancel(); //UI阻塞提示解除
 
-		printf("ssid:[%s], mac:["MACSTR"], rssi:[%d]\n", (char *)ap_list[loop].ssid, 
-														 MAC2STR(ap_list[loop].bssid),
-														 ap_list[loop].rssi);
-	}
+	lv_obj_set_click(btn_wifiCfg_methodKb, true);
 
-	lvGui_businessMenu_wifiConfig_apListPage_showUp(lv_scr_act(), ap_list, apCount);
+//	for(loop = 0; loop < apCount; loop ++){
+
+//		printf("ssid:[%s], mac:["MACSTR"], rssi:[%d]\n", (char *)ap_list[loop].ssid, 
+//														 MAC2STR(ap_list[loop].bssid),
+//														 ap_list[loop].rssi);
+//	}
+
+	lvGui_businessMenu_wifiConfig_apListPage_showUp(lv_layer_top(), ap_list, apCount);
 	
 	free(ap_list);
 }
 
 void lvGui_businessMenu_wifiConfig_wifiStatusReleasing(void){
 
+	const char *textTabAlign_ver = "\0";
+	const char *textTabAlign_hor = "      ";
+		  char *textTabAlign = NULL;
+
+  (devStatusDispMethod_landscapeIf_get())?
+	  (textTabAlign = textTabAlign_hor):
+	  (textTabAlign = textTabAlign_ver);
+
 	if(meshNetwork_connectReserve_IF_get()){
 
 		if(flgGet_gotRouterOrMeshConnect()){
 
-			wifi_config_t wifi_config = {0};
+			stt_routerCfgInfo routerCfgInfo_temp = {0};
 
-			esp_wifi_get_config(ESP_IF_WIFI_STA, &wifi_config);
+			currentRouterCfgInfo_paramGet(&routerCfgInfo_temp);
 
-			sprintf(strTemp_wifiCfg_currentWifiStatusInfo, "wifi status:\n  SSID: #B5E61D %s#\n  PSD: #B5E61D %s#",
-													 wifi_config.sta.ssid,
-													 wifi_config.sta.password);
+			sprintf(strTemp_wifiCfg_currentWifiStatusInfo, "wifi status:\n  %sSSID: #B5E61D %s#\n  %sPSD: #B5E61D %s#",
+															textTabAlign,
+													 		routerCfgInfo_temp.routerInfo_ssid,
+													 		textTabAlign,
+													 		routerCfgInfo_temp.routerInfo_psd);
 		}
 		else
 		{
-			sprintf(strTemp_wifiCfg_currentWifiStatusInfo, "wifi status:\n\n	#B9B9FF reconnecting...#");
+			sprintf(strTemp_wifiCfg_currentWifiStatusInfo, "wifi status:\n\n	#B9B9FF %sRECONNECTING...#", textTabAlign);
 		}
 	}
 	else
 	{
-		sprintf(strTemp_wifiCfg_currentWifiStatusInfo, "wifi status:\n\n	#B9B9FF    no config#");
+		sprintf(strTemp_wifiCfg_currentWifiStatusInfo, "wifi status:\n\n	#B9B9FF    %sNO CONFIG#", textTabAlign);
 	}
 }
 
@@ -745,7 +944,9 @@ void lvGui_businessMenu_wifiConfig_methodSelect(lv_obj_t * obj_Parent){
 	lv_label_set_recolor(labelRef_wifiCfg_methodSel_wifiInfo, true);
 	lv_label_set_text(labelRef_wifiCfg_methodSel_wifiInfo, strTemp_wifiCfg_currentWifiStatusInfo);
 	lv_obj_set_protect(labelRef_wifiCfg_methodSel_wifiInfo, LV_PROTECT_POS);
-	lv_obj_set_pos(labelRef_wifiCfg_methodSel_wifiInfo, 20, 110);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_set_pos(labelRef_wifiCfg_methodSel_wifiInfo, 20, 80)):
+		(lv_obj_set_pos(labelRef_wifiCfg_methodSel_wifiInfo, 20, 100));
 	lv_obj_set_style(labelRef_wifiCfg_methodSel_wifiInfo, &styleLabelRef_wifiCfg_methodSel_info);
 	
 	labelRef_wifiCfg_methodSel = lv_label_create(obj_Parent, NULL);
@@ -755,9 +956,11 @@ void lvGui_businessMenu_wifiConfig_methodSelect(lv_obj_t * obj_Parent){
 	lv_obj_set_style(labelRef_wifiCfg_methodSel, &styleLabelRef_wifiCfg_methodSel_info);
 
 	btn_wifiCfg_methodQr = lv_btn_create(obj_Parent, NULL);
-	lv_obj_set_size(btn_wifiCfg_methodQr, 120, 35);
+	lv_obj_set_size(btn_wifiCfg_methodQr, 110, 50);
 	lv_obj_set_protect(btn_wifiCfg_methodQr, LV_PROTECT_POS);
-	lv_obj_align(btn_wifiCfg_methodQr, labelRef_wifiCfg_methodSel, LV_ALIGN_OUT_BOTTOM_LEFT, 35, 15);	
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_align(btn_wifiCfg_methodQr, labelRef_wifiCfg_methodSel, LV_ALIGN_OUT_BOTTOM_LEFT, 55, 10)):
+		(lv_obj_align(btn_wifiCfg_methodQr, labelRef_wifiCfg_methodSel, LV_ALIGN_OUT_BOTTOM_LEFT, 25, 25));
 	lv_kb_set_style(btn_wifiCfg_methodQr, LV_BTNM_STYLE_BG, &styleKb_usrFun_wifiCfg_btnBg);
 	lv_kb_set_style(btn_wifiCfg_methodQr, LV_BTNM_STYLE_BTN_REL, &styleKb_usrFun_wifiCfg_btnRel);
 	lv_kb_set_style(btn_wifiCfg_methodQr, LV_BTNM_STYLE_BTN_PR, &styleKb_usrFun_wifiCfg_btnPre);
@@ -768,21 +971,41 @@ void lvGui_businessMenu_wifiConfig_methodSelect(lv_obj_t * obj_Parent){
 
 	labelRef_wifiCfg_methodQr_btRef = lv_label_create(btn_wifiCfg_methodQr, NULL);
 	lv_obj_set_style(labelRef_wifiCfg_methodQr_btRef, &styleLabelRef_wifiCfg_methodSel_btnRef);
-	lv_label_set_text(labelRef_wifiCfg_methodQr_btRef, "#4040FF Qr code#");
+	lv_label_set_text(labelRef_wifiCfg_methodQr_btRef, "#99D9EA Qr code#");
 	lv_label_set_recolor(labelRef_wifiCfg_methodQr_btRef, true);
 
 	btn_wifiCfg_methodKb = lv_btn_create(obj_Parent, btn_wifiCfg_methodQr);
-	lv_obj_align(btn_wifiCfg_methodKb, btn_wifiCfg_methodQr, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 15);
+	lv_obj_set_size(btn_wifiCfg_methodKb, 60, 35);
+	lv_kb_set_style(btn_wifiCfg_methodKb, LV_BTNM_STYLE_BG, &lv_style_transp);
+	lv_kb_set_style(btn_wifiCfg_methodKb, LV_BTNM_STYLE_BTN_REL, &lv_style_transp);
+	lv_kb_set_style(btn_wifiCfg_methodKb, LV_BTNM_STYLE_BTN_PR, &lv_style_transp);
+	lv_kb_set_style(btn_wifiCfg_methodKb, LV_BTNM_STYLE_BTN_TGL_REL, &lv_style_transp);
+	lv_kb_set_style(btn_wifiCfg_methodKb, LV_BTNM_STYLE_BTN_TGL_PR, &lv_style_transp);
+	lv_kb_set_style(btn_wifiCfg_methodKb, LV_BTNM_STYLE_BTN_INA, &lv_style_transp);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_align(btn_wifiCfg_methodKb, btn_wifiCfg_methodQr, LV_ALIGN_OUT_BOTTOM_RIGHT, 100, -32)):
+		(lv_obj_align(btn_wifiCfg_methodKb, btn_wifiCfg_methodQr, LV_ALIGN_OUT_BOTTOM_RIGHT, 70, 15));
 	lv_btn_set_action(btn_wifiCfg_methodKb, LV_BTN_ACTION_CLICK, funCb_btnActionPress_menuBtn_wifiCfg_btnByKb);
+	lv_btn_set_action(btn_wifiCfg_methodKb, LV_BTN_ACTION_PR, 			  funCb_btnAction_null);
+	lv_btn_set_action(btn_wifiCfg_methodKb, LV_BTN_ACTION_LONG_PR, 		  funCb_btnAction_null);
+	lv_btn_set_action(btn_wifiCfg_methodKb, LV_BTN_ACTION_LONG_PR_REPEAT, funCb_btnAction_null);
 	labelRef_wifiCfg_methodKb_btRef = lv_label_create(btn_wifiCfg_methodKb, labelRef_wifiCfg_methodQr_btRef);
-	lv_label_set_text(labelRef_wifiCfg_methodKb_btRef, "#4040FF keyboard#");
+	lv_obj_set_style(labelRef_wifiCfg_methodKb_btRef, &styleLabelRef_wifiCfg_methodSel_btnMore);
+	lv_label_set_text(labelRef_wifiCfg_methodKb_btRef, "#22B14C . . .#");
+	
+	labelRef_wifiCfg_methodLab_underline = lv_obj_create(btn_wifiCfg_methodKb, NULL); //下划线
+	lv_obj_set_size(labelRef_wifiCfg_methodLab_underline, 33, 1);
+	lv_obj_set_protect(labelRef_wifiCfg_methodLab_underline, LV_PROTECT_POS);
+	lv_obj_align(labelRef_wifiCfg_methodLab_underline, labelRef_wifiCfg_methodKb_btRef, LV_ALIGN_IN_BOTTOM_MID, -1, 7);
 
 	if(meshNetwork_connectReserve_IF_get()){
 
-		lv_label_set_text(labelRef_wifiCfg_methodKb_btRef, "#808080 keyboard#");
+		lv_obj_set_size(labelRef_wifiCfg_methodLab_underline, 53, 1);
+		lv_label_set_text(labelRef_wifiCfg_methodKb_btRef, "#808080 reset#");
+		lv_obj_align(labelRef_wifiCfg_methodLab_underline, labelRef_wifiCfg_methodKb_btRef, LV_ALIGN_IN_BOTTOM_MID, -1, 3);
 	}
 	
-	vTaskDelay(50 / portTICK_PERIOD_MS);
+	vTaskDelay(20 / portTICK_PERIOD_MS);
 	lv_obj_refresh_style(obj_Parent);
 }
 
@@ -794,26 +1017,76 @@ void lvGui_businessMenu_wifiConfig(lv_obj_t * obj_Parent){
 	lv_apListPageShowUp_styleInit();
 	lv_usrKeyboardTestUnit_styleInit();
 
+	xQueueReset(msgQh_wifiConfigCompleteTips); //指定提示队列清空
+
 	menuText_devMac = lv_label_create(lv_scr_act(), NULL);
 
 	text_Title = lv_label_create(obj_Parent, NULL);
 	lv_label_set_text(text_Title, "wifi config");
-	lv_obj_set_pos(text_Title, 60, 40);
+	lv_obj_align(text_Title, NULL, LV_ALIGN_IN_BOTTOM_MID, 0, -7);
 	lv_obj_set_style(text_Title, &styleText_menuLevel_A);
-	
-	menuText_opTips = lv_label_create(obj_Parent, NULL);
-	lv_label_set_text(menuText_opTips, "Please operate carefully according to the wifi status.");
-	lv_label_set_long_mode(menuText_opTips, LV_LABEL_LONG_SCROLL);
-	lv_obj_set_style(menuText_opTips, &styleText_menuLevel_B_infoTips);
-	lv_obj_set_protect(menuText_opTips, LV_PROTECT_POS);
-	lv_obj_align(menuText_opTips, NULL, LV_ALIGN_IN_BOTTOM_MID, 0, -5);
 
-	menuBtnChoIcon_fun_back = lv_imgbtn_create(obj_Parent, NULL);
-	lv_imgbtn_set_src(menuBtnChoIcon_fun_back, LV_BTN_STATE_REL, &iconMenu_funBack);
-	lv_imgbtn_set_src(menuBtnChoIcon_fun_back, LV_BTN_STATE_PR, &iconMenu_funBack);
-	lv_obj_set_pos(menuBtnChoIcon_fun_back, 8, 35);
+	menuBtnChoIcon_fun_home = lv_imgbtn_create(obj_Parent, NULL);
+	lv_obj_set_size(menuBtnChoIcon_fun_home, 100, 50);
+	(devStatusDispMethod_landscapeIf_get())?
+		(lv_obj_set_pos(menuBtnChoIcon_fun_home, 220, 23)):
+		(lv_obj_set_pos(menuBtnChoIcon_fun_home, 140, 23));
+	lv_imgbtn_set_src(menuBtnChoIcon_fun_home, LV_BTN_STATE_REL, &iconMenu_funBack_homePage);
+	lv_imgbtn_set_src(menuBtnChoIcon_fun_home, LV_BTN_STATE_PR, &iconMenu_funBack_homePage);
+	lv_imgbtn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STATE_PR, &styleImg_menuFun_btnFun);
+	lv_btn_set_action(menuBtnChoIcon_fun_home, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
+	lv_obj_set_free_num(menuBtnChoIcon_fun_home, LV_OBJ_FREENUM_BTNNUM_DEF_MENUHOME);
+
+	menuBtnChoIcon_fun_back = lv_imgbtn_create(obj_Parent, menuBtnChoIcon_fun_home);
+	lv_obj_set_pos(menuBtnChoIcon_fun_back, 0, 22);
+	lv_imgbtn_set_src(menuBtnChoIcon_fun_back, LV_BTN_STATE_REL, &iconMenu_funBack_arrowLeft);
+	lv_imgbtn_set_src(menuBtnChoIcon_fun_back, LV_BTN_STATE_PR, &iconMenu_funBack_arrowLeft);
 	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
-	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
+	lv_obj_set_free_num(menuBtnChoIcon_fun_back, LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK);
+
+//	menuBtnChoIcon_fun_home = lv_btn_create(obj_Parent, NULL);
+//	lv_obj_set_size(menuBtnChoIcon_fun_home, 100, 50);
+//	(devStatusDispMethod_landscapeIf_get())?
+//		(lv_obj_set_pos(menuBtnChoIcon_fun_home, 240, 25)):
+//		(lv_obj_set_pos(menuBtnChoIcon_fun_home, 160, 25));
+//	lv_obj_set_top(menuBtnChoIcon_fun_home, true);
+//	lv_obj_set_free_num(menuBtnChoIcon_fun_home, LV_OBJ_FREENUM_BTNNUM_DEF_MENUHOME);
+//	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_REL, &styleBtn_specialTransparent);
+//	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_PR, &styleBtn_specialTransparent);
+//	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_TGL_REL, &styleBtn_specialTransparent);
+//	lv_btn_set_style(menuBtnChoIcon_fun_home, LV_BTN_STYLE_TGL_PR, &styleBtn_specialTransparent);
+//	lv_btn_set_action(menuBtnChoIcon_fun_home, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
+//	lv_btn_set_action(menuBtnChoIcon_fun_home, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
+//	imgMenuBtnChoIcon_fun_home = lv_img_create(obj_Parent, NULL);
+//	lv_img_set_src(imgMenuBtnChoIcon_fun_home, &iconMenu_funBack_homePage);
+//	lv_obj_set_protect(imgMenuBtnChoIcon_fun_home, LV_PROTECT_POS);
+//	lv_obj_align(imgMenuBtnChoIcon_fun_home, menuBtnChoIcon_fun_home, LV_ALIGN_IN_RIGHT_MID, -25, 4);
+//	lv_obj_set_top(menuBtnChoIcon_fun_home, true);
+
+//	menuBtnChoIcon_fun_back = lv_btn_create(obj_Parent, menuBtnChoIcon_fun_home);
+//	lv_obj_set_pos(menuBtnChoIcon_fun_back, 0, 25);
+//	lv_obj_set_free_num(menuBtnChoIcon_fun_back, LV_OBJ_FREENUM_BTNNUM_DEF_MENUBACK);
+//	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
+//	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
+//	imgMenuBtnChoIcon_fun_back = lv_img_create(obj_Parent, NULL);
+//	lv_img_set_src(imgMenuBtnChoIcon_fun_back, &iconMenu_funBack_arrowLeft);
+//	lv_obj_set_protect(imgMenuBtnChoIcon_fun_back, LV_PROTECT_POS);
+//	lv_obj_align(imgMenuBtnChoIcon_fun_back, menuBtnChoIcon_fun_back, LV_ALIGN_IN_LEFT_MID, 5, 4);
+//	lv_obj_set_top(menuBtnChoIcon_fun_back, true);
+	
+//	menuText_opTips = lv_label_create(obj_Parent, NULL);
+//	lv_label_set_text(menuText_opTips, "Please operate carefully according to the wifi status.");
+//	lv_label_set_long_mode(menuText_opTips, LV_LABEL_LONG_SCROLL);
+//	lv_obj_set_style(menuText_opTips, &styleText_menuLevel_B_infoTips);
+//	lv_obj_set_protect(menuText_opTips, LV_PROTECT_POS);
+//	lv_obj_align(menuText_opTips, NULL, LV_ALIGN_IN_BOTTOM_MID, 0, -5);
+
+//	menuBtnChoIcon_fun_back = lv_imgbtn_create(obj_Parent, NULL);
+//	lv_imgbtn_set_src(menuBtnChoIcon_fun_back, LV_BTN_STATE_REL, &iconMenu_funBack);
+//	lv_imgbtn_set_src(menuBtnChoIcon_fun_back, LV_BTN_STATE_PR, &iconMenu_funBack);
+//	lv_obj_set_pos(menuBtnChoIcon_fun_back, 8, 35);
+//	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_CLICK, funCb_btnActionClick_menuBtn_funBack);
+//	lv_btn_set_action(menuBtnChoIcon_fun_back, LV_BTN_ACTION_PR, funCb_btnActionPress_menuBtn_funBack);
 
 //	labelRef_wifiCfg_methodSel_wifiInfo = lv_label_create(obj_Parent, NULL);
 //	lv_label_set_text(menuText_opTips, "scan the QR code to config the WIFI.");
@@ -843,15 +1116,24 @@ void lvGui_wifiConfig_bussiness_configComplete_tipsTrig(void){
 void lvGui_wifiConfig_bussiness_configComplete_tipsOver(void){
 
 	uint8_t msgQh_sptrDataWifiConfig = 'B';
-
+	
 	xQueueSend(msgQh_wifiConfigCompleteTips, &msgQh_sptrDataWifiConfig, 1 / portTICK_PERIOD_MS);
+}
+
+void lvGui_wifiConfig_bussiness_configFail_tipsTrig(uint8_t tipsTime, uint8_t err){
+
+	char strTips_temp[64] = {0};
+	sprintf(strTips_temp, "#FF007F wifi connect#\n#FF007F fail[error:%d]#", err);
+	lvGui_usrAppBussinessRunning_block(1, (const char*)strTips_temp, tipsTime); //UI阻塞提示，wifi连接失败
+	wifiConfigOpreat_comfigFailCounter = tipsTime + 2;
 }
 
 void lvGui_wifiConfig_bussiness_configComplete_tipsDetect(void){
 
+	const uint8_t qrCodeTrigDelay_period = 1;
 	uint8_t msgQh_rptrDataWifiConfig = 0;
 	static bool devNetworkReserve_flg = true;
-	static uint8_t qrCodeTrigDelay_counter = 10;
+	static uint8_t qrCodeTrigDelay_counter = qrCodeTrigDelay_period;
 
 	static enum{
 
@@ -894,7 +1176,7 @@ void lvGui_wifiConfig_bussiness_configComplete_tipsDetect(void){
 
 			lvGui_businessMenu_wifiConfig_methodByQrCode(lv_scr_act());
 
-			qrCodeTrigDelay_counter = 10;
+			qrCodeTrigDelay_counter = qrCodeTrigDelay_period;
 			QrCodeCreat_trig = VALDEF_BOOL_FALSE;	
 
 //			printf("damn trig 1!!!!!!!!!!!!!!\n");
@@ -917,15 +1199,54 @@ void lvGui_wifiConfig_bussiness_configComplete_tipsDetect(void){
 			devNetworkReserve_flg = false;
 	}
 
+	if(wifiScanning_Flg){
+	
+		static bool scanningTrig_flg = false;
+
+		if(!scanningTrig_flg){ //wifi scanning开始
+
+			wifi_scan_config_t scanConf = {
+				.ssid = NULL,
+				.bssid = NULL,
+				.channel = 0,
+				.show_hidden = false
+			};
+
+			scanningTrig_flg = true;
+			
+			ESP_ERROR_CHECK(esp_wifi_disconnect());
+			ESP_ERROR_CHECK(esp_wifi_scan_start(&scanConf, false));
+		}
+
+		if(!wifiConfigOpreat_scanningTimeCounter){ //wifi scanning结束，计时逻辑在timerSoft内进行
+
+			wifiScanning_Flg = false;
+			scanningTrig_flg = false;
+			
+			lvGui_businessMenu_wifiConfig_wifiScanningComplete();
+		}
+	}
+
+	if(wifiConfigOpreat_comfigFailCounter != COUNTER_DISENABLE_MASK_SPECIALVAL_U8){
+
+		if(!wifiConfigOpreat_comfigFailCounter){
+
+			wifiConfigOpreat_comfigFailCounter = COUNTER_DISENABLE_MASK_SPECIALVAL_U8;
+			lvGui_businessMenu_wifiConfig_qrCode_refresh();		
+		}
+	}
+
 	if(xQueueReceive(msgQh_wifiConfigCompleteTips, &msgQh_rptrDataWifiConfig, 1 / portTICK_RATE_MS) == pdTRUE){
 
 		printf("wifi config cmp tiptrig msg rcv.\n");
 
 	 	if(msgQh_rptrDataWifiConfig == 'A'){
 
+//			lvGui_usrAppBussinessRunning_blockCancel(); //UI阻塞提示解除
+
 			if(pageTips_wifiConfigComplete == NULL){
 
-				pageTips_wifiConfigComplete = lv_page_create(lv_scr_act(), NULL);
+				pageTips_wifiConfigComplete = lv_page_create(lv_layer_top(), NULL);
 				lv_obj_set_size(pageTips_wifiConfigComplete, 140, 90);
 				lv_obj_set_protect(pageTips_wifiConfigComplete, LV_PROTECT_POS);
 				lv_obj_align(pageTips_wifiConfigComplete, NULL, LV_ALIGN_CENTER, 0, 50);
@@ -952,16 +1273,18 @@ void lvGui_wifiConfig_bussiness_configComplete_tipsDetect(void){
 
 			lv_img_set_src(imageTips_wifiConfigComplete, &iconMenu_wifiConfig);
 			lv_label_set_text(labelTips_wifiConfigComplete, "config ok.");
+
+			usrApp_fullScreenRefresh_self(50, 80);
 		}
 		else
 		if(msgQh_rptrDataWifiConfig == 'B'){
-		
-			if(pageTips_wifiConfigComplete){
 
+			if(pageTips_wifiConfigComplete){
+			
 				lv_obj_del(pageTips_wifiConfigComplete);
 				pageTips_wifiConfigComplete = NULL;
 			}
-			lv_obj_del(menuText_devMac);
+			currentGui_elementClear();			
 			lvGui_usrSwitch(bussinessType_Home);
 		}
 	}
@@ -987,7 +1310,7 @@ static void lvGuiStyleInit_businessMenu_wifiConfig(void){
 	styleLabelRef_wifiConfigComplete.text.color = LV_COLOR_BLACK;
 
 	lv_style_copy(&styleText_menuLevel_A, &lv_style_plain);
-	styleText_menuLevel_A.text.font = &lv_font_dejavu_30;
+	styleText_menuLevel_A.text.font = &lv_font_dejavu_20;
 	styleText_menuLevel_A.text.color = LV_COLOR_WHITE;
 
 	lv_style_copy(&styleText_menuLevel_B_infoTips, &lv_style_plain);
@@ -1005,6 +1328,22 @@ static void lvGuiStyleInit_businessMenu_wifiConfig(void){
 	lv_style_copy(&styleLabelRef_wifiCfg_methodSel_btnRef, &lv_style_plain);
 	styleLabelRef_wifiCfg_methodSel_btnRef.text.font = &lv_font_consola_19;
 	styleLabelRef_wifiCfg_methodSel_btnRef.text.color = LV_COLOR_BLACK;
+
+	lv_style_copy(&styleLabelRef_wifiCfg_methodSel_btnMore, &lv_style_plain);
+	styleLabelRef_wifiCfg_methodSel_btnMore.text.font = &lv_font_consola_16;
+	styleLabelRef_wifiCfg_methodSel_btnMore.text.color = LV_COLOR_BLACK;
+
+	lv_style_copy(&styleImg_menuFun_btnFun, &lv_style_plain);
+	styleImg_menuFun_btnFun.image.intense = LV_OPA_COVER;
+	styleImg_menuFun_btnFun.image.color = LV_COLOR_MAKE(241, 250, 252);
+
+    lv_style_copy(&styleBtn_specialTransparent, &lv_style_btn_rel);
+	styleBtn_specialTransparent.body.main_color = LV_COLOR_TRANSP;
+	styleBtn_specialTransparent.body.grad_color = LV_COLOR_TRANSP;
+	styleBtn_specialTransparent.body.border.part = LV_BORDER_NONE;
+    styleBtn_specialTransparent.body.opa = LV_OPA_TRANSP;
+	styleBtn_specialTransparent.body.radius = 0;
+    styleBtn_specialTransparent.body.shadow.width = 0;
 
 	lv_style_copy(&styleMbox_bg, &lv_style_pretty);
 	styleMbox_bg.body.main_color = LV_COLOR_MAKE(0, 128, 192);

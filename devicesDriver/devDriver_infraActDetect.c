@@ -77,7 +77,6 @@
 EventGroupHandle_t xEventGp_infraActDetect = NULL;
 
 static stt_infraActDetect_attrFreq devParam_infraActDetect = {0};
-static pcnt_isr_handle_t user_isr_handle = NULL;
 
 static const char* NEC_TAG = "infraActDet";
 
@@ -360,25 +359,11 @@ static int nec_build_items(int channel, rmt_item32_t* item, int item_num, uint16
     return i;
 }
 
-static void IRAM_ATTR pcnt_isr_handler(void* arg){
+static void IRAM_ATTR pcnt_isr_handler(uint32_t evtStatus){
 
-	uint32_t intr_status = PCNT.int_st.val;
-	int	loop = 0;
+	if(evtStatus & PCNT_STATUS_H_LIM){
 
-	for (loop = 0; loop < PCNT_UNIT_MAX; loop++){
 
-		switch(intr_status & (BIT(loop))){
-
-			case PCNT_STATUS_H_LIM:{
-
-				
-			}break;
-
-			default:break;
-		}
-
-		if(intr_status & (BIT(loop)))
-			PCNT.int_clr.val = BIT(loop);
 	}
 }
 
@@ -431,6 +416,13 @@ bool devDriverBussiness_infraActDetect_detectReales(void){
 
 	bool res = false;
 	int16_t freq_infraActDetect = 0;
+
+#if(L8_DEVICE_TYPE_PANEL_DEF == DEV_TYPES_PANEL_DEF_INDEP_INFRARED) ||\
+   (L8_DEVICE_TYPE_PANEL_DEF == DEV_TYPES_PANEL_DEF_INDEP_SOCKET) ||\
+   (L8_DEVICE_TYPE_PANEL_DEF == DEV_TYPES_PANEL_DEF_INDEP_MOUDLE)
+	
+	return;
+#endif
 
 	pcnt_get_counter_value(DEVDRIVER_INFRAACTDETECT_PCNT_TEST_UNIT, &freq_infraActDetect);
 	devParam_infraActDetect.infraActDetect_PulseCount = (float)freq_infraActDetect;
@@ -544,7 +536,7 @@ void devDriverBussiness_infraActDetect_pcntRxInit(void){
     pcnt_counter_clear(DEVDRIVER_INFRAACTDETECT_PCNT_TEST_UNIT);
 
     /* Register ISR handler and enable interrupts for PCNT unit */
-    pcnt_isr_register(pcnt_isr_handler, NULL, 0, &pcnt_isr_handler);
+	isrHandleFuncPcntUnit_regster(pcnt_isr_handler, DEVDRIVER_INFRAACTDETECT_PCNT_TEST_UNIT); //pcnt应用处理函数注册，实际pcnt中断函数在devDriver_manage.c中
     pcnt_intr_enable(DEVDRIVER_INFRAACTDETECT_PCNT_TEST_UNIT);
 
     /* Everything is set up, now go to counting */
@@ -571,8 +563,15 @@ void devDriverBussiness_infraActDetect_pcntRxInit(void){
 
 void devDriverBussiness_infraActDetect_periphInit(void){
 
+#if(L8_DEVICE_TYPE_PANEL_DEF == DEV_TYPES_PANEL_DEF_INDEP_INFRARED) ||\
+   (L8_DEVICE_TYPE_PANEL_DEF == DEV_TYPES_PANEL_DEF_INDEP_SOCKET) ||\
+   (L8_DEVICE_TYPE_PANEL_DEF == DEV_TYPES_PANEL_DEF_INDEP_MOUDLE)
+
+#else
+
 	devDriverBussiness_infraActDetect_necTxInit();
 	devDriverBussiness_infraActDetect_pcntRxInit();
+#endif
 
 	xEventGp_infraActDetect = xEventGroupCreate();
 }

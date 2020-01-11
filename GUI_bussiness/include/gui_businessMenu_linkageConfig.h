@@ -33,6 +33,8 @@ extern "C" {
  */
 void lvGui_businessMenu_linkageConfig(lv_obj_t * obj_Parent);
 
+void guiDispTimeOut_pageLinkageCfg(void);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

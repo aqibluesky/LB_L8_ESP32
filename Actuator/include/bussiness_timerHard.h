@@ -63,12 +63,16 @@ typedef struct{
 enum{
 
 	_driverDataType_debug = 0,
+		
 	_driverDataType_dimer,
 	_driverDataType_curtain,
 	_driverDataType_elecMeasure,
 	_driverDataType_temprature,
 	_driverDataType_infraActDetect,
 	_driverDataType_thermostatDriving,
+	_driverDataType_infraredRunning,
+
+	_driverDataType_beepsParamDebug,
 };
 
 typedef struct{
@@ -96,6 +100,7 @@ typedef struct{
 		struct{
 
 			uint8_t measurePeriod_notice:1;
+			uint8_t processPeriod_notice:1;
 		}_elecMeasure_dats;
 
 		struct{
@@ -112,6 +117,17 @@ typedef struct{
 
 			uint8_t drivePeriod_notice:1;
 		}_thermostatDriver_dats;
+
+		struct{
+
+			uint8_t debugPeriod_notice:1;
+			uint8_t debugData:7;
+		}_infraredDriver_dats;
+
+		struct{
+
+			uint8_t dataStatus;
+		}_beepsDriver_dats;
 	}driverDats;
 }stt_msgDriverHwTimer;
  
@@ -119,9 +135,11 @@ typedef struct{
  * GLOBAL PROTOTYPES
  **********************/
 void usrApp_bussinessHardTimer_Init(void);
+void usrAppParamClrReset_devGreenMode(void);
 void usrAppParamSet_devGreenMode(uint8_t paramCst[2], bool nvsRecord_IF);
 void usrAppParamGet_devGreenMode(uint8_t paramCst[2]);
 void usrApp_GreenMode_trig(void);
+void usrAppParamClrReset_devDelayTrig(void);
 void usrAppParamSet_devDelayTrig(uint8_t paramCst[3]);
 void usrAppParamGet_devDelayTrig(uint8_t paramCst[3]);
 

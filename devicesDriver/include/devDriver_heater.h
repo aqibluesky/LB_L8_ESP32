@@ -32,6 +32,7 @@ extern "C" {
  **********************/
 typedef enum{
 
+	heaterOpreatAct_null = -1,
 	heaterOpreatAct_close = 0,
 	heaterOpreatAct_open,
 	heaterOpreatAct_closeAfter30Min,

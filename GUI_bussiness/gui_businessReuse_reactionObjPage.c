@@ -18,6 +18,7 @@
 #include "iot_lvgl.h"
 
 #include "gui_businessReuse_reactionObjPage.h"
+
 #include "gui_businessHome.h"
 
 LV_FONT_DECLARE(lv_font_consola_17);
@@ -44,11 +45,13 @@ static lv_style_t styleLabelRef_pageDetailSet;
 static stt_devDataPonitTypedef deviceDataPoint_valSetTemp[PAGEREACTION_REUSE_GLOBAL_NUM] = {0};
 static uint8_t currentDataPoint_valSetTemp_insert = 0;
 
+static uint8_t screenLandscapeCoordinate_objOffset = 0;
+
 static const lv_coord_t objSize_switchReaction_sw[2] = {48, 18};
 
 static lv_res_t sw1FunCb_trigAction_switchReaction_valSet(lv_obj_t *sw){
 
-	LV_OBJ_FREE_NUM_TYPE swFreeNum = lv_obj_get_free_num(sw);
+//	LV_OBJ_FREE_NUM_TYPE swFreeNum = lv_obj_get_free_num(sw);
 
 //	switch(swFreeNum){
 //	 
@@ -94,6 +97,18 @@ static lv_res_t sw1FunCb_trigAction_switchReaction_valSet(lv_obj_t *sw){
 
 		}break;
 
+		case devTypeDef_thermostatExtension:{
+
+			uint8_t dataParamSet_temp = 0;
+
+			memcpy(&dataParamSet_temp, &deviceDataPoint_valSetTemp[currentDataPoint_valSetTemp_insert], sizeof(stt_devDataPonitTypedef));
+			(lv_sw_get_state(sw))?
+				(dataParamSet_temp |=  (1 << 0)):
+				(dataParamSet_temp &= ~(1 << 0));
+			memcpy(&deviceDataPoint_valSetTemp[currentDataPoint_valSetTemp_insert], &dataParamSet_temp, sizeof(stt_devDataPonitTypedef));
+
+		}break;
+
 		default:break;
 	}
 
@@ -102,7 +117,7 @@ static lv_res_t sw1FunCb_trigAction_switchReaction_valSet(lv_obj_t *sw){
 
 static lv_res_t sw2FunCb_trigAction_switchReaction_valSet(lv_obj_t *sw){
 
-	LV_OBJ_FREE_NUM_TYPE swFreeNum = lv_obj_get_free_num(sw);
+//	LV_OBJ_FREE_NUM_TYPE swFreeNum = lv_obj_get_free_num(sw);
 
 //	switch(swFreeNum){
 //	 
@@ -132,6 +147,18 @@ static lv_res_t sw2FunCb_trigAction_switchReaction_valSet(lv_obj_t *sw){
 
 		}break;
 
+		case devTypeDef_thermostatExtension:{
+
+			uint8_t dataParamSet_temp = 0;
+				
+			memcpy(&dataParamSet_temp, &deviceDataPoint_valSetTemp[currentDataPoint_valSetTemp_insert], sizeof(stt_devDataPonitTypedef));
+			(lv_sw_get_state(sw))?
+				(dataParamSet_temp |=  (1 << 2)):
+				(dataParamSet_temp &= ~(1 << 2));
+			memcpy(&deviceDataPoint_valSetTemp[currentDataPoint_valSetTemp_insert], &dataParamSet_temp, sizeof(stt_devDataPonitTypedef));
+
+		}break;
+
 		default:break;
 	}
 
@@ -140,7 +167,7 @@ static lv_res_t sw2FunCb_trigAction_switchReaction_valSet(lv_obj_t *sw){
 
 static lv_res_t sw3FunCb_trigAction_switchReaction_valSet(lv_obj_t *sw){
 
-	LV_OBJ_FREE_NUM_TYPE swFreeNum = lv_obj_get_free_num(sw);
+//	LV_OBJ_FREE_NUM_TYPE swFreeNum = lv_obj_get_free_num(sw);
 
 //	switch(swFreeNum){
 //	 
@@ -159,6 +186,18 @@ static lv_res_t sw3FunCb_trigAction_switchReaction_valSet(lv_obj_t *sw){
 			(lv_sw_get_state(sw))?
 				(deviceDataPoint_valSetTemp[currentDataPoint_valSetTemp_insert].devType_mulitSwitch_threeBit.swVal_bit3 = 1):
 				(deviceDataPoint_valSetTemp[currentDataPoint_valSetTemp_insert].devType_mulitSwitch_threeBit.swVal_bit3 = 0);
+
+		}break;
+
+		case devTypeDef_thermostatExtension:{
+
+			uint8_t dataParamSet_temp = 0;
+				
+			memcpy(&dataParamSet_temp, &deviceDataPoint_valSetTemp[currentDataPoint_valSetTemp_insert], sizeof(stt_devDataPonitTypedef));
+			(lv_sw_get_state(sw))?
+				(dataParamSet_temp |=  (1 << 1)):
+				(dataParamSet_temp &= ~(1 << 1));
+			memcpy(&deviceDataPoint_valSetTemp[currentDataPoint_valSetTemp_insert], &dataParamSet_temp, sizeof(stt_devDataPonitTypedef));
 
 		}break;
 
@@ -187,7 +226,7 @@ static lv_res_t sliderFunCb_slidAction_switchReaction_valSet(lv_obj_t *slider){
 
 			switch(sliderFreeNum){ //真实数据
 			 
-				case PAGEREACTION_REUSE_BUSSINESS_TIMERSET_IST:{
+				case PAGEREACTION_REUSE_BUSSINESS_TIMERSET_IST:{ //响应值属性数据域不够用，做倍数处理
 
 					deviceDataPoint_valSetTemp[currentDataPoint_valSetTemp_insert].devType_dimmer.devDimmer_brightnessVal = sliderVal;		
 
@@ -212,7 +251,7 @@ static lv_res_t sliderFunCb_slidAction_switchReaction_valSet(lv_obj_t *slider){
 
 			switch(sliderFreeNum){ //真实数据
 			 
-				case PAGEREACTION_REUSE_BUSSINESS_TIMERSET_IST:{
+				case PAGEREACTION_REUSE_BUSSINESS_TIMERSET_IST:{ //响应值属性数据域不够用，做倍数处理
 
 					deviceDataPoint_valSetTemp[currentDataPoint_valSetTemp_insert].devType_curtain.devCurtain_actEnumVal = sliderVal;
 
@@ -235,7 +274,7 @@ static lv_res_t sliderFunCb_slidAction_switchReaction_valSet(lv_obj_t *slider){
 
 static lv_res_t btnmFunCb_clickAction_switchReaction_valSet(lv_obj_t *btnm, const char *txt){
 
-	LV_OBJ_FREE_NUM_TYPE btnmFreeNum = lv_obj_get_free_num(btnm);
+//	LV_OBJ_FREE_NUM_TYPE btnmFreeNum = lv_obj_get_free_num(btnm);
 	uint16_t toggleNum = lv_btnm_get_toggled(btnm);
 	const char **btnmStrCmp_temp = NULL;
 	uint8_t loopCmp_maxNum = 0;
@@ -349,7 +388,11 @@ void lvGui_businessReuse_reactionObjPageElement_creat(lv_obj_t *obj_Parent, uint
 
 	uint8_t pageObjIst_local = pageObjIst - PAGEREACTION_REUSE_BUSSINESS_RESERVE_BASE;
 	lv_coord_t objPosOfs_x = 0;
-			   
+
+	(devStatusDispMethod_landscapeIf_get())?
+		(screenLandscapeCoordinate_objOffset = 40):
+		(screenLandscapeCoordinate_objOffset = 0);
+
 	switch(pageObjIst){
 	 
 		case PAGEREACTION_REUSE_BUSSINESS_TIMERSET_IST:{
@@ -382,6 +425,8 @@ void lvGui_businessReuse_reactionObjPageElement_creat(lv_obj_t *obj_Parent, uint
 
 		default:break;
 	}
+
+	objPosOfs_x += screenLandscapeCoordinate_objOffset;
 
 	lvGui_businessReuse_objStyle_Init();
 
@@ -507,6 +552,51 @@ void lvGui_businessReuse_reactionObjPageElement_creat(lv_obj_t *obj_Parent, uint
 			(deviceDataPoint_valSetTemp[pageObjIst_local].devType_thermostat.devThermostat_running_en)?
 				(lv_sw_on(pageDetailSet_switchReaction_sw[0])):
 				(lv_sw_off(pageDetailSet_switchReaction_sw[0]));
+
+		}break;
+
+		case devTypeDef_thermostatExtension:{
+
+			uint8_t devParamSet_temp = 0;
+		
+			pageDetailSet_switchReaction_labelSwRef[0] = lv_label_create(obj_Parent, NULL);
+			lv_label_set_style(pageDetailSet_switchReaction_labelSwRef[0], &styleLabelRef_pageDetailSet);
+			lv_label_set_text(pageDetailSet_switchReaction_labelSwRef[0], "device run: ");
+			lv_obj_set_protect(pageDetailSet_switchReaction_labelSwRef[0], LV_PROTECT_POS);
+			lv_obj_align(pageDetailSet_switchReaction_labelSwRef[0], obj_Parent, LV_ALIGN_IN_TOP_LEFT, objPosOfs_x, cy);
+			pageDetailSet_switchReaction_labelSwRef[1] = lv_label_create(obj_Parent, pageDetailSet_switchReaction_labelSwRef[0]);
+			lv_label_set_text(pageDetailSet_switchReaction_labelSwRef[1], "switch_A: ");
+			lv_obj_align(pageDetailSet_switchReaction_labelSwRef[1], pageDetailSet_switchReaction_labelSwRef[0], LV_ALIGN_OUT_BOTTOM_LEFT, 0, 15);
+			pageDetailSet_switchReaction_labelSwRef[2] = lv_label_create(obj_Parent, pageDetailSet_switchReaction_labelSwRef[0]);
+			lv_label_set_text(pageDetailSet_switchReaction_labelSwRef[2], "switch_B: ");
+			lv_obj_align(pageDetailSet_switchReaction_labelSwRef[2], pageDetailSet_switchReaction_labelSwRef[1], LV_ALIGN_OUT_BOTTOM_LEFT, 0, 15);
+
+			pageDetailSet_switchReaction_sw[0] = lv_sw_create(obj_Parent, NULL);
+			lv_sw_set_action(pageDetailSet_switchReaction_sw[0], sw1FunCb_trigAction_switchReaction_valSet);
+			lv_obj_set_protect(pageDetailSet_switchReaction_sw[0], LV_PROTECT_POS);
+			lv_obj_align(pageDetailSet_switchReaction_sw[0], pageDetailSet_switchReaction_labelSwRef[0], LV_ALIGN_OUT_RIGHT_MID, 5, 7);
+			lv_obj_set_free_num(pageDetailSet_switchReaction_sw[0], pageObjIst);
+			lv_obj_set_size(pageDetailSet_switchReaction_sw[0], objSize_switchReaction_sw[0], objSize_switchReaction_sw[1]);
+			pageDetailSet_switchReaction_sw[1] = lv_sw_create(obj_Parent, pageDetailSet_switchReaction_sw[0]);
+			lv_sw_set_action(pageDetailSet_switchReaction_sw[1], sw2FunCb_trigAction_switchReaction_valSet);
+			lv_obj_align(pageDetailSet_switchReaction_sw[1], pageDetailSet_switchReaction_sw[0], LV_ALIGN_OUT_BOTTOM_LEFT, 0, 15);
+			lv_obj_set_free_num(pageDetailSet_switchReaction_sw[1], pageObjIst);
+			pageDetailSet_switchReaction_sw[2] = lv_sw_create(obj_Parent, pageDetailSet_switchReaction_sw[0]);
+			lv_sw_set_action(pageDetailSet_switchReaction_sw[2], sw3FunCb_trigAction_switchReaction_valSet);
+			lv_obj_align(pageDetailSet_switchReaction_sw[2], pageDetailSet_switchReaction_sw[1], LV_ALIGN_OUT_BOTTOM_LEFT, 0, 15);
+			lv_obj_set_free_num(pageDetailSet_switchReaction_sw[2], pageObjIst);
+
+			memcpy(&devParamSet_temp, &deviceDataPoint_valSetTemp[pageObjIst_local], sizeof(uint8_t));
+
+			((devParamSet_temp >> 0) & 0x01)?
+				(lv_sw_on(pageDetailSet_switchReaction_sw[0])):
+				(lv_sw_off(pageDetailSet_switchReaction_sw[0]));
+			((devParamSet_temp >> 2) & 0x01)?
+				(lv_sw_on(pageDetailSet_switchReaction_sw[1])):
+				(lv_sw_off(pageDetailSet_switchReaction_sw[1]));
+			((devParamSet_temp >> 1) & 0x01)?
+				(lv_sw_on(pageDetailSet_switchReaction_sw[2])):
+				(lv_sw_off(pageDetailSet_switchReaction_sw[2]));
 
 		}break;
 		
@@ -677,5 +767,6 @@ void lvGui_businessReuse_reactionObjPageElement_funValConfig_get(uint8_t pageIst
 
 	memcpy(dataPointReaction, &deviceDataPoint_valSetTemp[pageIst - PAGEREACTION_REUSE_BUSSINESS_RESERVE_BASE], sizeof(stt_devDataPonitTypedef));
 }
+
 
 
