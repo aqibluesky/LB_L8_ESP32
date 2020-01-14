@@ -291,7 +291,13 @@ float devDriverBussiness_temperatureMeasure_temperatureReales(void){
 	
 #if(DEVDRIVER_TEMPERATUREMEASURE_DATA_COMPENSATION_IF == 1)
 
+ #if(L8_DEVICE_TYPE_PANEL_DEF == DEV_TYPES_PANEL_DEF_INDEP_INFRARED)
+
+ 	devParam_temprature = tempSample_record;
+ #else
+ 
 	devParam_temprature = tempSample_record - devParam_reduceTempRecord;
+ #endif
 #else
 
 	devParam_temprature = tempSample_record;
