@@ -27,7 +27,7 @@ extern "C" {
 //#define L8_DEVICE_VERSION						0x08
 #define L8_DEVICE_VERSION						0x18 //开关设备版本号（设备版本号高四位自增向后迭代，高四位为0，语音控制没有高位区分，要慢一点）
 
-#define L8_DEVICE_VERSION_REF_DISCRIPTION		"L8-v1.0.16[202001091606]" //固件说明描述版本号
+#define L8_DEVICE_VERSION_REF_DISCRIPTION		"L8-v1.0.17a[202001151504]" //固件说明描述版本号
 
 #define DEVICE_MAC_ADDR_APPLICATION_LEN			6
 
@@ -151,7 +151,7 @@ extern "C" {
  
 #endif
 
-#define L8_DEVICE_TYPE_PANEL_DEF				DEV_TYPES_PANEL_DEF_INDEP_INFRARED
+#define L8_DEVICE_TYPE_PANEL_DEF				DEV_TYPES_PANEL_DEF_SHARE_MIX
 
 #if(L8_DEVICE_TYPE_PANEL_DEF == DEV_TYPES_PANEL_DEF_ALL_RESERVE)
 

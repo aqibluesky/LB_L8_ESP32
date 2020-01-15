@@ -208,6 +208,8 @@ uint16_t ctrlObj_slidingCalmDownCounter = 0; //界面控件滑动冷却计时变
 uint8_t  homepageRecovery_timeoutCounter = 0; //非home界面显示超时跳转计时变量
 uint16_t pageRefreshTrig_counter = COUNTER_DISENABLE_MASK_SPECIALVAL_U16; //界面刷新计时值（防马赛克）
 
+stt_kLongPreKeepParam kPreReaptParam_unlock = {0};
+
 static struct
 {
     lv_img_header_t header;
@@ -2036,6 +2038,23 @@ static lv_res_t funCb_btnActionClick_homeUnlock_click(lv_obj_t *btn){
 
 		devRunningFlg_temp &= ~DEV_RUNNING_FLG_BIT_DEVLOCK;
 		currentDevRunningFlg_paramSet(devRunningFlg_temp, true);
+	}
+
+	return LV_RES_OK;
+}
+
+static lv_res_t funCb_btnActionClick_homeUnlock_longPre(lv_obj_t *btn){
+
+	kPreReaptParam_unlock.counterDN = 2;
+
+	if(kPreReaptParam_unlock.counterUP > 6){
+
+		kPreReaptParam_unlock.counterUP = 0;
+		
+		devSystemInfoLocalRecord_allErase();		
+		usrApplication_systemRestartTrig(6);
+
+		printf("factory reset trig!\n");
 	}
 
 	return LV_RES_OK;
@@ -4995,9 +5014,10 @@ static void lvGui_businessHome(lv_obj_t * obj_Parent){
 
 	btn_unlockMenu = lv_btn_create(lv_scr_act(), btn_homeMenu);
 	(devStatusDispMethod_landscapeIf_get())?
-		(lv_obj_set_pos(btn_unlockMenu, 280, -20)):
-		(lv_obj_set_pos(btn_unlockMenu, 200, -15));
-	lv_btn_set_action(btn_unlockMenu, LV_BTN_ACTION_LONG_PR, funCb_btnActionClick_homeUnlock_click);
+		(lv_obj_set_pos(btn_unlockMenu, 230, -20)):
+		(lv_obj_set_pos(btn_unlockMenu, 150, -15));
+	lv_btn_set_action(btn_unlockMenu, LV_BTN_ACTION_LONG_PR, 		funCb_btnActionClick_homeUnlock_click);
+	lv_btn_set_action(btn_unlockMenu, LV_BTN_ACTION_LONG_PR_REPEAT, funCb_btnActionClick_homeUnlock_longPre);
 
 	switch(bGroundImg_themeParam.bGround_picOrg_ist){
 

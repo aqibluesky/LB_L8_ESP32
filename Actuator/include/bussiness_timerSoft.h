@@ -85,6 +85,13 @@ extern "C" {
 	uint8_t tmUp_Minute;		//定时：分
  }usrApp_trigTimer;
 
+ typedef struct{
+
+	uint8_t counterUP;
+	uint8_t counterDN;
+
+ }stt_kLongPreKeepParam;
+
 /**********************
  * GLOBAL PROTOTYPES
  **********************/

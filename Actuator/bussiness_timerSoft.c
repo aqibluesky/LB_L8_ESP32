@@ -32,6 +32,7 @@ extern uint8_t  homepageRecovery_timeoutCounter;
 extern uint16_t dtCounter_preventSurge;
 extern uint16_t  pageRefreshTrig_counter;
 extern uint16_t timeCounetr_mwifiReorganize;
+extern stt_kLongPreKeepParam kPreReaptParam_unlock;
 
 #if(DEVICE_DRIVER_DEFINITION == DEVICE_DRIVER_METHOD_BY_SLAVE_MCU)
  #if(DRVMETHOD_BY_SLAVE_MCU_RELAY_TEST == 1)
@@ -601,6 +602,16 @@ static void funCB_bussinessSoftTimer(void *timer){
 				wifiConfigComplete_tipsStartCounter = COUNTER_DISENABLE_MASK_SPECIALVAL_U8;
 				lvGui_wifiConfig_bussiness_configComplete_tipsOver();
 			}
+		}
+
+		if(kPreReaptParam_unlock.counterDN){
+
+			kPreReaptParam_unlock.counterDN --;
+			kPreReaptParam_unlock.counterUP ++;
+		}
+		else
+		{
+			kPreReaptParam_unlock.counterUP = 0;
 		}
 
 		//wifi配置时，扫描时间
